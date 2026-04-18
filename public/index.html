@@ -1190,6 +1190,7 @@
     <div class="pills-row">
       <button class="pill active" id="pillNombre" data-sort="nombre">Nombre <span class="pill-arrow"></span></button>
       <button class="pill" id="pillApellidos" data-sort="apellidos">Apellidos <span class="pill-arrow"></span></button>
+      <button class="pill" id="pillNumSocio" data-sort="num_socio">N\u00ba socio <span class="pill-arrow"></span></button>
       <button class="pill" id="pillAsiduidad" data-sort="asiduidad">Asiduidad</button>
       <button class="pill pill-asiduos" id="pillSoloAsiduos"><span class="pill-dot"></span> Solo asiduos</button>
     </div>
@@ -1313,6 +1314,9 @@
           return currentDir === 'desc' ? -cmp : cmp;
         } else if (currentSort === 'apellidos') {
           var cmp = norm(a.apellidos).localeCompare(norm(b.apellidos));
+          return currentDir === 'desc' ? -cmp : cmp;
+        } else if (currentSort === 'num_socio') {
+          var cmp = (a.num_socio || 0) - (b.num_socio || 0);
           return currentDir === 'desc' ? -cmp : cmp;
         } else {
           // Asiduidad: 1 > 2 > 3, dentro de cada nivel alfabético por apellidos
