@@ -3,7 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>LA BOYA</title>
+  <title>LA BOYA - Socios</title>
+  <meta name="theme-color" content="#0C447C">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='32' fill='%230C447C'/><text x='32' y='40' text-anchor='middle' font-family='system-ui,sans-serif' font-size='26' font-weight='700' fill='white'>LB</text></svg>">
+  <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%230C447C'/><text x='90' y='115' text-anchor='middle' font-family='system-ui,sans-serif' font-size='72' font-weight='700' fill='white'>LB</text></svg>">
+  <link rel="manifest" href="/manifest.json">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
   <style>
@@ -107,10 +113,17 @@
       align-items: center;
       cursor: pointer;
       overflow: hidden;
-      transition: background 0.15s;
+      transition: background 0.15s, transform 0.1s;
+      user-select: none;
     }
     .card:active {
       background: #F0F0F0;
+      transform: scale(0.97);
+    }
+    @media (hover: hover) {
+      .card:hover {
+        background: #F9F9F9;
+      }
     }
 
     /* Vista 2 columnas (por defecto) */
@@ -308,7 +321,6 @@
 
     /* === FICHA (OVERLAY) === */
     .ficha-overlay {
-      display: none;
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       z-index: 200;
@@ -316,21 +328,29 @@
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       height: 100dvh;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+      visibility: hidden;
     }
     .ficha-overlay.open {
-      display: block;
+      transform: translateY(0);
+      visibility: visible;
     }
     @media (min-width: 600px) {
       .ficha-overlay {
-        background: rgba(0,0,0,0.3);
-        display: none;
+        background: rgba(0,0,0,0);
         align-items: flex-start;
         justify-content: center;
         padding: 40px 16px;
         height: auto;
+        display: flex;
+        transform: none;
+        opacity: 0;
+        transition: opacity 0.3s ease, visibility 0.3s;
       }
       .ficha-overlay.open {
-        display: flex;
+        background: rgba(0,0,0,0.3);
+        opacity: 1;
       }
       .ficha-content {
         max-width: 500px;
@@ -338,6 +358,11 @@
         background: #fff;
         border-radius: 12px;
         box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+        transform: translateY(20px);
+        transition: transform 0.3s ease;
+      }
+      .ficha-overlay.open .ficha-content {
+        transform: translateY(0);
       }
     }
     .ficha-bar {
@@ -606,7 +631,7 @@
       position: fixed;
       bottom: 24px;
       left: 50%;
-      transform: translateX(-50%);
+      transform: translateX(-50%) translateY(20px);
       background: #185FA5;
       color: #fff;
       padding: 8px 20px;
@@ -615,16 +640,128 @@
       font-weight: 500;
       z-index: 300;
       opacity: 0;
-      transition: opacity 0.3s;
+      transition: opacity 0.3s, transform 0.3s;
       pointer-events: none;
     }
     .toast.visible {
       opacity: 1;
+      transform: translateX(-50%) translateY(0);
     }
     @media (max-width: 599px) {
       .toast {
         bottom: calc(80px + env(safe-area-inset-bottom));
       }
+    }
+
+    /* === LOADER === */
+    .loader-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+      opacity: 1;
+      transition: opacity 0.3s;
+    }
+    .loader-wrap.fade-out {
+      opacity: 0;
+    }
+    .loader-spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid #E0E0E0;
+      border-top-color: #185FA5;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .loader-text {
+      font-size: 13px;
+      color: #999;
+      margin-top: 12px;
+    }
+
+    /* === BANNER ERROR GLOBAL === */
+    .error-banner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 500;
+      background: #FCEBEB;
+      color: #791F1F;
+      padding: 10px 40px 10px 16px;
+      font-size: 13px;
+      transform: translateY(-100%);
+      transition: transform 0.3s;
+    }
+    .error-banner.visible {
+      transform: translateY(0);
+    }
+    .error-banner-close {
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      background: none;
+      border: none;
+      color: #791F1F;
+      font-size: 18px;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    /* === ESTADO VACÍO === */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+    }
+    .empty-state-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 16px;
+    }
+    .empty-state-icon svg {
+      width: 64px;
+      height: 64px;
+      stroke: #CCC;
+      fill: none;
+      stroke-width: 1.5;
+    }
+    .empty-state-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #666;
+      margin-bottom: 4px;
+    }
+    .empty-state-sub {
+      font-size: 13px;
+      color: #999;
+      margin-bottom: 16px;
+    }
+    .empty-state-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #185FA5;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-family: inherit;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    /* === FOCUS GLOBAL === */
+    input:focus, textarea:focus, button:focus-visible {
+      outline: 2px solid #B5D4F4;
+      outline-offset: 1px;
+    }
+    button:focus:not(:focus-visible) {
+      outline: none;
     }
 
     /* === EDITOR DE RECORTE === */
@@ -762,7 +899,6 @@
 
     /* === FORMULARIO OVERLAY === */
     .form-overlay {
-      display: none;
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       z-index: 200;
@@ -770,21 +906,29 @@
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       height: 100dvh;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+      visibility: hidden;
     }
     .form-overlay.open {
-      display: block;
+      transform: translateY(0);
+      visibility: visible;
     }
     @media (min-width: 600px) {
       .form-overlay {
-        background: rgba(0,0,0,0.3);
-        display: none;
+        background: rgba(0,0,0,0);
+        display: flex;
         align-items: flex-start;
         justify-content: center;
         padding: 40px 16px;
         height: auto;
+        transform: none;
+        opacity: 0;
+        transition: opacity 0.3s ease, visibility 0.3s;
       }
       .form-overlay.open {
-        display: flex;
+        background: rgba(0,0,0,0.3);
+        opacity: 1;
       }
       .form-content {
         max-width: 500px;
@@ -792,6 +936,11 @@
         background: #fff;
         border-radius: 12px;
         box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+        transform: translateY(20px);
+        transition: transform 0.3s ease;
+      }
+      .form-overlay.open .form-content {
+        transform: translateY(0);
       }
     }
     .form-bar {
@@ -999,14 +1148,6 @@
       cursor: pointer;
     }
 
-    /* === MENSAJE VACÍO === */
-    .empty-msg {
-      text-align: center;
-      padding: 40px 20px;
-      color: #999;
-      font-size: 15px;
-    }
-
     /* === RESPONSIVE === */
     @media (min-width: 768px) {
       .main {
@@ -1054,9 +1195,19 @@
     </div>
   </div>
 
+  <!-- BANNER ERROR GLOBAL -->
+  <div class="error-banner" id="errorBanner">
+    <span id="errorBannerText"></span>
+    <button class="error-banner-close" id="errorBannerClose">&times;</button>
+  </div>
+
   <!-- MOSAICO -->
   <div class="main">
-    <div class="grid cols-2" id="grid"></div>
+    <div class="loader-wrap" id="loader">
+      <div class="loader-spinner"></div>
+      <div class="loader-text">Cargando socios...</div>
+    </div>
+    <div class="grid cols-2" id="grid" style="display:none"></div>
   </div>
 
   <!-- TOAST -->
@@ -1191,7 +1342,24 @@
 
       // Mensaje vacío
       if (filtered.length === 0) {
-        grid.innerHTML = '<div class="empty-msg">Ning\u00fan socio coincide con tu b\u00fasqueda</div>';
+        if (socios.length === 0) {
+          grid.innerHTML =
+            '<div class="empty-state">' +
+              '<div class="empty-state-icon"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="28"/><line x1="32" y1="20" x2="32" y2="44"/><line x1="20" y1="32" x2="44" y2="32"/></svg></div>' +
+              '<div class="empty-state-title">A\u00fan no hay socios</div>' +
+              '<div class="empty-state-sub">Pulsa el bot\u00f3n + para a\u00f1adir el primero</div>' +
+              '<button class="empty-state-btn" id="emptyAddBtn">+ A\u00f1adir primer socio</button>' +
+            '</div>';
+          var emptyBtn = document.getElementById('emptyAddBtn');
+          if (emptyBtn) emptyBtn.addEventListener('click', function() { abrirFormulario(null); });
+        } else {
+          grid.innerHTML =
+            '<div class="empty-state">' +
+              '<div class="empty-state-icon"><svg viewBox="0 0 64 64"><circle cx="26" cy="26" r="18"/><line x1="39" y1="39" x2="54" y2="54"/><line x1="18" y1="26" x2="34" y2="26" stroke-dasharray="3 3"/></svg></div>' +
+              '<div class="empty-state-title">Sin resultados</div>' +
+              '<div class="empty-state-sub">Ning\u00fan socio coincide con tu b\u00fasqueda</div>' +
+            '</div>';
+        }
         return;
       }
 
@@ -1224,7 +1392,7 @@
         var thumbSize = thumbSizes[currentView] || 160;
         var avatarInner;
         if (s.foto_url) {
-          avatarInner = '<img src="' + cloudinaryThumb(s.foto_url, thumbSize) + '" alt="" onerror="this.parentElement.innerHTML=\'<span style=\\\'color:' + textColor + '\\\'>' + initials + '</span>\';this.parentElement.style.background=\'' + bgColor + '\'">';
+          avatarInner = '<img src="' + cloudinaryThumb(s.foto_url, thumbSize) + '" alt="" loading="lazy" decoding="async" onerror="this.parentElement.innerHTML=\'<span style=\\\'color:' + textColor + '\\\'>' + initials + '</span>\';this.parentElement.style.background=\'' + bgColor + '\'">';
         } else {
           avatarInner = '<span style="color:' + textColor + '">' + initials + '</span>';
         }
@@ -1348,6 +1516,11 @@
         abrirFormulario(null);
       });
 
+      // Error banner close
+      document.getElementById('errorBannerClose').addEventListener('click', function() {
+        document.getElementById('errorBanner').classList.remove('visible');
+      });
+
       // Cargar socios
       fetch('/api/socios')
         .then(function(res) { return res.json(); })
@@ -1355,10 +1528,13 @@
           socios = data;
           updateViewButtons();
           updatePills();
+          hideLoader();
           renderGrid();
         })
         .catch(function(err) {
           console.error('Error cargando socios:', err);
+          hideLoader();
+          showError(friendlyError(err));
         });
     }
 
@@ -1392,6 +1568,42 @@
       t.textContent = msg;
       t.classList.add('visible');
       setTimeout(function() { t.classList.remove('visible'); }, 2000);
+    }
+
+    // Error banner global
+    var errorTimer = null;
+    function showError(msg) {
+      var banner = document.getElementById('errorBanner');
+      document.getElementById('errorBannerText').textContent = msg;
+      banner.classList.add('visible');
+      if (errorTimer) clearTimeout(errorTimer);
+      errorTimer = setTimeout(function() { banner.classList.remove('visible'); }, 5000);
+    }
+    function friendlyError(err) {
+      if (!err) return 'Algo ha ido mal. Int\u00e9ntalo de nuevo.';
+      var msg = err.message || String(err);
+      if (msg.indexOf('Failed to fetch') !== -1 || msg.indexOf('NetworkError') !== -1) {
+        return 'No se pudo conectar con el servidor. Revisa tu conexi\u00f3n.';
+      }
+      if (msg.indexOf('404') !== -1 || msg.indexOf('no encontrado') !== -1) {
+        return 'Este socio ya no existe. Recarga la p\u00e1gina.';
+      }
+      if (msg.indexOf('foto') !== -1 || msg.indexOf('Cloudinary') !== -1) {
+        return 'No se pudo subir la foto. Int\u00e9ntalo de nuevo.';
+      }
+      return msg || 'Algo ha ido mal. Int\u00e9ntalo de nuevo.';
+    }
+
+    // Loader
+    var loaderMinTime = Date.now() + 300;
+    function hideLoader() {
+      var remaining = Math.max(0, loaderMinTime - Date.now());
+      setTimeout(function() {
+        var loader = document.getElementById('loader');
+        loader.classList.add('fade-out');
+        setTimeout(function() { loader.style.display = 'none'; }, 300);
+        document.getElementById('grid').style.display = '';
+      }, remaining);
     }
 
     function applyFichaSize(size) {
@@ -1476,7 +1688,7 @@
             '<button class="ficha-size-btn" data-size="L">L</button>' +
           '</div>' +
           '<div class="ficha-nombre">' + escapeHtml(s.nombre) + ' ' + escapeHtml(s.apellidos) + '</div>' +
-          '<button class="btn-editar-datos" id="btnEditarDatos">\u270E Editar datos</button>' +
+          '<button class="btn-editar-datos" id="btnEditarDatos"><svg viewBox="0 0 18 18" width="14" height="14" style="stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-2px;margin-right:3px"><path d="M10.5 3.5l4 4L5 17H1v-4z"/><path d="M10.5 3.5l2-2 4 4-2 2"/></svg>Editar datos</button>' +
           '<div class="ficha-info">Socio n\u00ba ' + s.num_socio + ' \u00b7 ' + s.antiguedad_años + ' a\u00f1os de antig\u00fcedad</div>' +
         '</div>' +
         '<hr class="ficha-sep">' +
@@ -1625,7 +1837,7 @@
             console.error('Error guardando:', err);
             btnD.disabled = false;
             btnM.disabled = false;
-            alert('Error al guardar. Int\u00e9ntalo de nuevo.');
+            showError(friendlyError(err));
           });
       }
 
@@ -1656,15 +1868,17 @@
           })
           .catch(function(err) {
             console.error(err);
-            alert('Error al eliminar. Int\u00e9ntalo de nuevo.');
+            showError(friendlyError(err));
           });
       });
 
       function cerrarFicha() {
         overlay.classList.remove('open');
-        document.body.style.overflow = '';
         document.removeEventListener('keydown', escHandler);
-        renderGrid();
+        setTimeout(function() {
+          document.body.style.overflow = '';
+          renderGrid();
+        }, 300);
       }
     }
 
@@ -1896,7 +2110,7 @@
       // Cancel / Back
       function cerrarForm() {
         overlay.classList.remove('open');
-        document.body.style.overflow = '';
+        setTimeout(function() { document.body.style.overflow = ''; }, 300);
       }
       document.getElementById('formCancel').addEventListener('click', cerrarForm);
       document.getElementById('formBack').addEventListener('click', cerrarForm);
