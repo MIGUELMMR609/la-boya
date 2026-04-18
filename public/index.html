@@ -118,9 +118,13 @@
       flex-direction: row;
     }
     .cols-2 .avatar {
-      width: 56px;
-      height: 56px;
-      font-size: 20px;
+      width: 80px;
+      height: 80px;
+      font-size: 24px;
+    }
+    .cols-2 .asiduidad-dot {
+      width: 17px;
+      height: 17px;
     }
     .cols-2 .card-name {
       font-size: 15px;
@@ -143,9 +147,13 @@
       flex-direction: row;
     }
     .cols-1 .avatar {
-      width: 64px;
-      height: 64px;
-      font-size: 22px;
+      width: 90px;
+      height: 90px;
+      font-size: 28px;
+    }
+    .cols-1 .asiduidad-dot {
+      width: 20px;
+      height: 20px;
     }
     .cols-1 .card-name {
       font-size: 15px;
@@ -173,9 +181,9 @@
       text-align: center;
     }
     .cols-4 .avatar {
-      width: 42px;
-      height: 42px;
-      font-size: 16px;
+      width: 60px;
+      height: 60px;
+      font-size: 18px;
     }
     .cols-4 .card-info {
       margin-top: 4px;
@@ -216,8 +224,8 @@
       border: 2px solid #fff;
     }
     .cols-4 .asiduidad-dot {
-      width: 12px;
-      height: 12px;
+      width: 13px;
+      height: 13px;
       bottom: 0;
       right: 0;
     }
@@ -361,9 +369,10 @@
       align-items: center;
       justify-content: center;
       font-weight: 700;
-      font-size: 38px;
+      font-size: 36px;
       letter-spacing: 2px;
       user-select: none;
+      transition: width 0.2s ease, height 0.2s ease, font-size 0.2s ease;
     }
     .ficha-asiduidad-dot {
       position: absolute;
@@ -373,7 +382,37 @@
       height: 22px;
       border-radius: 50%;
       border: 3px solid #fff;
+      transition: width 0.2s ease, height 0.2s ease;
     }
+
+    /* Selector S/M/L */
+    .ficha-size-row {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .ficha-size-btn {
+      width: 32px;
+      height: 28px;
+      border: 1px solid #E0E0E0;
+      border-radius: 6px;
+      background: #fff;
+      font-size: 12px;
+      font-family: inherit;
+      font-weight: 600;
+      color: #555;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ficha-size-btn.active {
+      background: #E6F1FB;
+      color: #0C447C;
+      border-color: #B5D4F4;
+    }
+
     .ficha-nombre {
       font-size: 18px;
       font-weight: 500;
@@ -514,6 +553,27 @@
       cursor: not-allowed;
     }
 
+    /* === TOAST === */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #185FA5;
+      color: #fff;
+      padding: 8px 20px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 300;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    .toast.visible {
+      opacity: 1;
+    }
+
     /* === MENSAJE VACÍO === */
     .empty-msg {
       text-align: center;
@@ -572,6 +632,9 @@
   <div class="main">
     <div class="grid cols-2" id="grid"></div>
   </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
 
   <!-- FICHA SOCIO -->
   <div class="ficha-overlay" id="fichaOverlay">
@@ -830,9 +893,11 @@
 
     // === FICHA INDIVIDUAL ===
     var MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-    var ASIDUIDAD_LABELS = { 1: 'Va mucho', 2: 'Alguna vez', 3: 'Casi nunca' };
-    var ASIDUIDAD_BG = { 1: '#EAF3DE', 2: '#FDF3E1', 3: '#FDEAEA' };
-    var ASIDUIDAD_TEXT = { 1: '#173404', 2: '#412402', 3: '#501313' };
+    var FICHA_SIZES = {
+      S: { avatar: 80, font: 24, dot: 18 },
+      M: { avatar: 110, font: 36, dot: 22 },
+      L: { avatar: 160, font: 52, dot: 28 }
+    };
 
     function formatFecha(str) {
       if (!str) return '';
@@ -851,6 +916,48 @@
       return null;
     }
 
+    function showToast(msg) {
+      var t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('visible');
+      setTimeout(function() { t.classList.remove('visible'); }, 2000);
+    }
+
+    function applyFichaSize(size) {
+      var cfg = FICHA_SIZES[size];
+      if (!cfg) return;
+      var av = document.getElementById('fichaAvatar');
+      var dot = document.getElementById('fichaDot');
+      if (av) {
+        av.style.width = cfg.avatar + 'px';
+        av.style.height = cfg.avatar + 'px';
+        av.style.fontSize = cfg.font + 'px';
+      }
+      if (dot) {
+        dot.style.width = cfg.dot + 'px';
+        dot.style.height = cfg.dot + 'px';
+      }
+      var btns = document.querySelectorAll('.ficha-size-btn');
+      for (var i = 0; i < btns.length; i++) {
+        if (btns[i].getAttribute('data-size') === size) {
+          btns[i].classList.add('active');
+        } else {
+          btns[i].classList.remove('active');
+        }
+      }
+      localStorage.setItem('la_boya_ficha_foto_size', size);
+    }
+
+    function updateAsiduidadUI(val) {
+      var btns = document.querySelectorAll('#asiduidadBtns .asiduidad-btn');
+      for (var i = 0; i < btns.length; i++) {
+        var btnVal = parseInt(btns[i].getAttribute('data-val'), 10);
+        btns[i].className = 'asiduidad-btn' + (btnVal === val ? ' sel-' + val : '');
+      }
+      var dot = document.getElementById('fichaDot');
+      if (dot) dot.style.background = ASIDUIDAD_COLORS[val] || '#999';
+    }
+
     function abrirFicha(id) {
       var s = findSocio(id);
       if (!s) return;
@@ -862,9 +969,16 @@
       var textColor = TEXT_COLORS[bgColor] || '#333';
       var dotColor = ASIDUIDAD_COLORS[s.asiduidad] || '#999';
 
+      // Estado original para detectar cambios
+      var asiduidadOriginal = s.asiduidad;
+      var notasOriginal = s.notas || '';
+      var asiduidadLocal = asiduidadOriginal;
+
       var notasEditadoHtml = s.notas_editado
         ? '<span class="notas-editado">\u00daltima edici\u00f3n: ' + escapeHtml(formatFecha(s.notas_editado)) + '</span>'
         : '<span class="notas-editado"></span>';
+
+      var savedSize = localStorage.getItem('la_boya_ficha_foto_size') || 'M';
 
       var html =
         '<div class="ficha-bar">' +
@@ -872,10 +986,15 @@
         '</div>' +
         '<div class="ficha-avatar-section">' +
           '<div class="ficha-avatar-wrap">' +
-            '<div class="ficha-avatar" style="background:' + bgColor + '">' +
+            '<div class="ficha-avatar" id="fichaAvatar" style="background:' + bgColor + '">' +
               '<span style="color:' + textColor + '">' + initials + '</span>' +
             '</div>' +
             '<div class="ficha-asiduidad-dot" id="fichaDot" style="background:' + dotColor + '"></div>' +
+          '</div>' +
+          '<div class="ficha-size-row">' +
+            '<button class="ficha-size-btn" data-size="S">S</button>' +
+            '<button class="ficha-size-btn" data-size="M">M</button>' +
+            '<button class="ficha-size-btn" data-size="L">L</button>' +
           '</div>' +
           '<div class="ficha-nombre">' + escapeHtml(s.nombre) + ' ' + escapeHtml(s.apellidos) + '</div>' +
           '<div class="ficha-info">Socio n\u00ba ' + s.num_socio + ' \u00b7 ' + s.antiguedad_años + ' a\u00f1os de antig\u00fcedad</div>' +
@@ -896,7 +1015,6 @@
         '<div class="notas-footer">' +
           notasEditadoHtml +
           '<div class="notas-footer-right">' +
-            '<span class="notas-saved" id="notasSaved">\u2713 Guardado</span>' +
             '<button class="btn-guardar" id="btnGuardar" disabled>Guardar</button>' +
           '</div>' +
         '</div>';
@@ -905,50 +1023,121 @@
       overlay.classList.add('open');
       document.body.style.overflow = 'hidden';
 
-      // Estado interno de la ficha
-      var fichaId = id;
-      var notasOriginal = s.notas || '';
+      // Aplicar tamaño guardado
+      applyFichaSize(savedSize);
 
-      // Botón volver
-      document.getElementById('fichaBack').addEventListener('click', function() {
+      // Botones S/M/L
+      var sizeBtns = document.querySelectorAll('.ficha-size-btn');
+      for (var i = 0; i < sizeBtns.length; i++) {
+        sizeBtns[i].addEventListener('click', function() {
+          applyFichaSize(this.getAttribute('data-size'));
+        });
+      }
+
+      // Detectar cambios pendientes
+      function hayPendientes() {
+        var notasChanged = document.getElementById('fichaNotas').value !== notasOriginal;
+        var asidChanged = asiduidadLocal !== asiduidadOriginal;
+        return notasChanged || asidChanged;
+      }
+
+      function updateBtnGuardar() {
+        document.getElementById('btnGuardar').disabled = !hayPendientes();
+      }
+
+      // Botón volver con confirmación
+      function intentarCerrar() {
+        if (hayPendientes()) {
+          if (!confirm('Hay cambios sin guardar. \u00bfDescartar y volver?')) return;
+          // Revertir asiduidad local si no se guardó
+          asiduidadLocal = asiduidadOriginal;
+        }
         cerrarFicha();
-      });
+      }
 
-      // Escape para cerrar
+      document.getElementById('fichaBack').addEventListener('click', intentarCerrar);
+
       var escHandler = function(e) {
-        if (e.key === 'Escape') cerrarFicha();
+        if (e.key === 'Escape') intentarCerrar();
       };
       document.addEventListener('keydown', escHandler);
 
-      // Click en overlay (desktop) para cerrar
       overlay.addEventListener('click', function overlayClick(e) {
         if (e.target === overlay) {
-          cerrarFicha();
+          intentarCerrar();
           overlay.removeEventListener('click', overlayClick);
         }
       });
 
-      // Botones asiduidad
+      // Botones asiduidad — solo cambio visual local
       var asidBtns = document.querySelectorAll('#asiduidadBtns .asiduidad-btn');
       for (var i = 0; i < asidBtns.length; i++) {
         asidBtns[i].addEventListener('click', function() {
           var val = parseInt(this.getAttribute('data-val'), 10);
-          if (val === s.asiduidad) return;
-          cambiarAsiduidad(fichaId, val, s);
+          if (val === asiduidadLocal) return;
+          asiduidadLocal = val;
+          updateAsiduidadUI(val);
+          updateBtnGuardar();
         });
       }
 
       // Textarea notas
       var textarea = document.getElementById('fichaNotas');
-      var btnGuardar = document.getElementById('btnGuardar');
-      textarea.addEventListener('input', function() {
-        var changed = textarea.value !== notasOriginal;
-        btnGuardar.disabled = !changed;
-        document.getElementById('notasSaved').classList.remove('visible');
-      });
+      textarea.addEventListener('input', updateBtnGuardar);
 
-      btnGuardar.addEventListener('click', function() {
-        guardarNotas(fichaId, textarea, btnGuardar, s);
+      // Botón Guardar unificado
+      document.getElementById('btnGuardar').addEventListener('click', function() {
+        var btn = this;
+        btn.disabled = true;
+
+        var promises = [];
+        var asidChanged = asiduidadLocal !== asiduidadOriginal;
+        var notasChanged = textarea.value !== notasOriginal;
+
+        if (asidChanged) {
+          promises.push(
+            fetch('/api/socios/' + id + '/asiduidad', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ asiduidad: asiduidadLocal })
+            }).then(function(res) {
+              if (!res.ok) throw new Error('Error guardando asiduidad');
+              return res.json();
+            })
+          );
+        }
+
+        if (notasChanged) {
+          promises.push(
+            fetch('/api/socios/' + id + '/notas', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ notas: textarea.value })
+            }).then(function(res) {
+              if (!res.ok) throw new Error('Error guardando notas');
+              return res.json();
+            })
+          );
+        }
+
+        Promise.all(promises)
+          .then(function(results) {
+            // Aplicar cambios al objeto socio en memoria
+            for (var r = 0; r < results.length; r++) {
+              var updated = results[r];
+              if (updated.asiduidad !== undefined) s.asiduidad = updated.asiduidad;
+              if (updated.notas !== undefined) s.notas = updated.notas;
+              if (updated.notas_editado !== undefined) s.notas_editado = updated.notas_editado;
+              if (updated.fecha_modificacion) s.fecha_modificacion = updated.fecha_modificacion;
+            }
+            cerrarFicha();
+            showToast('\u2713 Cambios guardados');
+          })
+          .catch(function(err) {
+            console.error('Error guardando:', err);
+            btn.disabled = false;
+            alert('Error al guardar. Int\u00e9ntalo de nuevo.');
+          });
       });
 
       function cerrarFicha() {
@@ -957,85 +1146,6 @@
         document.removeEventListener('keydown', escHandler);
         renderGrid();
       }
-    }
-
-    function cambiarAsiduidad(id, newVal, socioRef) {
-      var prevVal = socioRef.asiduidad;
-      // Optimistic update
-      socioRef.asiduidad = newVal;
-      updateAsiduidadUI(newVal);
-
-      // Deshabilitar botones
-      var btns = document.querySelectorAll('#asiduidadBtns .asiduidad-btn');
-      for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
-
-      fetch('/api/socios/' + id + '/asiduidad', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ asiduidad: newVal })
-      })
-      .then(function(res) {
-        if (!res.ok) throw new Error('Error del servidor');
-        return res.json();
-      })
-      .then(function(updated) {
-        socioRef.fecha_modificacion = updated.fecha_modificacion;
-        for (var i = 0; i < btns.length; i++) btns[i].disabled = false;
-      })
-      .catch(function(err) {
-        console.error('Error guardando asiduidad:', err);
-        socioRef.asiduidad = prevVal;
-        updateAsiduidadUI(prevVal);
-        for (var i = 0; i < btns.length; i++) btns[i].disabled = false;
-        alert('Error al guardar asiduidad. Int\u00e9ntalo de nuevo.');
-      });
-    }
-
-    function updateAsiduidadUI(val) {
-      var btns = document.querySelectorAll('#asiduidadBtns .asiduidad-btn');
-      for (var i = 0; i < btns.length; i++) {
-        var btnVal = parseInt(btns[i].getAttribute('data-val'), 10);
-        btns[i].className = 'asiduidad-btn' + (btnVal === val ? ' sel-' + val : '');
-      }
-      var dot = document.getElementById('fichaDot');
-      if (dot) dot.style.background = ASIDUIDAD_COLORS[val] || '#999';
-    }
-
-    function guardarNotas(id, textarea, btnGuardar, socioRef) {
-      btnGuardar.disabled = true;
-      var notasText = textarea.value;
-
-      fetch('/api/socios/' + id + '/notas', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notas: notasText })
-      })
-      .then(function(res) {
-        if (!res.ok) throw new Error('Error del servidor');
-        return res.json();
-      })
-      .then(function(updated) {
-        socioRef.notas = updated.notas;
-        socioRef.notas_editado = updated.notas_editado;
-        socioRef.fecha_modificacion = updated.fecha_modificacion;
-
-        // Actualizar fecha en la UI
-        var editadoEl = document.querySelector('.notas-editado');
-        if (editadoEl) editadoEl.textContent = '\u00daltima edici\u00f3n: ' + formatFecha(updated.notas_editado);
-
-        // Mostrar confirmación
-        var savedEl = document.getElementById('notasSaved');
-        savedEl.classList.add('visible');
-        setTimeout(function() { savedEl.classList.remove('visible'); }, 2000);
-
-        // El valor actual es el nuevo original
-        // btnGuardar queda disabled porque no hay cambios
-      })
-      .catch(function(err) {
-        console.error('Error guardando notas:', err);
-        btnGuardar.disabled = false;
-        alert('Error al guardar notas. Int\u00e9ntalo de nuevo.');
-      });
     }
 
     document.addEventListener('DOMContentLoaded', init);
