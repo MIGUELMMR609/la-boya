@@ -47,6 +47,8 @@ const EN_RENDER = fs.existsSync('/app/data');
 const DATA_DIR = EN_RENDER ? '/app/data' : path.join(__dirname, 'data');
 const SOCIOS_FILE = path.join(DATA_DIR, 'socios.json');
 const SEED_FILE = path.join(__dirname, 'data', 'socios.json');
+const EVENTOS_FILE = path.join(DATA_DIR, 'eventos.json');
+const EVENTOS_SEED_FILE = path.join(__dirname, 'data', 'eventos.json');
 
 // Inicializar datos: si el disco persistente está vacío, copiar seed del repo
 function inicializarDatos() {
@@ -82,6 +84,23 @@ function inicializarDatos() {
   }
 
   console.log('Socios cargados: ' + contenido.length);
+
+  // Inicializar eventos
+  if (!fs.existsSync(EVENTOS_FILE)) {
+    if (EN_RENDER && fs.existsSync(EVENTOS_SEED_FILE)) {
+      fs.copyFileSync(EVENTOS_SEED_FILE, EVENTOS_FILE);
+      console.log('Eventos: seed copiado');
+    } else {
+      fs.writeFileSync(EVENTOS_FILE, '[]', 'utf8');
+    }
+  }
+  try {
+    var evts = JSON.parse(fs.readFileSync(EVENTOS_FILE, 'utf8'));
+    console.log('Eventos cargados: ' + evts.length);
+  } catch (e) {
+    fs.writeFileSync(EVENTOS_FILE, '[]', 'utf8');
+    console.log('Eventos cargados: 0');
+  }
 }
 
 inicializarDatos();
@@ -314,6 +333,171 @@ app.delete('/api/socios/:id', async (req, res) => {
   } catch (err) {
     console.error('Error eliminando socio:', err);
     res.status(500).json({ error: 'Error al eliminar socio' });
+  }
+});
+
+// === EVENTOS ===
+const MESES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+function generarNombreComida(fechaStr) {
+  var parts = fechaStr.split('-');
+  var d = parseInt(parts[2], 10);
+  var m = parseInt(parts[1], 10) - 1;
+  var y = parts[0];
+  return 'Comida social - ' + d + ' ' + MESES_ES[m] + ' ' + y;
+}
+
+function leerEventos() {
+  try { return JSON.parse(fs.readFileSync(EVENTOS_FILE, 'utf8')); }
+  catch (e) { return []; }
+}
+
+function guardarEventos(data) {
+  fs.writeFileSync(EVENTOS_FILE, JSON.stringify(data, null, 2), 'utf8');
+}
+
+// GET /api/eventos
+app.get('/api/eventos', (req, res) => {
+  try {
+    var data = leerEventos();
+    data.sort(function(a, b) { return b.fecha.localeCompare(a.fecha); });
+    res.json(data);
+  } catch (err) {
+    console.error('Error leyendo eventos:', err);
+    res.status(500).json({ error: 'Error al leer eventos' });
+  }
+});
+
+// GET /api/eventos/:id
+app.get('/api/eventos/:id', (req, res) => {
+  var data = leerEventos();
+  var evt = data.find(e => e.id === req.params.id);
+  if (!evt) return res.status(404).json({ error: 'Evento no encontrado' });
+  res.json(evt);
+});
+
+// POST /api/eventos
+app.post('/api/eventos', (req, res) => {
+  try {
+    var tipo = req.body.tipo;
+    var fecha = req.body.fecha;
+
+    if (!tipo || !['comida_social', 'evento'].includes(tipo)) {
+      return res.status(400).json({ error: 'Tipo debe ser comida_social o evento' });
+    }
+    if (!fecha || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+      return res.status(400).json({ error: 'Fecha requerida en formato YYYY-MM-DD' });
+    }
+
+    var nombre = (req.body.nombre || '').trim();
+    var modoCalculo = req.body.modo_calculo || 'precio_fijo';
+    var precioPorPersona = req.body.precio_por_persona != null ? parseFloat(req.body.precio_por_persona) : null;
+    var costeTotal = req.body.coste_total != null ? parseFloat(req.body.coste_total) : null;
+
+    if (tipo === 'comida_social') {
+      nombre = nombre || generarNombreComida(fecha);
+      modoCalculo = 'precio_fijo';
+      if (precioPorPersona == null || isNaN(precioPorPersona)) precioPorPersona = 25;
+      costeTotal = null;
+    } else {
+      if (!nombre) return res.status(400).json({ error: 'Nombre requerido para eventos' });
+      if (!['precio_fijo', 'total_dividido'].includes(modoCalculo)) {
+        return res.status(400).json({ error: 'modo_calculo debe ser precio_fijo o total_dividido' });
+      }
+      if (modoCalculo === 'precio_fijo') {
+        if (precioPorPersona == null || isNaN(precioPorPersona) || precioPorPersona <= 0) {
+          return res.status(400).json({ error: 'precio_por_persona debe ser mayor que 0' });
+        }
+        costeTotal = null;
+      } else {
+        if (costeTotal == null || isNaN(costeTotal) || costeTotal <= 0) {
+          return res.status(400).json({ error: 'coste_total debe ser mayor que 0' });
+        }
+        precioPorPersona = null;
+      }
+    }
+
+    var data = leerEventos();
+    var maxNum = 0;
+    for (var i = 0; i < data.length; i++) {
+      var num = parseInt(data[i].id.replace('evt_', ''), 10);
+      if (num > maxNum) maxNum = num;
+    }
+    var newId = 'evt_' + String(maxNum + 1).padStart(3, '0');
+    var hoy = fechaHoy();
+
+    var evento = {
+      id: newId,
+      tipo: tipo,
+      nombre: nombre,
+      fecha: fecha,
+      estado: 'abierto',
+      precio_por_persona: precioPorPersona,
+      coste_total: costeTotal,
+      modo_calculo: modoCalculo,
+      cocineros: [],
+      asistentes: [],
+      notas: req.body.notas || '',
+      fecha_creacion: hoy,
+      fecha_modificacion: hoy
+    };
+
+    data.push(evento);
+    guardarEventos(data);
+    console.log('Evento creado: ' + nombre + ' (id: ' + newId + ')');
+    res.status(201).json(evento);
+  } catch (err) {
+    console.error('Error creando evento:', err);
+    res.status(500).json({ error: 'Error al crear evento' });
+  }
+});
+
+// PUT /api/eventos/:id
+app.put('/api/eventos/:id', (req, res) => {
+  try {
+    var data = leerEventos();
+    var idx = data.findIndex(e => e.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Evento no encontrado' });
+
+    var evt = data[idx];
+    if (req.body.fecha !== undefined) {
+      evt.fecha = req.body.fecha;
+      if (evt.tipo === 'comida_social') evt.nombre = generarNombreComida(evt.fecha);
+    }
+    if (req.body.nombre !== undefined && evt.tipo === 'evento') evt.nombre = req.body.nombre.trim();
+    if (req.body.estado !== undefined) evt.estado = req.body.estado;
+    if (req.body.precio_por_persona !== undefined) evt.precio_por_persona = parseFloat(req.body.precio_por_persona);
+    if (req.body.coste_total !== undefined) evt.coste_total = parseFloat(req.body.coste_total);
+    if (req.body.modo_calculo !== undefined) evt.modo_calculo = req.body.modo_calculo;
+    if (req.body.notas !== undefined) evt.notas = req.body.notas;
+    if (req.body.cocineros !== undefined) evt.cocineros = req.body.cocineros;
+    if (req.body.asistentes !== undefined) evt.asistentes = req.body.asistentes;
+
+    evt.fecha_modificacion = fechaHoy();
+    data[idx] = evt;
+    guardarEventos(data);
+    console.log('Evento actualizado: ' + evt.id);
+    res.json(evt);
+  } catch (err) {
+    console.error('Error editando evento:', err);
+    res.status(500).json({ error: 'Error al editar evento' });
+  }
+});
+
+// DELETE /api/eventos/:id
+app.delete('/api/eventos/:id', (req, res) => {
+  try {
+    var data = leerEventos();
+    var idx = data.findIndex(e => e.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Evento no encontrado' });
+    var evtId = data[idx].id;
+    data.splice(idx, 1);
+    guardarEventos(data);
+    console.log('Evento eliminado: ' + evtId);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Error eliminando evento:', err);
+    res.status(500).json({ error: 'Error al eliminar evento' });
   }
 });
 
