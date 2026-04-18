@@ -232,6 +232,78 @@
     .avatar[data-bg="#97C459"] { color: #173404; }
     .avatar[data-bg="#F7C1C1"] { color: #501313; }
 
+    /* === BUSCADOR === */
+    .header-search {
+      max-width: 900px;
+      margin: 10px auto 0;
+    }
+    .search-input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 0.5px solid #E0E0E0;
+      border-radius: 8px;
+      font-size: 15px;
+      font-family: inherit;
+      background: #F5F5F5;
+      outline: none;
+    }
+    .search-input:focus {
+      border-color: #B5D4F4;
+      background: #fff;
+    }
+
+    /* === PILLS === */
+    .pills-row {
+      max-width: 900px;
+      margin: 8px auto 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .pill {
+      padding: 6px 12px;
+      border: 0.5px solid #E0E0E0;
+      border-radius: 999px;
+      background: #fff;
+      font-size: 13px;
+      font-family: inherit;
+      color: #555;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+    .pill.active {
+      background: #E6F1FB;
+      color: #0C447C;
+      border-color: #B5D4F4;
+    }
+    .pill-asiduos {
+      margin-left: auto;
+    }
+    .pill-asiduos.active {
+      background: #EAF3DE;
+      color: #173404;
+      border-color: #C0DD97;
+    }
+    .pill-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #639922;
+      display: inline-block;
+    }
+
+    /* === MENSAJE VACÍO === */
+    .empty-msg {
+      text-align: center;
+      padding: 40px 20px;
+      color: #999;
+      font-size: 15px;
+    }
+
     /* === RESPONSIVE === */
     @media (min-width: 768px) {
       .main {
@@ -267,6 +339,15 @@
         </button>
       </div>
     </div>
+    <div class="header-search">
+      <input type="text" class="search-input" id="searchInput" placeholder="Buscar socio..." autocomplete="off">
+    </div>
+    <div class="pills-row">
+      <button class="pill active" id="pillNombre" data-sort="nombre">Nombre <span class="pill-arrow"></span></button>
+      <button class="pill" id="pillApellidos" data-sort="apellidos">Apellidos <span class="pill-arrow"></span></button>
+      <button class="pill" id="pillAsiduidad" data-sort="asiduidad">Asiduidad</button>
+      <button class="pill pill-asiduos" id="pillSoloAsiduos"><span class="pill-dot"></span> Solo asiduos</button>
+    </div>
   </div>
 
   <!-- MOSAICO -->
@@ -287,11 +368,18 @@
       '#97C459': '#173404',
       '#F7C1C1': '#501313'
     };
-    var LS_KEY = 'la_boya_vista';
 
     // === ESTADO ===
     var socios = [];
-    var currentView = localStorage.getItem(LS_KEY) || '2';
+    var currentView = localStorage.getItem('la_boya_vista') || '2';
+    var currentSort = localStorage.getItem('la_boya_orden') || 'nombre';
+    var currentDir = localStorage.getItem('la_boya_orden_direccion') || 'asc';
+    var soloAsiduos = localStorage.getItem('la_boya_solo_asiduos') === 'true';
+
+    // === NORMALIZAR TEXTO (quitar tildes, minúsculas) ===
+    function norm(text) {
+      return (text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    }
 
     // === INICIALES ===
     function getInitials(nombre, apellidos) {
@@ -300,14 +388,73 @@
       return n + a;
     }
 
+    // === ESCAPE HTML ===
+    function escapeHtml(text) {
+      var div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // === FILTRAR + ORDENAR ===
+    function getFilteredSocios() {
+      var query = norm(document.getElementById('searchInput').value.trim());
+      var result = socios.slice();
+
+      // Filtro búsqueda
+      if (query) {
+        result = result.filter(function(s) {
+          var full = norm(s.nombre + ' ' + s.apellidos);
+          return full.indexOf(query) !== -1;
+        });
+      }
+
+      // Filtro solo asiduos
+      if (soloAsiduos) {
+        result = result.filter(function(s) { return s.asiduidad === 1; });
+      }
+
+      // Ordenar
+      result.sort(function(a, b) {
+        if (currentSort === 'nombre') {
+          var cmp = norm(a.nombre).localeCompare(norm(b.nombre));
+          return currentDir === 'desc' ? -cmp : cmp;
+        } else if (currentSort === 'apellidos') {
+          var cmp = norm(a.apellidos).localeCompare(norm(b.apellidos));
+          return currentDir === 'desc' ? -cmp : cmp;
+        } else {
+          // Asiduidad: 1 > 2 > 3, dentro de cada nivel alfabético por apellidos
+          if (a.asiduidad !== b.asiduidad) return a.asiduidad - b.asiduidad;
+          return norm(a.apellidos).localeCompare(norm(b.apellidos));
+        }
+      });
+
+      return result;
+    }
+
     // === RENDER MOSAICO ===
     function renderGrid() {
       var grid = document.getElementById('grid');
       grid.className = 'grid cols-' + currentView;
       grid.innerHTML = '';
 
-      for (var i = 0; i < socios.length; i++) {
-        var s = socios[i];
+      var filtered = getFilteredSocios();
+
+      // Actualizar contador
+      var countEl = document.getElementById('socioCount');
+      if (filtered.length === socios.length) {
+        countEl.textContent = socios.length + ' socios';
+      } else {
+        countEl.textContent = filtered.length + ' de ' + socios.length + ' socios';
+      }
+
+      // Mensaje vacío
+      if (filtered.length === 0) {
+        grid.innerHTML = '<div class="empty-msg">Ning\u00fan socio coincide con tu b\u00fasqueda</div>';
+        return;
+      }
+
+      for (var i = 0; i < filtered.length; i++) {
+        var s = filtered[i];
         var initials = getInitials(s.nombre, s.apellidos);
         var bgColor = s.avatar_color || '#85B7EB';
         var textColor = TEXT_COLORS[bgColor] || '#333';
@@ -346,17 +493,10 @@
       }
     }
 
-    // === ESCAPE HTML ===
-    function escapeHtml(text) {
-      var div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
-
     // === VISTA ===
     function setView(cols) {
       currentView = cols;
-      localStorage.setItem(LS_KEY, cols);
+      localStorage.setItem('la_boya_vista', cols);
       renderGrid();
       updateViewButtons();
     }
@@ -373,9 +513,57 @@
       }
     }
 
+    // === PILLS ORDENACIÓN ===
+    function setSort(campo) {
+      if (campo === 'asiduidad') {
+        currentSort = 'asiduidad';
+        currentDir = 'asc';
+      } else if (currentSort === campo) {
+        currentDir = currentDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSort = campo;
+        currentDir = 'asc';
+      }
+      localStorage.setItem('la_boya_orden', currentSort);
+      localStorage.setItem('la_boya_orden_direccion', currentDir);
+      updatePills();
+      renderGrid();
+    }
+
+    function toggleSoloAsiduos() {
+      soloAsiduos = !soloAsiduos;
+      localStorage.setItem('la_boya_solo_asiduos', soloAsiduos);
+      updatePills();
+      renderGrid();
+    }
+
+    function updatePills() {
+      var sortPills = document.querySelectorAll('.pill[data-sort]');
+      for (var i = 0; i < sortPills.length; i++) {
+        var pill = sortPills[i];
+        var campo = pill.getAttribute('data-sort');
+        var arrowSpan = pill.querySelector('.pill-arrow');
+        if (campo === currentSort) {
+          pill.classList.add('active');
+          if (arrowSpan) {
+            arrowSpan.textContent = campo === 'asiduidad' ? '' : (currentDir === 'asc' ? '\u2191' : '\u2193');
+          }
+        } else {
+          pill.classList.remove('active');
+          if (arrowSpan) arrowSpan.textContent = '';
+        }
+      }
+      var asidPill = document.getElementById('pillSoloAsiduos');
+      if (soloAsiduos) {
+        asidPill.classList.add('active');
+      } else {
+        asidPill.classList.remove('active');
+      }
+    }
+
     // === INIT ===
     function init() {
-      // Event listeners botones de vista
+      // Botones de vista
       var btns = document.querySelectorAll('.view-btn');
       for (var i = 0; i < btns.length; i++) {
         btns[i].addEventListener('click', function() {
@@ -383,13 +571,29 @@
         });
       }
 
+      // Pills de ordenación
+      var sortPills = document.querySelectorAll('.pill[data-sort]');
+      for (var i = 0; i < sortPills.length; i++) {
+        sortPills[i].addEventListener('click', function() {
+          setSort(this.getAttribute('data-sort'));
+        });
+      }
+
+      // Pill solo asiduos
+      document.getElementById('pillSoloAsiduos').addEventListener('click', toggleSoloAsiduos);
+
+      // Búsqueda instantánea
+      document.getElementById('searchInput').addEventListener('input', function() {
+        renderGrid();
+      });
+
       // Cargar socios
       fetch('/api/socios')
         .then(function(res) { return res.json(); })
         .then(function(data) {
           socios = data;
-          document.getElementById('socioCount').textContent = socios.length + ' socios';
           updateViewButtons();
+          updatePills();
           renderGrid();
         })
         .catch(function(err) {
