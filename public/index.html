@@ -625,6 +625,278 @@
       }
     }
 
+    /* === FOTOS EN AVATAR === */
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .ficha-avatar img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    /* === BOTÓN + === */
+    .btn-add {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #185FA5;
+      color: #fff;
+      border: none;
+      font-size: 22px;
+      font-weight: 300;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: 6px;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    /* === FORMULARIO OVERLAY === */
+    .form-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 200;
+      background: #fff;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      height: 100dvh;
+    }
+    .form-overlay.open {
+      display: block;
+    }
+    @media (min-width: 600px) {
+      .form-overlay {
+        background: rgba(0,0,0,0.3);
+        display: none;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 40px 16px;
+        height: auto;
+      }
+      .form-overlay.open {
+        display: flex;
+      }
+      .form-content {
+        max-width: 500px;
+        width: 100%;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+      }
+    }
+    .form-bar {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 0.5px solid #E0E0E0;
+    }
+    .form-bar-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      margin-left: 12px;
+    }
+    .form-body {
+      padding: 20px 16px;
+    }
+    .form-photo-zone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .form-photo-circle {
+      width: 130px;
+      height: 130px;
+      border-radius: 50%;
+      border: 2px dashed #CCC;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      overflow: hidden;
+      position: relative;
+      background: #FAFAFA;
+    }
+    .form-photo-circle.has-photo {
+      border-style: solid;
+      border-color: #B5D4F4;
+    }
+    .form-photo-circle img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .form-photo-circle svg {
+      width: 32px;
+      height: 32px;
+      stroke: #BBB;
+      fill: none;
+      stroke-width: 1.5;
+    }
+    .form-photo-circle .photo-hint {
+      font-size: 11px;
+      color: #BBB;
+      margin-top: 4px;
+    }
+    .form-photo-remove {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.5);
+      color: #fff;
+      border: none;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .form-photo-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .form-photo-btn {
+      font-size: 12px;
+      color: #185FA5;
+      background: none;
+      border: 1px solid #B5D4F4;
+      border-radius: 6px;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .form-field {
+      margin-bottom: 14px;
+    }
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #666;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .form-input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 0.5px solid #E0E0E0;
+      border-radius: 8px;
+      font-size: 15px;
+      font-family: inherit;
+      background: #fff;
+      outline: none;
+    }
+    .form-input:focus {
+      border-color: #B5D4F4;
+    }
+    .form-input.error {
+      border-color: #E24B4A;
+      background: #FFF5F5;
+    }
+    .form-error-msg {
+      font-size: 11px;
+      color: #E24B4A;
+      margin-top: 3px;
+    }
+    .form-error-banner {
+      background: #FDEAEA;
+      color: #A32D2D;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 14px;
+      display: none;
+    }
+    .form-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      border-top: 0.5px solid #E0E0E0;
+    }
+    .btn-cancel {
+      background: none;
+      border: 1px solid #D0D0D0;
+      border-radius: 6px;
+      padding: 8px 16px;
+      font-size: 14px;
+      font-family: inherit;
+      color: #555;
+      cursor: pointer;
+      min-height: 44px;
+    }
+    .btn-submit {
+      background: #185FA5;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 20px;
+      font-size: 14px;
+      font-family: inherit;
+      font-weight: 500;
+      cursor: pointer;
+      min-height: 44px;
+      min-width: 130px;
+    }
+    .btn-submit:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    @media (max-width: 599px) {
+      .form-actions {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 210;
+        background: #fff;
+        padding-bottom: calc(12px + env(safe-area-inset-bottom));
+      }
+      .form-body {
+        padding-bottom: calc(80px + env(safe-area-inset-bottom));
+      }
+    }
+
+    /* === BOTONES EDITAR/ELIMINAR EN FICHA === */
+    .btn-editar-datos {
+      background: none;
+      border: 1px solid #D0D0D0;
+      border-radius: 6px;
+      padding: 4px 12px;
+      font-size: 11px;
+      font-family: inherit;
+      color: #555;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+    .btn-eliminar-socio {
+      display: block;
+      margin: 0 auto 20px;
+      background: none;
+      border: 1px solid #D4A0A0;
+      border-radius: 6px;
+      padding: 6px 16px;
+      font-size: 12px;
+      font-family: inherit;
+      color: #A32D2D;
+      cursor: pointer;
+    }
+
     /* === MENSAJE VACÍO === */
     .empty-msg {
       text-align: center;
@@ -666,6 +938,7 @@
         <button class="view-btn" data-cols="4" title="Compacto (4 columnas)">
           <svg viewBox="0 0 16 16"><rect x="0.5" y="2" width="3" height="12" rx="1"/><rect x="4.5" y="2" width="3" height="12" rx="1"/><rect x="8.5" y="2" width="3" height="12" rx="1"/><rect x="12.5" y="2" width="3" height="12" rx="1"/></svg>
         </button>
+        <button class="btn-add" id="btnAdd" title="Nuevo socio">+</button>
       </div>
     </div>
     <div class="header-search">
@@ -687,6 +960,11 @@
   <!-- TOAST -->
   <div class="toast" id="toast"></div>
 
+  <!-- FORMULARIO ALTA/EDICIÓN -->
+  <div class="form-overlay" id="formOverlay">
+    <div class="form-content" id="formContent"></div>
+  </div>
+
   <!-- FICHA SOCIO -->
   <div class="ficha-overlay" id="fichaOverlay">
     <div class="ficha-content" id="fichaContent"></div>
@@ -705,6 +983,14 @@
       '#97C459': '#173404',
       '#F7C1C1': '#501313'
     };
+
+    var AVATAR_COLORS = ['#AFA9EC','#F0997B','#5DCAA5','#85B7EB','#ED93B1','#EF9F27','#97C459','#F7C1C1'];
+
+    // Inyectar transformación Cloudinary en URL
+    function cloudinaryThumb(url, size) {
+      if (!url) return '';
+      return url.replace('/upload/', '/upload/w_' + size + ',h_' + size + ',c_fill,g_face,q_auto/');
+    }
 
     // === ESTADO ===
     var socios = [];
@@ -814,10 +1100,20 @@
         card.addEventListener('click', (function(socioId) {
           return function() { abrirFicha(socioId); };
         })(s.id));
+        // Determinar tamaño de thumb según vista
+        var thumbSizes = { '1': 180, '2': 160, '4': 120 };
+        var thumbSize = thumbSizes[currentView] || 160;
+        var avatarInner;
+        if (s.foto_url) {
+          avatarInner = '<img src="' + cloudinaryThumb(s.foto_url, thumbSize) + '" alt="" onerror="this.parentElement.innerHTML=\'<span style=\\\'color:' + textColor + '\\\'>' + initials + '</span>\';this.parentElement.style.background=\'' + bgColor + '\'">';
+        } else {
+          avatarInner = '<span style="color:' + textColor + '">' + initials + '</span>';
+        }
+
         card.innerHTML =
           '<div class="avatar-wrap">' +
-            '<div class="avatar" style="background:' + bgColor + '" data-bg="' + bgColor + '">' +
-              '<span style="color:' + textColor + '">' + initials + '</span>' +
+            '<div class="avatar" style="background:' + (s.foto_url ? 'transparent' : bgColor) + '" data-bg="' + bgColor + '">' +
+              avatarInner +
             '</div>' +
             '<div class="asiduidad-dot" style="background:' + dotColor + '"></div>' +
           '</div>' +
@@ -928,6 +1224,11 @@
         renderGrid();
       });
 
+      // Botón nuevo socio
+      document.getElementById('btnAdd').addEventListener('click', function() {
+        abrirFormulario(null);
+      });
+
       // Cargar socios
       fetch('/api/socios')
         .then(function(res) { return res.json(); })
@@ -1031,14 +1332,22 @@
 
       var savedSize = localStorage.getItem('la_boya_ficha_foto_size') || 'M';
 
+      // Avatar ficha: foto o iniciales
+      var fichaAvatarInner;
+      if (s.foto_url) {
+        fichaAvatarInner = '<img src="' + escapeHtml(s.foto_url) + '" alt="" onerror="this.parentElement.innerHTML=\'<span style=\\\'color:' + textColor + '\\\'>' + initials + '</span>\';this.parentElement.style.background=\'' + bgColor + '\'">';
+      } else {
+        fichaAvatarInner = '<span style="color:' + textColor + '">' + initials + '</span>';
+      }
+
       var html =
         '<div class="ficha-bar">' +
           '<button class="ficha-back" id="fichaBack">\u2190 Volver</button>' +
         '</div>' +
         '<div class="ficha-avatar-section">' +
           '<div class="ficha-avatar-wrap">' +
-            '<div class="ficha-avatar" id="fichaAvatar" style="background:' + bgColor + '">' +
-              '<span style="color:' + textColor + '">' + initials + '</span>' +
+            '<div class="ficha-avatar" id="fichaAvatar" style="background:' + (s.foto_url ? 'transparent' : bgColor) + '">' +
+              fichaAvatarInner +
             '</div>' +
             '<div class="ficha-asiduidad-dot" id="fichaDot" style="background:' + dotColor + '"></div>' +
           '</div>' +
@@ -1048,6 +1357,7 @@
             '<button class="ficha-size-btn" data-size="L">L</button>' +
           '</div>' +
           '<div class="ficha-nombre">' + escapeHtml(s.nombre) + ' ' + escapeHtml(s.apellidos) + '</div>' +
+          '<button class="btn-editar-datos" id="btnEditarDatos">\u270E Editar datos</button>' +
           '<div class="ficha-info">Socio n\u00ba ' + s.num_socio + ' \u00b7 ' + s.antiguedad_años + ' a\u00f1os de antig\u00fcedad</div>' +
         '</div>' +
         '<hr class="ficha-sep">' +
@@ -1069,6 +1379,7 @@
             '<button class="btn-guardar" id="btnGuardar" disabled>Guardar</button>' +
           '</div>' +
         '</div>' +
+        '<button class="btn-eliminar-socio" id="btnEliminar">Eliminar socio</button>' +
         '<div class="ficha-bottom-bar" id="fichaBottomBar">' +
           '<button class="ficha-back" id="fichaBackMobile">\u2190 Volver</button>' +
           '<button class="btn-guardar" id="btnGuardarMobile" disabled>Guardar</button>' +
@@ -1202,12 +1513,260 @@
       document.getElementById('btnGuardar').addEventListener('click', ejecutarGuardar);
       document.getElementById('btnGuardarMobile').addEventListener('click', ejecutarGuardar);
 
+      // Botón editar datos
+      document.getElementById('btnEditarDatos').addEventListener('click', function() {
+        cerrarFicha();
+        abrirFormulario(s);
+      });
+
+      // Botón eliminar
+      document.getElementById('btnEliminar').addEventListener('click', function() {
+        if (!confirm('\u00bfSeguro que quieres eliminar a ' + s.nombre + ' ' + s.apellidos + '? Esta acci\u00f3n no se puede deshacer.')) return;
+        fetch('/api/socios/' + id, { method: 'DELETE' })
+          .then(function(res) {
+            if (!res.ok) throw new Error('Error eliminando');
+            return res.json();
+          })
+          .then(function() {
+            // Quitar de la lista local
+            for (var idx = 0; idx < socios.length; idx++) {
+              if (socios[idx].id === id) { socios.splice(idx, 1); break; }
+            }
+            cerrarFicha();
+            showToast('\u2713 Socio eliminado');
+          })
+          .catch(function(err) {
+            console.error(err);
+            alert('Error al eliminar. Int\u00e9ntalo de nuevo.');
+          });
+      });
+
       function cerrarFicha() {
         overlay.classList.remove('open');
         document.body.style.overflow = '';
         document.removeEventListener('keydown', escHandler);
         renderGrid();
       }
+    }
+
+    // === RECARGAR SOCIOS ===
+    function recargarSocios(cb) {
+      fetch('/api/socios')
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          socios = data;
+          renderGrid();
+          if (cb) cb();
+        })
+        .catch(function(err) { console.error('Error recargando:', err); });
+    }
+
+    // === FORMULARIO ALTA / EDICIÓN ===
+    function abrirFormulario(socioExistente) {
+      var esEdicion = !!socioExistente;
+      var overlay = document.getElementById('formOverlay');
+      var content = document.getElementById('formContent');
+      var fotoFile = null;
+      var fotoPreviewUrl = socioExistente && socioExistente.foto_url ? socioExistente.foto_url : '';
+      var asiduidadForm = socioExistente ? socioExistente.asiduidad : 2;
+
+      var titulo = esEdicion ? 'Editar socio' : 'Nuevo socio';
+      var btnText = esEdicion ? 'Guardar cambios' : 'Crear socio';
+
+      // Foto zone inner
+      var photoInner = fotoPreviewUrl
+        ? '<img id="formPhotoPreview" src="' + escapeHtml(fotoPreviewUrl) + '" alt=""><button type="button" class="form-photo-remove" id="formPhotoRemove">\u00d7</button>'
+        : '<svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg><span class="photo-hint">Tocar para a\u00f1adir foto</span>';
+
+      var html =
+        '<div class="form-bar">' +
+          '<button class="ficha-back" id="formBack">\u2190</button>' +
+          '<span class="form-bar-title">' + titulo + '</span>' +
+        '</div>' +
+        '<div class="form-body">' +
+          '<div class="form-error-banner" id="formErrorBanner"></div>' +
+          '<div class="form-photo-zone">' +
+            '<div class="form-photo-circle' + (fotoPreviewUrl ? ' has-photo' : '') + '" id="formPhotoCircle">' +
+              photoInner +
+            '</div>' +
+            '<div class="form-photo-buttons">' +
+              '<button type="button" class="form-photo-btn" id="formPhotoCam">C\u00e1mara</button>' +
+              '<button type="button" class="form-photo-btn" id="formPhotoGal">Galer\u00eda</button>' +
+            '</div>' +
+            '<input type="file" id="formFileCamera" accept="image/*" capture="environment" style="display:none">' +
+            '<input type="file" id="formFileGallery" accept="image/*" style="display:none">' +
+          '</div>' +
+          '<div class="form-field">' +
+            '<label class="form-label">Nombre *</label>' +
+            '<input class="form-input" id="formNombre" type="text" value="' + escapeHtml(socioExistente ? socioExistente.nombre : '') + '">' +
+          '</div>' +
+          '<div class="form-field">' +
+            '<label class="form-label">Apellidos *</label>' +
+            '<input class="form-input" id="formApellidos" type="text" value="' + escapeHtml(socioExistente ? socioExistente.apellidos : '') + '">' +
+          '</div>' +
+          '<div class="form-field">' +
+            '<label class="form-label">N\u00ba de socio *</label>' +
+            '<input class="form-input" id="formNumSocio" type="number" value="' + (socioExistente ? socioExistente.num_socio : '') + '">' +
+          '</div>' +
+          '<div class="form-field">' +
+            '<label class="form-label">A\u00f1os de antig\u00fcedad</label>' +
+            '<input class="form-input" id="formAntiguedad" type="number" value="' + (socioExistente ? socioExistente.antiguedad_años : '') + '">' +
+          '</div>' +
+          '<div class="form-field">' +
+            '<label class="form-label">Asiduidad</label>' +
+            '<div class="asiduidad-buttons" id="formAsidBtns">' +
+              '<button type="button" class="asiduidad-btn' + (asiduidadForm === 1 ? ' sel-1' : '') + '" data-val="1">Va mucho</button>' +
+              '<button type="button" class="asiduidad-btn' + (asiduidadForm === 2 ? ' sel-2' : '') + '" data-val="2">Alguna vez</button>' +
+              '<button type="button" class="asiduidad-btn' + (asiduidadForm === 3 ? ' sel-3' : '') + '" data-val="3">Casi nunca</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="form-field">' +
+            '<label class="form-label">Notas</label>' +
+            '<textarea class="notas-textarea" id="formNotas" style="min-height:80px">' + escapeHtml(socioExistente ? (socioExistente.notas || '') : '') + '</textarea>' +
+          '</div>' +
+        '</div>' +
+        '<div class="form-actions">' +
+          '<button class="btn-cancel" id="formCancel">Cancelar</button>' +
+          '<button class="btn-submit" id="formSubmit">' + btnText + '</button>' +
+        '</div>';
+
+      content.innerHTML = html;
+      overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+
+      // Photo circle click → camera
+      document.getElementById('formPhotoCircle').addEventListener('click', function() {
+        if (!fotoPreviewUrl && !fotoFile) document.getElementById('formFileCamera').click();
+      });
+
+      // Camera / Gallery buttons
+      document.getElementById('formPhotoCam').addEventListener('click', function() {
+        document.getElementById('formFileCamera').click();
+      });
+      document.getElementById('formPhotoGal').addEventListener('click', function() {
+        document.getElementById('formFileGallery').click();
+      });
+
+      // File selected
+      function handleFile(e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        fotoFile = file;
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+          fotoPreviewUrl = ev.target.result;
+          var circle = document.getElementById('formPhotoCircle');
+          circle.classList.add('has-photo');
+          circle.innerHTML = '<img id="formPhotoPreview" src="' + fotoPreviewUrl + '" alt=""><button type="button" class="form-photo-remove" id="formPhotoRemove">\u00d7</button>';
+          document.getElementById('formPhotoRemove').addEventListener('click', function(ev2) {
+            ev2.stopPropagation();
+            removePhoto();
+          });
+        };
+        reader.readAsDataURL(file);
+      }
+      document.getElementById('formFileCamera').addEventListener('change', handleFile);
+      document.getElementById('formFileGallery').addEventListener('change', handleFile);
+
+      // Remove photo
+      function removePhoto() {
+        fotoFile = null;
+        fotoPreviewUrl = '';
+        var circle = document.getElementById('formPhotoCircle');
+        circle.classList.remove('has-photo');
+        circle.innerHTML = '<svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg><span class="photo-hint">Tocar para a\u00f1adir foto</span>';
+        document.getElementById('formFileCamera').value = '';
+        document.getElementById('formFileGallery').value = '';
+      }
+
+      // Remove button for existing photo
+      var rmBtn = document.getElementById('formPhotoRemove');
+      if (rmBtn) {
+        rmBtn.addEventListener('click', function(ev) {
+          ev.stopPropagation();
+          removePhoto();
+        });
+      }
+
+      // Asiduidad buttons
+      var asidBtns = document.querySelectorAll('#formAsidBtns .asiduidad-btn');
+      for (var i = 0; i < asidBtns.length; i++) {
+        asidBtns[i].addEventListener('click', function() {
+          asiduidadForm = parseInt(this.getAttribute('data-val'), 10);
+          var all = document.querySelectorAll('#formAsidBtns .asiduidad-btn');
+          for (var j = 0; j < all.length; j++) {
+            var v = parseInt(all[j].getAttribute('data-val'), 10);
+            all[j].className = 'asiduidad-btn' + (v === asiduidadForm ? ' sel-' + v : '');
+          }
+        });
+      }
+
+      // Cancel / Back
+      function cerrarForm() {
+        overlay.classList.remove('open');
+        document.body.style.overflow = '';
+      }
+      document.getElementById('formCancel').addEventListener('click', cerrarForm);
+      document.getElementById('formBack').addEventListener('click', cerrarForm);
+
+      // Submit
+      document.getElementById('formSubmit').addEventListener('click', function() {
+        var btn = this;
+        var nombre = document.getElementById('formNombre').value.trim();
+        var apellidos = document.getElementById('formApellidos').value.trim();
+        var numSocio = document.getElementById('formNumSocio').value.trim();
+        var banner = document.getElementById('formErrorBanner');
+        banner.style.display = 'none';
+
+        // Limpiar errores
+        var inputs = document.querySelectorAll('.form-input');
+        for (var k = 0; k < inputs.length; k++) inputs[k].classList.remove('error');
+
+        // Validar
+        var errors = [];
+        if (!nombre) { errors.push('Nombre'); document.getElementById('formNombre').classList.add('error'); }
+        if (!apellidos) { errors.push('Apellidos'); document.getElementById('formApellidos').classList.add('error'); }
+        if (!numSocio || isNaN(parseInt(numSocio, 10))) { errors.push('N\u00ba de socio'); document.getElementById('formNumSocio').classList.add('error'); }
+        if (errors.length) {
+          banner.textContent = 'Completa los campos obligatorios: ' + errors.join(', ');
+          banner.style.display = 'block';
+          return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Guardando...';
+
+        var formData = new FormData();
+        formData.append('nombre', nombre);
+        formData.append('apellidos', apellidos);
+        formData.append('num_socio', numSocio);
+        formData.append('antiguedad_años', document.getElementById('formAntiguedad').value || '0');
+        formData.append('asiduidad', asiduidadForm);
+        formData.append('notas', document.getElementById('formNotas').value);
+        if (fotoFile) formData.append('foto', fotoFile);
+
+        var url = esEdicion ? '/api/socios/' + socioExistente.id : '/api/socios';
+        var method = esEdicion ? 'PUT' : 'POST';
+
+        fetch(url, { method: method, body: formData })
+          .then(function(res) {
+            if (!res.ok) return res.json().then(function(d) { throw new Error(d.error || 'Error del servidor'); });
+            return res.json();
+          })
+          .then(function() {
+            cerrarForm();
+            recargarSocios(function() {
+              showToast(esEdicion ? '\u2713 Socio actualizado' : '\u2713 Socio creado');
+            });
+          })
+          .catch(function(err) {
+            console.error(err);
+            banner.textContent = err.message || 'Error al guardar';
+            banner.style.display = 'block';
+            btn.disabled = false;
+            btn.textContent = btnText;
+          });
+      });
     }
 
     document.addEventListener('DOMContentLoaded', init);
