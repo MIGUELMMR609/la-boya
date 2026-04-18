@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>LA BOYA</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
   <style>
     * {
       margin: 0;
@@ -625,6 +627,106 @@
       }
     }
 
+    /* === EDITOR DE RECORTE === */
+    .crop-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 9999;
+      background: rgba(0,0,0,0.85);
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+    .crop-overlay.open {
+      display: flex;
+    }
+    .crop-container {
+      background: #fff;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    @media (min-width: 600px) {
+      .crop-container {
+        max-width: 500px;
+        max-height: 600px;
+        width: 100%;
+        height: auto;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+    }
+    .crop-header {
+      padding: 12px 16px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      border-bottom: 0.5px solid #E0E0E0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .crop-rotate-btn {
+      background: none;
+      border: 1px solid #D0D0D0;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-family: inherit;
+      color: #555;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .crop-rotate-btn svg {
+      width: 14px;
+      height: 14px;
+      stroke: #555;
+      fill: none;
+      stroke-width: 2;
+    }
+    .crop-area {
+      flex: 1;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      min-height: 0;
+    }
+    .crop-area img {
+      display: block;
+      max-width: 100%;
+    }
+    .crop-actions {
+      display: flex;
+      gap: 8px;
+      padding: 12px 16px;
+      flex-shrink: 0;
+      border-top: 0.5px solid #E0E0E0;
+    }
+    @media (max-width: 599px) {
+      .crop-actions {
+        flex-direction: column;
+        padding-bottom: calc(12px + env(safe-area-inset-bottom));
+      }
+    }
+    .crop-actions .btn-cancel {
+      flex: 1;
+    }
+    .crop-actions .btn-submit {
+      flex: 1;
+    }
+    /* Cropper.js: hacer el crop box circular */
+    .cropper-view-box,
+    .cropper-face {
+      border-radius: 50%;
+    }
+
     /* === FOTOS EN AVATAR === */
     .avatar img {
       width: 100%;
@@ -959,6 +1061,23 @@
 
   <!-- TOAST -->
   <div class="toast" id="toast"></div>
+
+  <!-- EDITOR DE RECORTE -->
+  <div class="crop-overlay" id="cropOverlay">
+    <div class="crop-container">
+      <div class="crop-header">
+        <span>Ajusta la foto</span>
+        <button class="crop-rotate-btn" id="cropRotate"><svg viewBox="0 0 24 24"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 105.64-12.36L1 10"/></svg> Rotar</button>
+      </div>
+      <div class="crop-area">
+        <img id="cropImage" src="" alt="">
+      </div>
+      <div class="crop-actions">
+        <button class="btn-cancel" id="cropCancel">Cancelar</button>
+        <button class="btn-submit" id="cropConfirm">Recortar y usar</button>
+      </div>
+    </div>
+  </div>
 
   <!-- FORMULARIO ALTA/EDICIÓN -->
   <div class="form-overlay" id="formOverlay">
@@ -1647,21 +1766,94 @@
         document.getElementById('formFileGallery').click();
       });
 
+      // Mostrar preview circular tras recorte o selección directa
+      function mostrarPreview(dataUrl) {
+        fotoPreviewUrl = dataUrl;
+        var circle = document.getElementById('formPhotoCircle');
+        circle.classList.add('has-photo');
+        circle.innerHTML = '<img id="formPhotoPreview" src="' + dataUrl + '" alt=""><button type="button" class="form-photo-remove" id="formPhotoRemove">\u00d7</button>';
+        document.getElementById('formPhotoRemove').addEventListener('click', function(ev2) {
+          ev2.stopPropagation();
+          removePhoto();
+        });
+      }
+
+      // Abrir editor de recorte con Cropper.js
+      function abrirCropEditor(dataUrl) {
+        var cropOverlay = document.getElementById('cropOverlay');
+        var cropImage = document.getElementById('cropImage');
+        cropImage.src = dataUrl;
+        cropOverlay.classList.add('open');
+
+        var cropper = new window.Cropper(cropImage, {
+          aspectRatio: 1,
+          viewMode: 1,
+          dragMode: 'move',
+          guides: false,
+          center: true,
+          autoCropArea: 0.9,
+          cropBoxResizable: false,
+          toggleDragModeOnDblclick: false,
+          minCropBoxWidth: 200,
+          background: false,
+          zoomable: true,
+          wheelZoomRatio: 0.1
+        });
+
+        function limpiarCropper() {
+          cropper.destroy();
+          cropOverlay.classList.remove('open');
+          cropImage.src = '';
+          document.getElementById('cropCancel').removeEventListener('click', onCancel);
+          document.getElementById('cropConfirm').removeEventListener('click', onConfirm);
+          document.getElementById('cropRotate').removeEventListener('click', onRotate);
+        }
+
+        function onCancel() {
+          limpiarCropper();
+          // Limpiar input para que se pueda volver a elegir la misma foto
+          document.getElementById('formFileCamera').value = '';
+          document.getElementById('formFileGallery').value = '';
+        }
+
+        function onConfirm() {
+          var canvas = cropper.getCroppedCanvas({
+            width: 500,
+            height: 500,
+            imageSmoothingQuality: 'high'
+          });
+          canvas.toBlob(function(blob) {
+            fotoFile = new File([blob], 'foto.jpg', { type: 'image/jpeg' });
+            mostrarPreview(canvas.toDataURL('image/jpeg', 0.92));
+            limpiarCropper();
+          }, 'image/jpeg', 0.92);
+        }
+
+        function onRotate() {
+          cropper.rotate(90);
+        }
+
+        document.getElementById('cropCancel').addEventListener('click', onCancel);
+        document.getElementById('cropConfirm').addEventListener('click', onConfirm);
+        document.getElementById('cropRotate').addEventListener('click', onRotate);
+      }
+
       // File selected
       function handleFile(e) {
         var file = e.target.files[0];
         if (!file) return;
-        fotoFile = file;
+
         var reader = new FileReader();
         reader.onload = function(ev) {
-          fotoPreviewUrl = ev.target.result;
-          var circle = document.getElementById('formPhotoCircle');
-          circle.classList.add('has-photo');
-          circle.innerHTML = '<img id="formPhotoPreview" src="' + fotoPreviewUrl + '" alt=""><button type="button" class="form-photo-remove" id="formPhotoRemove">\u00d7</button>';
-          document.getElementById('formPhotoRemove').addEventListener('click', function(ev2) {
-            ev2.stopPropagation();
-            removePhoto();
-          });
+          // Si Cropper.js está disponible, abrir editor
+          if (window.Cropper) {
+            abrirCropEditor(ev.target.result);
+          } else {
+            // Fallback: usar foto sin recortar
+            console.log('Cropper.js no disponible, subiendo foto sin recortar');
+            fotoFile = file;
+            mostrarPreview(ev.target.result);
+          }
         };
         reader.readAsDataURL(file);
       }
