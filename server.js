@@ -159,7 +159,7 @@ function subirFotoCloudinary(buffer, publicId) {
       {
         folder: 'la_boya/socios',
         public_id: publicId,
-        transformation: [{ width: 800, height: 800, crop: 'limit', quality: 'auto' }],
+        transformation: [{ width: 500, height: 500, crop: 'limit', quality: 'auto', fetch_format: 'auto' }],
         overwrite: true
       },
       function(err, result) {
