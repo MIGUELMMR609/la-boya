@@ -401,19 +401,23 @@ app.post('/api/eventos', (req, res) => {
       costeTotal = null;
     } else {
       if (!nombre) return res.status(400).json({ error: 'Nombre requerido para eventos' });
-      if (!['precio_fijo', 'total_dividido'].includes(modoCalculo)) {
-        return res.status(400).json({ error: 'modo_calculo debe ser precio_fijo o total_dividido' });
-      }
-      if (modoCalculo === 'precio_fijo') {
-        if (precioPorPersona == null || isNaN(precioPorPersona) || precioPorPersona <= 0) {
-          return res.status(400).json({ error: 'precio_por_persona debe ser mayor que 0' });
+      // Evento genérico: coste puede ser null (se asigna después)
+      if (modoCalculo && ['precio_fijo', 'total_dividido'].includes(modoCalculo)) {
+        if (modoCalculo === 'precio_fijo') {
+          if (precioPorPersona == null || isNaN(precioPorPersona) || precioPorPersona <= 0) {
+            return res.status(400).json({ error: 'precio_por_persona debe ser mayor que 0' });
+          }
+          costeTotal = null;
+        } else {
+          if (costeTotal == null || isNaN(costeTotal) || costeTotal <= 0) {
+            return res.status(400).json({ error: 'coste_total debe ser mayor que 0' });
+          }
+          precioPorPersona = null;
         }
-        costeTotal = null;
       } else {
-        if (costeTotal == null || isNaN(costeTotal) || costeTotal <= 0) {
-          return res.status(400).json({ error: 'coste_total debe ser mayor que 0' });
-        }
+        modoCalculo = null;
         precioPorPersona = null;
+        costeTotal = null;
       }
     }
 

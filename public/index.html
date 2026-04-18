@@ -1382,6 +1382,72 @@
       border-color: #B5D4F4;
     }
 
+    /* === COSTE MODAL === */
+    .coste-card {
+      background: #FAEEDA;
+      border: 1px solid #FAC775;
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+      cursor: pointer;
+      margin: 0 16px 12px;
+    }
+    .coste-card-text {
+      font-size: 14px;
+      font-weight: 500;
+      color: #412402;
+    }
+    .btn-modificar-coste {
+      background: none;
+      border: none;
+      font-size: 12px;
+      color: #185FA5;
+      cursor: pointer;
+      font-family: inherit;
+      padding: 4px 0;
+    }
+    .coste-modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 250;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .coste-modal-overlay.open {
+      display: flex;
+    }
+    .coste-modal {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+    }
+    .coste-modal-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 14px;
+      color: #333;
+    }
+    /* Candado en botones finalizados */
+    .evt-action-btn .lock-icon {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+    }
+    .evt-action-btn .lock-icon svg {
+      width: 12px;
+      height: 12px;
+      stroke: #BBB;
+    }
+    .evt-action-btn {
+      position: relative;
+    }
+
     /* === DETALLE EVENTO === */
     .evt-det-banner {
       background: #EAF3DE;
@@ -1461,7 +1527,7 @@
       color: #333;
     }
     .evt-action-btn:disabled {
-      opacity: 0.45;
+      opacity: 0.6;
       cursor: not-allowed;
     }
     .evt-action-btn svg {
@@ -1654,20 +1720,25 @@
     }
     .inv-badge {
       position: absolute;
-      top: -6px;
-      right: -6px;
-      width: 28px;
-      height: 28px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      min-width: 32px;
+      height: 32px;
       border-radius: 50%;
       background: #185FA5;
       color: #fff;
-      font-size: 13px;
-      font-weight: 700;
+      font-size: 16px;
+      font-weight: 600;
       display: flex;
       align-items: center;
       justify-content: center;
       border: 2px solid #fff;
-      z-index: 2;
+      z-index: 3;
+      pointer-events: none;
+    }
+    .inv-badge.zero {
+      background: #B0B0B0;
     }
     /* Evento detail menu */
     .evt-det-menu {
@@ -3009,49 +3080,6 @@
             '<div class="form-field">' +
               '<label class="form-label">Nombre del evento *</label>' +
               '<input class="form-input" id="evtNombre" type="text" placeholder="Parrillada de verano...">' +
-            '</div>' +
-            '<label class="form-label">C\u00e1lculo del coste</label>' +
-            '<div class="modo-radios" id="modoRadios">' +
-              '<button type="button" class="modo-radio selected" data-modo="precio_fijo">Precio fijo por persona</button>' +
-              '<button type="button" class="modo-radio" data-modo="total_dividido">Gasto total (se divide)</button>' +
-            '</div>' +
-            '<div id="evtCosteCampo"></div>';
-
-          renderCosteCampo();
-
-          var modoRadios = document.querySelectorAll('#modoRadios .modo-radio');
-          for (var k = 0; k < modoRadios.length; k++) {
-            modoRadios[k].addEventListener('click', function() {
-              modoSel = this.getAttribute('data-modo');
-              for (var l = 0; l < modoRadios.length; l++) {
-                modoRadios[l].classList.toggle('selected', modoRadios[l].getAttribute('data-modo') === modoSel);
-              }
-              renderCosteCampo();
-            });
-          }
-        }
-      }
-
-      function renderCosteCampo() {
-        var cont = document.getElementById('evtCosteCampo');
-        if (!cont) return;
-        if (modoSel === 'precio_fijo') {
-          cont.innerHTML =
-            '<div class="form-field">' +
-              '<label class="form-label">Precio por persona</label>' +
-              '<div class="input-with-unit">' +
-                '<input class="form-input" id="evtPrecio" type="number" min="0" step="0.5">' +
-                '<span class="input-unit">\u20ac</span>' +
-              '</div>' +
-            '</div>';
-        } else {
-          cont.innerHTML =
-            '<div class="form-field">' +
-              '<label class="form-label">Gasto total</label>' +
-              '<div class="input-with-unit">' +
-                '<input class="form-input" id="evtCosteTotal" type="number" min="0" step="1">' +
-                '<span class="input-unit">\u20ac</span>' +
-              '</div>' +
             '</div>';
         }
       }
@@ -3083,16 +3111,6 @@
           var nombre = (document.getElementById('evtNombre') || {}).value;
           if (!nombre || !nombre.trim()) { banner.textContent = 'El nombre del evento es obligatorio'; banner.style.display = 'block'; return; }
           body.nombre = nombre.trim();
-          body.modo_calculo = modoSel;
-          if (modoSel === 'precio_fijo') {
-            var p = parseFloat((document.getElementById('evtPrecio') || {}).value);
-            if (isNaN(p) || p <= 0) { banner.textContent = 'Indica un precio por persona v\u00e1lido'; banner.style.display = 'block'; return; }
-            body.precio_por_persona = p;
-          } else {
-            var ct = parseFloat((document.getElementById('evtCosteTotal') || {}).value);
-            if (isNaN(ct) || ct <= 0) { banner.textContent = 'Indica un gasto total v\u00e1lido'; banner.style.display = 'block'; return; }
-            body.coste_total = ct;
-          }
         }
 
         btn.disabled = true;
@@ -3143,6 +3161,7 @@
       var badgeText = evt.tipo === 'comida_social' ? 'COMIDA SOCIAL' : 'EVENTO';
 
       // Calcular resumen
+      var tieneCoste = evt.modo_calculo != null;
       var totalPersonas = 0;
       var totalCobrado = 0;
       var ppp = 0; // precio por persona
@@ -3150,30 +3169,36 @@
         var a = evt.asistentes[i];
         totalPersonas += 1 + (a.invitados || 0);
       }
-      if (evt.modo_calculo === 'precio_fijo') {
-        ppp = evt.precio_por_persona || 0;
+      if (tieneCoste) {
+        if (evt.modo_calculo === 'precio_fijo') {
+          ppp = evt.precio_por_persona || 0;
+        } else {
+          ppp = totalPersonas > 0 ? Math.round(((evt.coste_total || 0) / totalPersonas) * 100) / 100 : 0;
+        }
+        var totalRecaudar = evt.modo_calculo === 'total_dividido' ? (evt.coste_total || 0) : ppp * totalPersonas;
+        for (var j = 0; j < evt.asistentes.length; j++) {
+          if (evt.asistentes[j].pagado) totalCobrado += (1 + (evt.asistentes[j].invitados || 0)) * ppp;
+        }
       } else {
-        ppp = totalPersonas > 0 ? Math.round(((evt.coste_total || 0) / totalPersonas) * 100) / 100 : 0;
-      }
-      var totalRecaudar = evt.modo_calculo === 'total_dividido' ? (evt.coste_total || 0) : ppp * totalPersonas;
-      for (var j = 0; j < evt.asistentes.length; j++) {
-        if (evt.asistentes[j].pagado) totalCobrado += (1 + (evt.asistentes[j].invitados || 0)) * ppp;
+        var totalRecaudar = 0;
       }
 
       var bannerHtml = finalizado ? '<div class="evt-det-banner">\u2713 Evento finalizado</div>' : '';
       var notasHtml = evt.notas ? '<div class="evt-det-notas">' + escapeHtml(evt.notas.length > 80 ? evt.notas.substring(0, 80) + '...' : evt.notas) + '</div>' : '';
 
       // Botones de acción
+      var lockHtml = finalizado ? '<span class="lock-icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></span>' : '';
+      var disAttr = finalizado ? ' disabled' : '';
       var actionBtns = '';
       if (evt.tipo === 'comida_social') {
         actionBtns =
-          '<button class="evt-action-btn" id="btnCocineros"' + (finalizado ? ' disabled' : '') + '>' + SVG_COOK + 'Cocineros (' + (evt.cocineros || []).length + ')</button>' +
-          '<button class="evt-action-btn" id="btnComensales"' + (finalizado ? ' disabled' : '') + '>' + SVG_PEOPLE + 'Comensales (' + evt.asistentes.length + ')</button>' +
-          '<button class="evt-action-btn" id="btnInvitados"' + (finalizado ? ' disabled' : '') + '>' + SVG_PLUS + 'Invitados</button>';
+          '<button class="evt-action-btn" id="btnCocineros"' + disAttr + '>' + lockHtml + SVG_COOK + 'Cocineros (' + (evt.cocineros || []).length + ')</button>' +
+          '<button class="evt-action-btn" id="btnComensales"' + disAttr + '>' + lockHtml + SVG_PEOPLE + 'Comensales (' + evt.asistentes.length + ')</button>' +
+          '<button class="evt-action-btn" id="btnInvitados"' + disAttr + '>' + lockHtml + SVG_PLUS + 'Invitados</button>';
       } else {
         actionBtns =
-          '<button class="evt-action-btn" id="btnComensales"' + (finalizado ? ' disabled' : '') + '>' + SVG_PEOPLE + 'Asistentes (' + evt.asistentes.length + ')</button>' +
-          '<button class="evt-action-btn" id="btnInvitados"' + (finalizado ? ' disabled' : '') + '>' + SVG_PLUS + 'Invitados</button>';
+          '<button class="evt-action-btn" id="btnComensales"' + disAttr + '>' + lockHtml + SVG_PEOPLE + 'Asistentes (' + evt.asistentes.length + ')</button>' +
+          '<button class="evt-action-btn" id="btnInvitados"' + disAttr + '>' + lockHtml + SVG_PLUS + 'Invitados</button>';
       }
 
       // Listado asistentes
@@ -3214,9 +3239,12 @@
       }
 
       var html =
-        '<div class="ficha-bar" style="position:relative">' +
+        '<div class="ficha-bar" style="position:relative;justify-content:space-between">' +
           '<button class="ficha-back" id="evtDetBack">\u2190 Volver</button>' +
-          '<button class="evt-menu-btn" id="evtDetMenuBtn" style="position:absolute;right:16px">\u22ef</button>' +
+          '<div style="display:flex;align-items:center;gap:8px">' +
+          '<button class="evt-menu-btn" id="evtDetMenuBtn">\u22ef</button>' +
+          '<button class="ficha-back" id="evtDetClose" style="font-size:20px;color:#999" title="Cerrar">\u00d7</button>' +
+          '</div>' +
           '<div class="evt-det-menu" id="evtDetMenu">' +
             '<button class="evt-det-menu-item" id="evtDetEditar">Editar datos</button>' +
             '<button class="evt-det-menu-item" id="evtDetEstado">' + (finalizado ? 'Reabrir evento' : 'Marcar como finalizado') + '</button>' +
@@ -3231,12 +3259,20 @@
           notasHtml +
         '</div>' +
         '<hr class="ficha-sep">' +
-        '<div class="evt-resumen">' +
-          '<div class="evt-resumen-card"><div class="evt-resumen-num">' + totalPersonas + '</div><div class="evt-resumen-label">Asistentes</div></div>' +
-          '<div class="evt-resumen-card"><div class="evt-resumen-num">' + (totalPersonas > 0 ? ppp.toFixed(2) + ' \u20ac' : '\u2014') + '</div><div class="evt-resumen-label">Por persona</div></div>' +
-          '<div class="evt-resumen-card"><div class="evt-resumen-num">' + totalRecaudar.toFixed(2) + ' \u20ac</div><div class="evt-resumen-label">Total</div></div>' +
-          '<div class="evt-resumen-card"><div class="evt-resumen-num">' + totalCobrado.toFixed(2) + ' \u20ac</div><div class="evt-resumen-label">Cobrado</div></div>' +
-        '</div>' +
+        (tieneCoste ?
+          '<div class="evt-resumen">' +
+            '<div class="evt-resumen-card"><div class="evt-resumen-num"><span style="white-space:nowrap">' + totalPersonas + '</span></div><div class="evt-resumen-label">Asistentes</div></div>' +
+            '<div class="evt-resumen-card"><div class="evt-resumen-num"><span style="white-space:nowrap">' + (totalPersonas > 0 ? ppp.toFixed(2) + ' \u20ac' : '\u2014') + '</span></div><div class="evt-resumen-label">Por persona</div></div>' +
+            '<div class="evt-resumen-card"><div class="evt-resumen-num"><span style="white-space:nowrap">' + totalRecaudar.toFixed(2) + ' \u20ac</span></div><div class="evt-resumen-label">Total</div></div>' +
+            '<div class="evt-resumen-card"><div class="evt-resumen-num"><span style="white-space:nowrap">' + totalCobrado.toFixed(2) + ' \u20ac</span></div><div class="evt-resumen-label">Cobrado</div></div>' +
+          '</div>' +
+          '<div style="text-align:right;padding:0 16px 8px"><button class="btn-modificar-coste" id="btnModCoste">Modificar coste</button></div>'
+        :
+          '<div class="evt-resumen">' +
+            '<div class="evt-resumen-card"><div class="evt-resumen-num"><span style="white-space:nowrap">' + totalPersonas + '</span></div><div class="evt-resumen-label">Asistentes</div></div>' +
+          '</div>' +
+          '<div class="coste-card" id="btnAsignarCoste"><div class="coste-card-text">Asignar coste</div></div>'
+        ) +
         '<hr class="ficha-sep">' +
         '<div class="evt-action-btns">' + actionBtns + '</div>' +
         '<hr class="ficha-sep">' +
@@ -3257,6 +3293,7 @@
       }
       document.getElementById('evtDetBack').addEventListener('click', cerrarDetalle);
       document.getElementById('evtDetBackMobile').addEventListener('click', cerrarDetalle);
+      document.getElementById('evtDetClose').addEventListener('click', cerrarDetalle);
       var escH = function(e) { if (e.key === 'Escape') cerrarDetalle(); };
       document.addEventListener('keydown', escH);
 
@@ -3301,6 +3338,23 @@
       document.getElementById('evtDetPdf').addEventListener('click', function() {
         showToast('PDF pendiente de Fase E3');
       });
+
+      // Asignar / Modificar coste
+      var btnAsignar = document.getElementById('btnAsignarCoste');
+      var btnMod = document.getElementById('btnModCoste');
+      if (btnAsignar) btnAsignar.addEventListener('click', function() { abrirModalCoste(evt); });
+      if (btnMod) btnMod.addEventListener('click', function() { abrirModalCoste(evt); });
+
+      // Toast si intentan pulsar botón finalizado
+      var finToastShown = false;
+      if (finalizado) {
+        var actionBtnEls = content.querySelectorAll('.evt-action-btn');
+        for (var fb = 0; fb < actionBtnEls.length; fb++) {
+          actionBtnEls[fb].addEventListener('click', function() {
+            if (!finToastShown) { showToast('Evento finalizado. Re\u00e1brelo desde \u22ef M\u00e1s.'); finToastShown = true; }
+          });
+        }
+      }
 
       // Check pagado
       var checks = content.querySelectorAll('.check-pagado');
@@ -3504,12 +3558,37 @@
           return norm(s.nombre + ' ' + s.apellidos).indexOf(query) !== -1;
         });
         filtered.sort(function(a, b) { return norm(a.apellidos).localeCompare(norm(b.apellidos)); });
+
+        // Seleccionados primero (solo cocineros y comensales)
+        var selIds = modo === 'cocineros' ? selCook : (modo === 'comensales' ? selAsist : []);
+        if ((modo === 'cocineros' || modo === 'comensales') && selIds.length > 0) {
+          var selGroup = filtered.filter(function(s) { return selIds.indexOf(s.id) !== -1; });
+          var restGroup = filtered.filter(function(s) { return selIds.indexOf(s.id) === -1; });
+          filtered = selGroup.concat(restGroup);
+        }
+
         grid.innerHTML = '';
         var gridDiv = document.createElement('div');
         gridDiv.className = 'grid cols-2';
         gridDiv.style.gap = '6px';
 
+        // Separador entre grupos
+        var sepIdx = -1;
+        if ((modo === 'cocineros' || modo === 'comensales') && selIds.length > 0 && selIds.length < filtered.length) {
+          sepIdx = 0;
+          for (var si = 0; si < filtered.length; si++) {
+            if (selIds.indexOf(filtered[si].id) !== -1) sepIdx = si + 1;
+            else break;
+          }
+        }
+
         for (var i = 0; i < filtered.length; i++) {
+          if (i === sepIdx && sepIdx > 0) {
+            var sep = document.createElement('div');
+            sep.style.cssText = 'grid-column:1/-1;border-top:0.5px solid #E0E0E0;padding:6px 0 2px;font-size:11px;text-transform:uppercase;color:#999;letter-spacing:0.3px';
+            sep.textContent = 'Resto de socios';
+            gridDiv.appendChild(sep);
+          }
           var s = filtered[i];
           var bgC = s.avatar_color || '#85B7EB';
           var txtC = TEXT_COLORS[bgC] || '#333';
@@ -3531,8 +3610,8 @@
             if (isCookLocked) overlayHtml += '<div class="evt-asist-cook-badge" style="top:-2px;left:-2px"><svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M6 21v-1a6 6 0 0112 0v1"/></svg></div>';
           } else {
             var invN = invMap[s.id] || 0;
-            if (invN > 0) overlayHtml = '<div class="inv-badge">' + invN + '</div>';
-            else overlayHtml = '<div class="inv-badge" style="background:#D0D0D0">0</div>';
+            console.log('Invitados badge render:', s.id, invN);
+            overlayHtml = '<div class="inv-badge' + (invN === 0 ? ' zero' : '') + '">' + invN + '</div>';
           }
 
           var card = document.createElement('div');
@@ -3645,6 +3724,63 @@
           cerrarSel();
           fetch('/api/eventos/' + evt.id).then(function(r) { return r.json(); }).then(function(u) { if (onDone) onDone(u); });
         }
+      });
+    }
+
+    // === MODAL COSTE ===
+    function abrirModalCoste(evt) {
+      var existing = document.getElementById('costeModalOverlay');
+      if (existing) existing.remove();
+
+      var modoSel = evt.modo_calculo || 'precio_fijo';
+      var div = document.createElement('div');
+      div.className = 'coste-modal-overlay open';
+      div.id = 'costeModalOverlay';
+      div.innerHTML =
+        '<div class="coste-modal">' +
+          '<div class="coste-modal-title">Asignar coste del evento</div>' +
+          '<div class="modo-radios" id="costeModoRadios">' +
+            '<button type="button" class="modo-radio' + (modoSel === 'precio_fijo' ? ' selected' : '') + '" data-modo="precio_fijo">Precio fijo/persona</button>' +
+            '<button type="button" class="modo-radio' + (modoSel === 'total_dividido' ? ' selected' : '') + '" data-modo="total_dividido">Gasto total (dividir)</button>' +
+          '</div>' +
+          '<div id="costeModalCampo"></div>' +
+          '<div style="display:flex;gap:8px;margin-top:14px">' +
+            '<button class="btn-cancel" id="costeModalCancel" style="flex:1">Cancelar</button>' +
+            '<button class="btn-submit" id="costeModalSave" style="flex:1">Guardar</button>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(div);
+
+      function renderCampo() {
+        var c = document.getElementById('costeModalCampo');
+        if (modoSel === 'precio_fijo') {
+          c.innerHTML = '<div class="form-field" style="margin-top:10px"><label class="form-label">Precio por persona</label><div class="input-with-unit"><input class="form-input" id="costeVal" type="number" value="' + (evt.precio_por_persona || '') + '" min="0" step="0.5"><span class="input-unit">\u20ac</span></div></div>';
+        } else {
+          c.innerHTML = '<div class="form-field" style="margin-top:10px"><label class="form-label">Importe total</label><div class="input-with-unit"><input class="form-input" id="costeVal" type="number" value="' + (evt.coste_total || '') + '" min="0" step="1"><span class="input-unit">\u20ac</span></div></div>';
+        }
+      }
+      renderCampo();
+
+      var radios = div.querySelectorAll('#costeModoRadios .modo-radio');
+      for (var i = 0; i < radios.length; i++) {
+        radios[i].addEventListener('click', function() {
+          modoSel = this.getAttribute('data-modo');
+          for (var l = 0; l < radios.length; l++) radios[l].classList.toggle('selected', radios[l].getAttribute('data-modo') === modoSel);
+          renderCampo();
+        });
+      }
+
+      document.getElementById('costeModalCancel').addEventListener('click', function() { div.remove(); });
+      document.getElementById('costeModalSave').addEventListener('click', function() {
+        var val = parseFloat(document.getElementById('costeVal').value);
+        if (isNaN(val) || val <= 0) { showToast('Introduce un valor v\u00e1lido'); return; }
+        var body = { modo_calculo: modoSel };
+        if (modoSel === 'precio_fijo') { body.precio_por_persona = val; body.coste_total = null; }
+        else { body.coste_total = val; body.precio_por_persona = null; }
+        fetch('/api/eventos/' + evt.id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+          .then(function(r) { return r.json(); })
+          .then(function(updated) { div.remove(); renderDetalleEvento(updated); showToast('\u2713 Coste actualizado'); })
+          .catch(function(err) { showError(friendlyError(err)); });
       });
     }
 
