@@ -317,7 +317,83 @@ app.delete('/api/socios/:id', async (req, res) => {
   }
 });
 
+// === ADMIN: Importar socios oficiales ===
+const CLAVE_IMPORT = 'Rb7xNpWq3mKs9YvTfJd2Lc6Ae';
+const SOCIOS_OFICIALES_FILE = path.join(__dirname, 'data', 'socios_oficiales.json');
+
+app.post('/api/admin/importar-socios-oficiales', async (req, res) => {
+  try {
+    // Verificar clave
+    if (req.query.clave !== CLAVE_IMPORT) {
+      return res.status(403).json({ error: 'Clave incorrecta' });
+    }
+
+    // Leer socios actuales
+    var sociosActuales = [];
+    try {
+      sociosActuales = JSON.parse(fs.readFileSync(SOCIOS_FILE, 'utf8'));
+    } catch (e) {
+      sociosActuales = [];
+    }
+
+    // Borrar fotos de Cloudinary de los socios actuales
+    var eliminados = sociosActuales.length;
+    if (cloudinaryOk) {
+      for (var i = 0; i < sociosActuales.length; i++) {
+        if (sociosActuales[i].foto_public_id) {
+          try {
+            await cloudinary.uploader.destroy(sociosActuales[i].foto_public_id);
+            console.log('Foto borrada: ' + sociosActuales[i].foto_public_id);
+          } catch (e) {
+            console.error('Error borrando foto ' + sociosActuales[i].foto_public_id + ':', e.message);
+          }
+        }
+      }
+    }
+
+    // Leer seed oficiales
+    var seed = JSON.parse(fs.readFileSync(SOCIOS_OFICIALES_FILE, 'utf8'));
+    var hoy = fechaHoy();
+    var PALETA = ['#AFA9EC','#F0997B','#5DCAA5','#85B7EB','#ED93B1','#EF9F27','#97C459','#F7C1C1'];
+
+    // Crear socios completos
+    var nuevos = [];
+    for (var j = 0; j < seed.length; j++) {
+      nuevos.push({
+        id: String(j + 1).padStart(3, '0'),
+        nombre: seed[j].nombre,
+        apellidos: seed[j].apellidos,
+        num_socio: seed[j].num_socio,
+        antiguedad_años: 0,
+        asiduidad: 2,
+        foto_url: '',
+        foto_public_id: null,
+        avatar_color: PALETA[Math.floor(Math.random() * PALETA.length)],
+        notas: '',
+        notas_editado: null,
+        fecha_creacion: hoy,
+        fecha_modificacion: hoy
+      });
+    }
+
+    // Escribir
+    fs.writeFileSync(SOCIOS_FILE, JSON.stringify(nuevos, null, 2), 'utf8');
+    console.log('Importacion completada: ' + nuevos.length + ' socios oficiales cargados, ' + eliminados + ' anteriores eliminados');
+
+    res.json({
+      ok: true,
+      eliminados: eliminados,
+      creados: nuevos.length,
+      ejemplo: nuevos[0]
+    });
+  } catch (err) {
+    console.error('Error en importacion:', err);
+    res.status(500).json({ error: 'Error en la importacion: ' + err.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`LA BOYA corriendo en puerto ${PORT}`);
   console.log(`Datos en: ${SOCIOS_FILE}`);
+  console.log('Clave import socios oficiales: ' + CLAVE_IMPORT);
 });
