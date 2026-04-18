@@ -1720,25 +1720,28 @@
     }
     .inv-badge {
       position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      min-width: 32px;
-      height: 32px;
+      top: -4px;
+      right: -4px;
+      min-width: 24px;
+      height: 24px;
       border-radius: 50%;
       background: #185FA5;
       color: #fff;
-      font-size: 16px;
+      font-size: 11px;
       font-weight: 600;
       display: flex;
       align-items: center;
       justify-content: center;
       border: 2px solid #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
       z-index: 3;
       pointer-events: none;
+      padding: 0 2px;
     }
     .inv-badge.zero {
-      background: #B0B0B0;
+      background: #CCC;
+      color: #666;
+      opacity: 0.85;
     }
     /* Evento detail menu */
     .evt-det-menu {
@@ -3610,8 +3613,7 @@
             if (isCookLocked) overlayHtml += '<div class="evt-asist-cook-badge" style="top:-2px;left:-2px"><svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M6 21v-1a6 6 0 0112 0v1"/></svg></div>';
           } else {
             var invN = invMap[s.id] || 0;
-            console.log('Invitados badge render:', s.id, invN);
-            overlayHtml = '<div class="inv-badge' + (invN === 0 ? ' zero' : '') + '">' + invN + '</div>';
+            overlayHtml = '<div class="inv-badge' + (invN === 0 ? ' zero' : '') + '">' + (invN === 0 ? '0' : '+' + invN) + '</div>';
           }
 
           var card = document.createElement('div');
