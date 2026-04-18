@@ -296,6 +296,224 @@
       display: inline-block;
     }
 
+    /* === FICHA (OVERLAY) === */
+    .ficha-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 200;
+      background: #fff;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .ficha-overlay.open {
+      display: block;
+    }
+    @media (min-width: 600px) {
+      .ficha-overlay {
+        background: rgba(0,0,0,0.3);
+        display: none;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 40px 16px;
+      }
+      .ficha-overlay.open {
+        display: flex;
+      }
+      .ficha-content {
+        max-width: 500px;
+        width: 100%;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+      }
+    }
+    .ficha-bar {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 0.5px solid #E0E0E0;
+    }
+    .ficha-back {
+      background: none;
+      border: none;
+      font-size: 15px;
+      color: #185FA5;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 500;
+      padding: 4px 0;
+    }
+    .ficha-avatar-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 16px;
+    }
+    .ficha-avatar-wrap {
+      position: relative;
+    }
+    .ficha-avatar {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 38px;
+      letter-spacing: 2px;
+      user-select: none;
+    }
+    .ficha-asiduidad-dot {
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 3px solid #fff;
+    }
+    .ficha-nombre {
+      font-size: 18px;
+      font-weight: 500;
+      color: #333;
+      margin-top: 12px;
+      text-align: center;
+    }
+    .ficha-info {
+      font-size: 12px;
+      color: #999;
+      margin-top: 4px;
+      text-align: center;
+    }
+    .ficha-sep {
+      height: 0;
+      border: none;
+      border-top: 0.5px solid #E0E0E0;
+      margin: 16px;
+    }
+
+    /* Asiduidad */
+    .ficha-section-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 0 16px;
+      margin-bottom: 8px;
+    }
+    .asiduidad-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      padding: 0 16px;
+    }
+    .asiduidad-btn {
+      padding: 10px 4px;
+      border: 1px solid #E0E0E0;
+      border-radius: 8px;
+      background: #fff;
+      font-size: 13px;
+      font-family: inherit;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .asiduidad-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .asiduidad-btn.sel-1 {
+      background: #EAF3DE;
+      border-color: #639922;
+      color: #173404;
+    }
+    .asiduidad-btn.sel-2 {
+      background: #FDF3E1;
+      border-color: #EF9F27;
+      color: #412402;
+    }
+    .asiduidad-btn.sel-3 {
+      background: #FDEAEA;
+      border-color: #E24B4A;
+      color: #501313;
+    }
+
+    /* Notas */
+    .notas-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: 0 16px;
+      margin-bottom: 8px;
+    }
+    .notas-hint {
+      font-size: 10px;
+      color: #BBB;
+    }
+    .notas-textarea {
+      display: block;
+      width: calc(100% - 32px);
+      margin: 0 16px;
+      padding: 10px 12px;
+      background: #FAEEDA;
+      border: 0.5px solid #FAC775;
+      color: #412402;
+      border-radius: 8px;
+      min-height: 120px;
+      font-size: 13px;
+      line-height: 1.6;
+      font-family: inherit;
+      resize: vertical;
+      outline: none;
+    }
+    .notas-textarea:focus {
+      border-color: #E8A830;
+    }
+    .notas-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px 16px;
+    }
+    .notas-editado {
+      font-size: 11px;
+      color: #BBB;
+    }
+    .notas-footer-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .notas-saved {
+      font-size: 12px;
+      color: #639922;
+      font-weight: 500;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .notas-saved.visible {
+      opacity: 1;
+    }
+    .btn-guardar {
+      padding: 6px 16px;
+      background: #185FA5;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: inherit;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-guardar:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
     /* === MENSAJE VACÍO === */
     .empty-msg {
       text-align: center;
@@ -353,6 +571,11 @@
   <!-- MOSAICO -->
   <div class="main">
     <div class="grid cols-2" id="grid"></div>
+  </div>
+
+  <!-- FICHA SOCIO -->
+  <div class="ficha-overlay" id="fichaOverlay">
+    <div class="ficha-content" id="fichaContent"></div>
   </div>
 
   <script>
@@ -473,6 +696,10 @@
 
         var card = document.createElement('div');
         card.className = 'card';
+        card.setAttribute('data-id', s.id);
+        card.addEventListener('click', (function(socioId) {
+          return function() { abrirFicha(socioId); };
+        })(s.id));
         card.innerHTML =
           '<div class="avatar-wrap">' +
             '<div class="avatar" style="background:' + bgColor + '" data-bg="' + bgColor + '">' +
@@ -599,6 +826,216 @@
         .catch(function(err) {
           console.error('Error cargando socios:', err);
         });
+    }
+
+    // === FICHA INDIVIDUAL ===
+    var MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    var ASIDUIDAD_LABELS = { 1: 'Va mucho', 2: 'Alguna vez', 3: 'Casi nunca' };
+    var ASIDUIDAD_BG = { 1: '#EAF3DE', 2: '#FDF3E1', 3: '#FDEAEA' };
+    var ASIDUIDAD_TEXT = { 1: '#173404', 2: '#412402', 3: '#501313' };
+
+    function formatFecha(str) {
+      if (!str) return '';
+      var parts = str.split('-');
+      if (parts.length !== 3) return str;
+      var d = parseInt(parts[2], 10);
+      var m = parseInt(parts[1], 10) - 1;
+      var y = parts[0];
+      return d + ' ' + MESES[m] + ' ' + y;
+    }
+
+    function findSocio(id) {
+      for (var i = 0; i < socios.length; i++) {
+        if (socios[i].id === id) return socios[i];
+      }
+      return null;
+    }
+
+    function abrirFicha(id) {
+      var s = findSocio(id);
+      if (!s) return;
+
+      var overlay = document.getElementById('fichaOverlay');
+      var content = document.getElementById('fichaContent');
+      var initials = getInitials(s.nombre, s.apellidos);
+      var bgColor = s.avatar_color || '#85B7EB';
+      var textColor = TEXT_COLORS[bgColor] || '#333';
+      var dotColor = ASIDUIDAD_COLORS[s.asiduidad] || '#999';
+
+      var notasEditadoHtml = s.notas_editado
+        ? '<span class="notas-editado">\u00daltima edici\u00f3n: ' + escapeHtml(formatFecha(s.notas_editado)) + '</span>'
+        : '<span class="notas-editado"></span>';
+
+      var html =
+        '<div class="ficha-bar">' +
+          '<button class="ficha-back" id="fichaBack">\u2190 Volver</button>' +
+        '</div>' +
+        '<div class="ficha-avatar-section">' +
+          '<div class="ficha-avatar-wrap">' +
+            '<div class="ficha-avatar" style="background:' + bgColor + '">' +
+              '<span style="color:' + textColor + '">' + initials + '</span>' +
+            '</div>' +
+            '<div class="ficha-asiduidad-dot" id="fichaDot" style="background:' + dotColor + '"></div>' +
+          '</div>' +
+          '<div class="ficha-nombre">' + escapeHtml(s.nombre) + ' ' + escapeHtml(s.apellidos) + '</div>' +
+          '<div class="ficha-info">Socio n\u00ba ' + s.num_socio + ' \u00b7 ' + s.antiguedad_años + ' a\u00f1os de antig\u00fcedad</div>' +
+        '</div>' +
+        '<hr class="ficha-sep">' +
+        '<div class="ficha-section-title">ASIDUIDAD</div>' +
+        '<div class="asiduidad-buttons" id="asiduidadBtns">' +
+          '<button class="asiduidad-btn' + (s.asiduidad === 1 ? ' sel-1' : '') + '" data-val="1">Va mucho</button>' +
+          '<button class="asiduidad-btn' + (s.asiduidad === 2 ? ' sel-2' : '') + '" data-val="2">Alguna vez</button>' +
+          '<button class="asiduidad-btn' + (s.asiduidad === 3 ? ' sel-3' : '') + '" data-val="3">Casi nunca</button>' +
+        '</div>' +
+        '<hr class="ficha-sep">' +
+        '<div class="notas-header">' +
+          '<span class="ficha-section-title" style="padding:0;margin:0">NOTAS PERSONALES</span>' +
+          '<span class="notas-hint">Solo visible para ti</span>' +
+        '</div>' +
+        '<textarea class="notas-textarea" id="fichaNotas">' + escapeHtml(s.notas || '') + '</textarea>' +
+        '<div class="notas-footer">' +
+          notasEditadoHtml +
+          '<div class="notas-footer-right">' +
+            '<span class="notas-saved" id="notasSaved">\u2713 Guardado</span>' +
+            '<button class="btn-guardar" id="btnGuardar" disabled>Guardar</button>' +
+          '</div>' +
+        '</div>';
+
+      content.innerHTML = html;
+      overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+
+      // Estado interno de la ficha
+      var fichaId = id;
+      var notasOriginal = s.notas || '';
+
+      // Botón volver
+      document.getElementById('fichaBack').addEventListener('click', function() {
+        cerrarFicha();
+      });
+
+      // Escape para cerrar
+      var escHandler = function(e) {
+        if (e.key === 'Escape') cerrarFicha();
+      };
+      document.addEventListener('keydown', escHandler);
+
+      // Click en overlay (desktop) para cerrar
+      overlay.addEventListener('click', function overlayClick(e) {
+        if (e.target === overlay) {
+          cerrarFicha();
+          overlay.removeEventListener('click', overlayClick);
+        }
+      });
+
+      // Botones asiduidad
+      var asidBtns = document.querySelectorAll('#asiduidadBtns .asiduidad-btn');
+      for (var i = 0; i < asidBtns.length; i++) {
+        asidBtns[i].addEventListener('click', function() {
+          var val = parseInt(this.getAttribute('data-val'), 10);
+          if (val === s.asiduidad) return;
+          cambiarAsiduidad(fichaId, val, s);
+        });
+      }
+
+      // Textarea notas
+      var textarea = document.getElementById('fichaNotas');
+      var btnGuardar = document.getElementById('btnGuardar');
+      textarea.addEventListener('input', function() {
+        var changed = textarea.value !== notasOriginal;
+        btnGuardar.disabled = !changed;
+        document.getElementById('notasSaved').classList.remove('visible');
+      });
+
+      btnGuardar.addEventListener('click', function() {
+        guardarNotas(fichaId, textarea, btnGuardar, s);
+      });
+
+      function cerrarFicha() {
+        overlay.classList.remove('open');
+        document.body.style.overflow = '';
+        document.removeEventListener('keydown', escHandler);
+        renderGrid();
+      }
+    }
+
+    function cambiarAsiduidad(id, newVal, socioRef) {
+      var prevVal = socioRef.asiduidad;
+      // Optimistic update
+      socioRef.asiduidad = newVal;
+      updateAsiduidadUI(newVal);
+
+      // Deshabilitar botones
+      var btns = document.querySelectorAll('#asiduidadBtns .asiduidad-btn');
+      for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
+
+      fetch('/api/socios/' + id + '/asiduidad', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ asiduidad: newVal })
+      })
+      .then(function(res) {
+        if (!res.ok) throw new Error('Error del servidor');
+        return res.json();
+      })
+      .then(function(updated) {
+        socioRef.fecha_modificacion = updated.fecha_modificacion;
+        for (var i = 0; i < btns.length; i++) btns[i].disabled = false;
+      })
+      .catch(function(err) {
+        console.error('Error guardando asiduidad:', err);
+        socioRef.asiduidad = prevVal;
+        updateAsiduidadUI(prevVal);
+        for (var i = 0; i < btns.length; i++) btns[i].disabled = false;
+        alert('Error al guardar asiduidad. Int\u00e9ntalo de nuevo.');
+      });
+    }
+
+    function updateAsiduidadUI(val) {
+      var btns = document.querySelectorAll('#asiduidadBtns .asiduidad-btn');
+      for (var i = 0; i < btns.length; i++) {
+        var btnVal = parseInt(btns[i].getAttribute('data-val'), 10);
+        btns[i].className = 'asiduidad-btn' + (btnVal === val ? ' sel-' + val : '');
+      }
+      var dot = document.getElementById('fichaDot');
+      if (dot) dot.style.background = ASIDUIDAD_COLORS[val] || '#999';
+    }
+
+    function guardarNotas(id, textarea, btnGuardar, socioRef) {
+      btnGuardar.disabled = true;
+      var notasText = textarea.value;
+
+      fetch('/api/socios/' + id + '/notas', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notas: notasText })
+      })
+      .then(function(res) {
+        if (!res.ok) throw new Error('Error del servidor');
+        return res.json();
+      })
+      .then(function(updated) {
+        socioRef.notas = updated.notas;
+        socioRef.notas_editado = updated.notas_editado;
+        socioRef.fecha_modificacion = updated.fecha_modificacion;
+
+        // Actualizar fecha en la UI
+        var editadoEl = document.querySelector('.notas-editado');
+        if (editadoEl) editadoEl.textContent = '\u00daltima edici\u00f3n: ' + formatFecha(updated.notas_editado);
+
+        // Mostrar confirmación
+        var savedEl = document.getElementById('notasSaved');
+        savedEl.classList.add('visible');
+        setTimeout(function() { savedEl.classList.remove('visible'); }, 2000);
+
+        // El valor actual es el nuevo original
+        // btnGuardar queda disabled porque no hay cambios
+      })
+      .catch(function(err) {
+        console.error('Error guardando notas:', err);
+        btnGuardar.disabled = false;
+        alert('Error al guardar notas. Int\u00e9ntalo de nuevo.');
+      });
     }
 
     document.addEventListener('DOMContentLoaded', init);

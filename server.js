@@ -71,6 +71,53 @@ app.get('/api/socios', (req, res) => {
   }
 });
 
+// Función auxiliar: fecha actual YYYY-MM-DD
+function fechaHoy() {
+  return new Date().toISOString().split('T')[0];
+}
+
+// API: actualizar asiduidad de un socio
+app.put('/api/socios/:id/asiduidad', (req, res) => {
+  try {
+    const { asiduidad } = req.body;
+    if (![1, 2, 3].includes(asiduidad)) {
+      return res.status(400).json({ error: 'Asiduidad debe ser 1, 2 o 3' });
+    }
+    const data = JSON.parse(fs.readFileSync(SOCIOS_FILE, 'utf8'));
+    const idx = data.findIndex(s => s.id === req.params.id);
+    if (idx === -1) {
+      return res.status(404).json({ error: 'Socio no encontrado' });
+    }
+    data[idx].asiduidad = asiduidad;
+    data[idx].fecha_modificacion = fechaHoy();
+    fs.writeFileSync(SOCIOS_FILE, JSON.stringify(data, null, 2), 'utf8');
+    res.json(data[idx]);
+  } catch (err) {
+    console.error('Error actualizando asiduidad:', err);
+    res.status(500).json({ error: 'Error al actualizar asiduidad' });
+  }
+});
+
+// API: actualizar notas de un socio
+app.put('/api/socios/:id/notas', (req, res) => {
+  try {
+    const notas = req.body.notas != null ? String(req.body.notas) : '';
+    const data = JSON.parse(fs.readFileSync(SOCIOS_FILE, 'utf8'));
+    const idx = data.findIndex(s => s.id === req.params.id);
+    if (idx === -1) {
+      return res.status(404).json({ error: 'Socio no encontrado' });
+    }
+    data[idx].notas = notas;
+    data[idx].notas_editado = fechaHoy();
+    data[idx].fecha_modificacion = fechaHoy();
+    fs.writeFileSync(SOCIOS_FILE, JSON.stringify(data, null, 2), 'utf8');
+    res.json(data[idx]);
+  } catch (err) {
+    console.error('Error actualizando notas:', err);
+    res.status(500).json({ error: 'Error al actualizar notas' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`LA BOYA corriendo en puerto ${PORT}`);
   console.log(`Datos en: ${SOCIOS_FILE}`);
