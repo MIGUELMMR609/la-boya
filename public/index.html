@@ -1675,6 +1675,46 @@
       padding: 8px 16px;
       text-align: center;
     }
+    .inv-instructions {
+      background: #E6F1FB;
+      border: 0.5px solid #B5D4F4;
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin: 8px 16px 14px;
+    }
+    .inv-instructions-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: #0C447C;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+    .inv-instructions-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 359px) {
+      .inv-instructions-grid { grid-template-columns: 1fr; }
+    }
+    .inv-instr-col {
+      text-align: center;
+    }
+    .inv-instr-col svg {
+      color: #185FA5;
+      margin-bottom: 4px;
+    }
+    .inv-instr-text {
+      font-size: 13px;
+      color: #042C53;
+      font-weight: 500;
+    }
+    .inv-instr-sub {
+      font-size: 11px;
+      color: #888;
+      margin-top: 2px;
+    }
     .sel-check {
       position: absolute;
       top: -2px;
@@ -3535,7 +3575,31 @@
       var invMap = {};
       for (var iv = 0; iv < evt.asistentes.length; iv++) invMap[evt.asistentes[iv].socio_id] = evt.asistentes[iv].invitados || 0;
 
+      var firstInvTap = true;
+
       var searchHtml = modo !== 'invitados' ? '<div style="padding:0 16px 8px"><input class="search-input" id="selSearch" placeholder="Buscar..." autocomplete="off"></div>' : '';
+
+      var hintHtml = '';
+      if (modo === 'invitados') {
+        hintHtml =
+          '<div class="inv-instructions">' +
+            '<div class="inv-instructions-title">C\u00f3mo a\u00f1adir invitados</div>' +
+            '<div class="inv-instructions-grid">' +
+              '<div class="inv-instr-col">' +
+                '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 18v3"/><path d="M8 18a4 4 0 018 0"/><circle cx="12" cy="10" r="3"/><path d="M12 2v2"/></svg>' +
+                '<div class="inv-instr-text">Toca para sumar +1</div>' +
+                '<div class="inv-instr-sub">Cada toque a\u00f1ade un invitado</div>' +
+              '</div>' +
+              '<div class="inv-instr-col">' +
+                '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 18v3"/><path d="M8 18a4 4 0 018 0"/><circle cx="12" cy="10" r="3"/><circle cx="19" cy="5" r="3"/><path d="M19 3.5v1.5l1 1"/></svg>' +
+                '<div class="inv-instr-text">Mant\u00e9n pulsado para \u22121</div>' +
+                '<div class="inv-instr-sub">Al menos medio segundo</div>' +
+              '</div>' +
+            '</div>' +
+          '</div>';
+      } else {
+        hintHtml = '<div class="sel-hint">' + hint + '</div>';
+      }
 
       var html =
         '<div class="sel-bar">' +
@@ -3543,7 +3607,7 @@
           '<span class="sel-bar-title">' + titulo + '</span>' +
           '<button class="btn-hecho" id="selDone">Hecho</button>' +
         '</div>' +
-        '<div class="sel-hint">' + hint + '</div>' +
+        hintHtml +
         searchHtml +
         '<div class="main" id="selGrid" style="padding:8px"></div>';
 
@@ -3674,6 +3738,7 @@
                 } else {
                   clearTimeout(timer);
                   invMap[sid] = (invMap[sid] || 0) + 1;
+                  if (firstInvTap) { firstInvTap = false; showToast('Mant\u00e9n pulsado si quieres restar'); }
                 }
                 timer = null;
                 // Optimistic update to server
