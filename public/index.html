@@ -13,30 +13,392 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: #F5F5F5;
-      display: flex;
-      justify-content: center;
-      align-items: center;
       min-height: 100vh;
     }
-    .container {
-      text-align: center;
-      padding: 40px 20px;
+
+    /* === CABECERA === */
+    .header {
+      background: #fff;
+      border-bottom: 0.5px solid #E0E0E0;
+      padding: 12px 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
-    h1 {
-      font-size: 32px;
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .header-title {
+      font-size: 18px;
+      font-weight: 700;
       color: #333;
-      margin-bottom: 8px;
     }
-    p {
-      font-size: 15px;
+    .header-count {
+      font-size: 13px;
       color: #888;
+      margin-left: 8px;
+      font-weight: 400;
+    }
+    .view-buttons {
+      display: flex;
+      gap: 4px;
+    }
+    .view-btn {
+      width: 34px;
+      height: 34px;
+      border: 1px solid #D0D0D0;
+      background: #fff;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+    .view-btn.active {
+      background: #333;
+      border-color: #333;
+    }
+    .view-btn.active svg {
+      stroke: #fff;
+    }
+    .view-btn svg {
+      width: 16px;
+      height: 16px;
+      stroke: #555;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+    }
+
+    /* === MOSAICO === */
+    .main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 8px;
+    }
+    .grid {
+      display: grid;
+      gap: 6px;
+    }
+    .grid.cols-1 {
+      grid-template-columns: 1fr;
+    }
+    .grid.cols-2 {
+      grid-template-columns: 1fr 1fr;
+    }
+    .grid.cols-4 {
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 4px;
+    }
+
+    /* === TARJETA === */
+    .card {
+      background: #fff;
+      border: 0.5px solid #E0E0E0;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      overflow: hidden;
+      transition: background 0.15s;
+    }
+    .card:active {
+      background: #F0F0F0;
+    }
+
+    /* Vista 2 columnas (por defecto) */
+    .cols-2 .card {
+      padding: 10px;
+      gap: 10px;
+      flex-direction: row;
+    }
+    .cols-2 .avatar {
+      width: 56px;
+      height: 56px;
+      font-size: 20px;
+    }
+    .cols-2 .card-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: #333;
+    }
+    .cols-2 .card-surname {
+      font-size: 13px;
+      color: #666;
+      margin-top: 2px;
+    }
+    .cols-2 .card-extra {
+      display: none;
+    }
+
+    /* Vista 1 columna (detalle) */
+    .cols-1 .card {
+      padding: 12px;
+      gap: 12px;
+      flex-direction: row;
+    }
+    .cols-1 .avatar {
+      width: 64px;
+      height: 64px;
+      font-size: 22px;
+    }
+    .cols-1 .card-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: #333;
+    }
+    .cols-1 .card-surname {
+      font-size: 14px;
+      color: #666;
+      margin-top: 1px;
+    }
+    .cols-1 .card-extra {
+      display: block;
+      font-size: 11px;
+      color: #999;
+      margin-top: 4px;
+    }
+
+    /* Vista 4 columnas (compacto) */
+    .cols-4 .card {
+      padding: 8px 4px;
+      gap: 0;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .cols-4 .avatar {
+      width: 42px;
+      height: 42px;
+      font-size: 16px;
+    }
+    .cols-4 .card-info {
+      margin-top: 4px;
+    }
+    .cols-4 .card-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #333;
+    }
+    .cols-4 .card-surname {
+      display: none;
+    }
+    .cols-4 .card-extra {
+      display: none;
+    }
+
+    /* === AVATAR === */
+    .avatar-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+    .avatar {
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      letter-spacing: 1px;
+      user-select: none;
+    }
+    .asiduidad-dot {
+      position: absolute;
+      bottom: 1px;
+      right: 1px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+    }
+    .cols-4 .asiduidad-dot {
+      width: 12px;
+      height: 12px;
+      bottom: 0;
+      right: 0;
+    }
+
+    /* Colores de texto para cada avatar_color */
+    .avatar[data-bg="#AFA9EC"] { color: #26215C; }
+    .avatar[data-bg="#F0997B"] { color: #4A1B0C; }
+    .avatar[data-bg="#5DCAA5"] { color: #04342C; }
+    .avatar[data-bg="#85B7EB"] { color: #042C53; }
+    .avatar[data-bg="#ED93B1"] { color: #4B1528; }
+    .avatar[data-bg="#EF9F27"] { color: #412402; }
+    .avatar[data-bg="#97C459"] { color: #173404; }
+    .avatar[data-bg="#F7C1C1"] { color: #501313; }
+
+    /* === RESPONSIVE === */
+    @media (min-width: 768px) {
+      .main {
+        padding: 16px;
+      }
+      .grid {
+        gap: 8px;
+      }
+      .grid.cols-4 {
+        gap: 6px;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>LA BOYA</h1>
-    <p>Sociedad gastronómica</p>
+
+  <!-- CABECERA -->
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <span class="header-title">LA BOYA</span>
+        <span class="header-count" id="socioCount"></span>
+      </div>
+      <div class="view-buttons">
+        <button class="view-btn" data-cols="1" title="Detalle (1 columna)">
+          <svg viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="2"/></svg>
+        </button>
+        <button class="view-btn" data-cols="2" title="Equilibrio (2 columnas)">
+          <svg viewBox="0 0 16 16"><rect x="1" y="2" width="5.5" height="12" rx="1.5"/><rect x="9.5" y="2" width="5.5" height="12" rx="1.5"/></svg>
+        </button>
+        <button class="view-btn" data-cols="4" title="Compacto (4 columnas)">
+          <svg viewBox="0 0 16 16"><rect x="0.5" y="2" width="3" height="12" rx="1"/><rect x="4.5" y="2" width="3" height="12" rx="1"/><rect x="8.5" y="2" width="3" height="12" rx="1"/><rect x="12.5" y="2" width="3" height="12" rx="1"/></svg>
+        </button>
+      </div>
+    </div>
   </div>
+
+  <!-- MOSAICO -->
+  <div class="main">
+    <div class="grid cols-2" id="grid"></div>
+  </div>
+
+  <script>
+    // === CONSTANTES ===
+    var ASIDUIDAD_COLORS = { 1: '#639922', 2: '#EF9F27', 3: '#E24B4A' };
+    var TEXT_COLORS = {
+      '#AFA9EC': '#26215C',
+      '#F0997B': '#4A1B0C',
+      '#5DCAA5': '#04342C',
+      '#85B7EB': '#042C53',
+      '#ED93B1': '#4B1528',
+      '#EF9F27': '#412402',
+      '#97C459': '#173404',
+      '#F7C1C1': '#501313'
+    };
+    var LS_KEY = 'la_boya_vista';
+
+    // === ESTADO ===
+    var socios = [];
+    var currentView = localStorage.getItem(LS_KEY) || '2';
+
+    // === INICIALES ===
+    function getInitials(nombre, apellidos) {
+      var n = nombre ? nombre.trim().charAt(0).toUpperCase() : '';
+      var a = apellidos ? apellidos.trim().charAt(0).toUpperCase() : '';
+      return n + a;
+    }
+
+    // === RENDER MOSAICO ===
+    function renderGrid() {
+      var grid = document.getElementById('grid');
+      grid.className = 'grid cols-' + currentView;
+      grid.innerHTML = '';
+
+      for (var i = 0; i < socios.length; i++) {
+        var s = socios[i];
+        var initials = getInitials(s.nombre, s.apellidos);
+        var bgColor = s.avatar_color || '#85B7EB';
+        var textColor = TEXT_COLORS[bgColor] || '#333';
+        var dotColor = ASIDUIDAD_COLORS[s.asiduidad] || '#999';
+
+        // Info extra para vista detalle (1 col)
+        var extraParts = [];
+        if (s.num_socio) extraParts.push('N\u00ba ' + s.num_socio);
+        if (s.antiguedad_años) extraParts.push(s.antiguedad_años + ' a\u00f1os');
+        var extraLine = extraParts.join(' \u00b7 ');
+        var notaLine = '';
+        if (s.notas) {
+          notaLine = s.notas.split('\n')[0];
+          if (notaLine.length > 50) notaLine = notaLine.substring(0, 50) + '\u2026';
+        }
+
+        var card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML =
+          '<div class="avatar-wrap">' +
+            '<div class="avatar" style="background:' + bgColor + '" data-bg="' + bgColor + '">' +
+              '<span style="color:' + textColor + '">' + initials + '</span>' +
+            '</div>' +
+            '<div class="asiduidad-dot" style="background:' + dotColor + '"></div>' +
+          '</div>' +
+          '<div class="card-info">' +
+            '<div class="card-name">' + escapeHtml(s.nombre) + '</div>' +
+            '<div class="card-surname">' + escapeHtml(s.apellidos) + '</div>' +
+            '<div class="card-extra">' +
+              (extraLine ? escapeHtml(extraLine) : '') +
+              (notaLine ? '<br>' + escapeHtml(notaLine) : '') +
+            '</div>' +
+          '</div>';
+
+        grid.appendChild(card);
+      }
+    }
+
+    // === ESCAPE HTML ===
+    function escapeHtml(text) {
+      var div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // === VISTA ===
+    function setView(cols) {
+      currentView = cols;
+      localStorage.setItem(LS_KEY, cols);
+      renderGrid();
+      updateViewButtons();
+    }
+
+    function updateViewButtons() {
+      var btns = document.querySelectorAll('.view-btn');
+      for (var i = 0; i < btns.length; i++) {
+        var btn = btns[i];
+        if (btn.getAttribute('data-cols') === currentView) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      }
+    }
+
+    // === INIT ===
+    function init() {
+      // Event listeners botones de vista
+      var btns = document.querySelectorAll('.view-btn');
+      for (var i = 0; i < btns.length; i++) {
+        btns[i].addEventListener('click', function() {
+          setView(this.getAttribute('data-cols'));
+        });
+      }
+
+      // Cargar socios
+      fetch('/api/socios')
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          socios = data;
+          document.getElementById('socioCount').textContent = socios.length + ' socios';
+          updateViewButtons();
+          renderGrid();
+        })
+        .catch(function(err) {
+          console.error('Error cargando socios:', err);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+
 </body>
 </html>
