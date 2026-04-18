@@ -390,7 +390,7 @@ app.post('/api/eventos', (req, res) => {
     }
 
     var nombre = (req.body.nombre || '').trim();
-    var modoCalculo = req.body.modo_calculo || 'precio_fijo';
+    var modoCalculo = req.body.modo_calculo || null;
     var precioPorPersona = req.body.precio_por_persona != null ? parseFloat(req.body.precio_por_persona) : null;
     var costeTotal = req.body.coste_total != null ? parseFloat(req.body.coste_total) : null;
 
@@ -470,8 +470,8 @@ app.put('/api/eventos/:id', (req, res) => {
     }
     if (req.body.nombre !== undefined && evt.tipo === 'evento') evt.nombre = req.body.nombre.trim();
     if (req.body.estado !== undefined) evt.estado = req.body.estado;
-    if (req.body.precio_por_persona !== undefined) evt.precio_por_persona = parseFloat(req.body.precio_por_persona);
-    if (req.body.coste_total !== undefined) evt.coste_total = parseFloat(req.body.coste_total);
+    if (req.body.precio_por_persona !== undefined) evt.precio_por_persona = req.body.precio_por_persona != null ? parseFloat(req.body.precio_por_persona) : null;
+    if (req.body.coste_total !== undefined) evt.coste_total = req.body.coste_total != null ? parseFloat(req.body.coste_total) : null;
     if (req.body.modo_calculo !== undefined) evt.modo_calculo = req.body.modo_calculo;
     if (req.body.notas !== undefined) evt.notas = req.body.notas;
     if (req.body.cocineros !== undefined) evt.cocineros = req.body.cocineros;
