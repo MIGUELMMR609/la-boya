@@ -11,14 +11,49 @@ app.use(express.json());
 // Servir archivos estáticos
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Determinar ruta de datos (disco persistente en Render o local)
-const DATA_DIR = fs.existsSync('/app/data') ? '/app/data' : path.join(__dirname, 'data');
+// Rutas de datos
+const EN_RENDER = fs.existsSync('/app/data');
+const DATA_DIR = EN_RENDER ? '/app/data' : path.join(__dirname, 'data');
 const SOCIOS_FILE = path.join(DATA_DIR, 'socios.json');
+const SEED_FILE = path.join(__dirname, 'data', 'socios.json');
 
-// Asegurar que el archivo de datos existe
-if (!fs.existsSync(SOCIOS_FILE)) {
-  fs.writeFileSync(SOCIOS_FILE, '[]', 'utf8');
+// Inicializar datos: si el disco persistente está vacío, copiar seed del repo
+function inicializarDatos() {
+  console.log('Ruta de datos: ' + SOCIOS_FILE);
+  console.log('En Render: ' + EN_RENDER);
+
+  // Asegurar que el archivo existe
+  if (!fs.existsSync(SOCIOS_FILE)) {
+    fs.writeFileSync(SOCIOS_FILE, '[]', 'utf8');
+  }
+
+  // Leer contenido actual
+  var contenido = [];
+  try {
+    contenido = JSON.parse(fs.readFileSync(SOCIOS_FILE, 'utf8'));
+  } catch (e) {
+    contenido = [];
+  }
+
+  // Si está vacío y hay seed disponible, copiar seed
+  if (contenido.length === 0 && EN_RENDER && fs.existsSync(SEED_FILE)) {
+    try {
+      var seed = fs.readFileSync(SEED_FILE, 'utf8');
+      var seedData = JSON.parse(seed);
+      if (seedData.length > 0) {
+        fs.writeFileSync(SOCIOS_FILE, seed, 'utf8');
+        console.log('Inicializando datos desde seed... ' + seedData.length + ' socios copiados');
+        contenido = seedData;
+      }
+    } catch (e) {
+      console.error('Error leyendo seed:', e);
+    }
+  }
+
+  console.log('Socios cargados: ' + contenido.length);
 }
+
+inicializarDatos();
 
 // Ruta principal
 app.get('/', (req, res) => {
