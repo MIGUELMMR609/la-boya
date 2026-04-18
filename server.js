@@ -501,6 +501,112 @@ app.delete('/api/eventos/:id', (req, res) => {
   }
 });
 
+// PUT /api/eventos/:id/cocineros
+app.put('/api/eventos/:id/cocineros', (req, res) => {
+  try {
+    var data = leerEventos();
+    var idx = data.findIndex(e => e.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Evento no encontrado' });
+    var evt = data[idx];
+    var cocineros = req.body.cocineros || [];
+    evt.cocineros = cocineros;
+    // Auto-añadir cocineros a asistentes si no están
+    for (var i = 0; i < cocineros.length; i++) {
+      var ya = evt.asistentes.find(function(a) { return a.socio_id === cocineros[i]; });
+      if (!ya) {
+        evt.asistentes.push({ socio_id: cocineros[i], invitados: 0, pagado: false });
+      }
+    }
+    evt.fecha_modificacion = fechaHoy();
+    data[idx] = evt;
+    guardarEventos(data);
+    console.log('Cocineros actualizados evento ' + evt.id);
+    res.json(evt);
+  } catch (err) {
+    console.error('Error actualizando cocineros:', err);
+    res.status(500).json({ error: 'Error al actualizar cocineros' });
+  }
+});
+
+// PUT /api/eventos/:id/asistentes
+app.put('/api/eventos/:id/asistentes', (req, res) => {
+  try {
+    var data = leerEventos();
+    var idx = data.findIndex(e => e.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Evento no encontrado' });
+    var evt = data[idx];
+    var nuevos = req.body.asistentes || [];
+    // Mantener invitados/pagado de asistentes existentes
+    var prevMap = {};
+    for (var p = 0; p < evt.asistentes.length; p++) {
+      prevMap[evt.asistentes[p].socio_id] = evt.asistentes[p];
+    }
+    var resultado = [];
+    for (var n = 0; n < nuevos.length; n++) {
+      var sid = nuevos[n].socio_id || nuevos[n];
+      var prev = prevMap[sid];
+      resultado.push({
+        socio_id: sid,
+        invitados: prev ? prev.invitados : 0,
+        pagado: prev ? prev.pagado : false
+      });
+    }
+    evt.asistentes = resultado;
+    evt.fecha_modificacion = fechaHoy();
+    data[idx] = evt;
+    guardarEventos(data);
+    console.log('Asistentes actualizados evento ' + evt.id + ': ' + resultado.length);
+    res.json(evt);
+  } catch (err) {
+    console.error('Error actualizando asistentes:', err);
+    res.status(500).json({ error: 'Error al actualizar asistentes' });
+  }
+});
+
+// PUT /api/eventos/:id/asistente/:socio_id
+app.put('/api/eventos/:id/asistente/:socio_id', (req, res) => {
+  try {
+    var data = leerEventos();
+    var idx = data.findIndex(e => e.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Evento no encontrado' });
+    var evt = data[idx];
+    var asist = evt.asistentes.find(function(a) { return a.socio_id === req.params.socio_id; });
+    if (!asist) return res.status(404).json({ error: 'Asistente no encontrado' });
+    if (req.body.invitados !== undefined) asist.invitados = parseInt(req.body.invitados, 10) || 0;
+    if (req.body.pagado !== undefined) asist.pagado = !!req.body.pagado;
+    evt.fecha_modificacion = fechaHoy();
+    data[idx] = evt;
+    guardarEventos(data);
+    res.json(evt);
+  } catch (err) {
+    console.error('Error actualizando asistente:', err);
+    res.status(500).json({ error: 'Error al actualizar asistente' });
+  }
+});
+
+// PUT /api/eventos/:id/estado
+app.put('/api/eventos/:id/estado', (req, res) => {
+  try {
+    var data = leerEventos();
+    var idx = data.findIndex(e => e.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Evento no encontrado' });
+    var evt = data[idx];
+    var estado = req.body.estado;
+    if (!['abierto', 'finalizado'].includes(estado)) {
+      return res.status(400).json({ error: 'Estado debe ser abierto o finalizado' });
+    }
+    evt.estado = estado;
+    evt.fecha_modificacion = fechaHoy();
+    data[idx] = evt;
+    guardarEventos(data);
+    console.log('Estado evento ' + evt.id + ': ' + estado);
+    res.json(evt);
+  } catch (err) {
+    console.error('Error actualizando estado:', err);
+    res.status(500).json({ error: 'Error al actualizar estado' });
+  }
+});
+
 // === ADMIN: Importar socios oficiales ===
 const CLAVE_IMPORT = 'Rb7xNpWq3mKs9YvTfJd2Lc6Ae';
 const SOCIOS_OFICIALES_FILE = path.join(__dirname, 'data', 'socios_oficiales.json');

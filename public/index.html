@@ -1382,6 +1382,322 @@
       border-color: #B5D4F4;
     }
 
+    /* === DETALLE EVENTO === */
+    .evt-det-banner {
+      background: #EAF3DE;
+      color: #173404;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      text-align: center;
+    }
+    .evt-det-header {
+      padding: 16px;
+      text-align: center;
+    }
+    .evt-det-name {
+      font-size: 18px;
+      font-weight: 500;
+      color: #333;
+      margin: 6px 0 2px;
+    }
+    .evt-det-date {
+      font-size: 13px;
+      color: #888;
+    }
+    .evt-det-notas {
+      font-size: 12px;
+      color: #999;
+      margin-top: 6px;
+    }
+    .evt-resumen {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 0 16px 12px;
+    }
+    @media (min-width: 500px) {
+      .evt-resumen { grid-template-columns: 1fr 1fr 1fr 1fr; }
+    }
+    .evt-resumen-card {
+      background: #F9F9F9;
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+    }
+    .evt-resumen-num {
+      font-size: 22px;
+      font-weight: 700;
+      color: #333;
+    }
+    .evt-resumen-label {
+      font-size: 11px;
+      color: #999;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+    .evt-action-btns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 0 16px 12px;
+    }
+    @media (min-width: 500px) {
+      .evt-action-btns { grid-template-columns: 1fr 1fr 1fr; }
+    }
+    .evt-action-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 12px 6px;
+      background: #fff;
+      border: 0.5px solid #E0E0E0;
+      border-radius: 10px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      color: #333;
+    }
+    .evt-action-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .evt-action-btn svg {
+      width: 24px;
+      height: 24px;
+      stroke: #555;
+      fill: none;
+      stroke-width: 1.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* Listado asistentes */
+    .evt-asist-list {
+      padding: 0 16px 16px;
+    }
+    .evt-asist-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 0.5px solid #F0F0F0;
+    }
+    .evt-asist-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .evt-asist-avatar img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .evt-asist-cook-badge {
+      position: absolute;
+      top: -4px;
+      left: -4px;
+      width: 18px;
+      height: 18px;
+      background: #EAF3DE;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1.5px solid #fff;
+    }
+    .evt-asist-cook-badge svg {
+      width: 10px;
+      height: 10px;
+      stroke: #173404;
+      fill: none;
+      stroke-width: 2;
+    }
+    .evt-asist-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .evt-asist-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+    }
+    .evt-asist-extra {
+      font-size: 11px;
+      color: #999;
+    }
+    .evt-asist-amount {
+      font-size: 13px;
+      font-weight: 500;
+      color: #333;
+      margin-right: 8px;
+      white-space: nowrap;
+    }
+    .check-pagado {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      border: 2px solid #D0D0D0;
+      background: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.15s, border-color 0.15s;
+      padding: 0;
+    }
+    .check-pagado.checked {
+      background: #639922;
+      border-color: #639922;
+    }
+    .check-pagado svg {
+      width: 14px;
+      height: 14px;
+      stroke: #fff;
+      fill: none;
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: 0;
+    }
+    .check-pagado.checked svg {
+      opacity: 1;
+    }
+
+    /* Selección mosaico */
+    .sel-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 0.5px solid #E0E0E0;
+      background: #fff;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .sel-bar-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #333;
+    }
+    .btn-hecho {
+      background: #185FA5;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 16px;
+      font-size: 13px;
+      font-family: inherit;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .sel-hint {
+      font-size: 12px;
+      color: #999;
+      padding: 8px 16px;
+      text-align: center;
+    }
+    .sel-check {
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #639922;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid #fff;
+      z-index: 2;
+    }
+    .sel-check svg {
+      width: 12px;
+      height: 12px;
+      stroke: #fff;
+      fill: none;
+      stroke-width: 3;
+      stroke-linecap: round;
+    }
+    .sel-cook-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: rgba(24,95,165,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
+    }
+    .sel-cook-overlay svg {
+      width: 28px;
+      height: 28px;
+      stroke: #185FA5;
+      fill: none;
+      stroke-width: 2;
+      opacity: 0.85;
+    }
+    .inv-badge {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #185FA5;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid #fff;
+      z-index: 2;
+    }
+    /* Evento detail menu */
+    .evt-det-menu {
+      position: absolute;
+      top: 44px;
+      right: 12px;
+      background: #fff;
+      border: 0.5px solid #E0E0E0;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      z-index: 50;
+      display: none;
+      overflow: hidden;
+    }
+    .evt-det-menu.open { display: block; }
+    .evt-det-menu-item {
+      padding: 10px 16px;
+      font-size: 13px;
+      font-family: inherit;
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+      text-align: left;
+      white-space: nowrap;
+      color: #333;
+    }
+    .evt-det-menu-item:active { background: #F5F5F5; }
+    .evt-det-menu-item.danger { color: #A32D2D; }
+
     /* === RESPONSIVE === */
     @media (min-width: 768px) {
       .main {
@@ -1504,6 +1820,16 @@
   <!-- FORMULARIO EVENTO -->
   <div class="form-overlay" id="evtFormOverlay">
     <div class="form-content" id="evtFormContent"></div>
+  </div>
+
+  <!-- DETALLE EVENTO -->
+  <div class="ficha-overlay" id="evtDetalleOverlay">
+    <div class="ficha-content" id="evtDetalleContent"></div>
+  </div>
+
+  <!-- SUB-PANTALLA SELECCIÓN (cocineros/comensales/invitados) -->
+  <div class="ficha-overlay" id="selOverlay" style="z-index:220">
+    <div class="ficha-content" id="selContent"></div>
   </div>
 
   <!-- FICHA SOCIO -->
@@ -2596,13 +2922,13 @@
         for (var x = 0; x < allMenus.length; x++) allMenus[x].classList.remove('open');
       }, { once: false });
 
-      // Card click (placeholder for future E2)
+      // Card click → abrir detalle
       var cards = lista.querySelectorAll('.evt-card');
       for (var c = 0; c < cards.length; c++) {
         cards[c].addEventListener('click', function(ev) {
           if (ev.target.closest('.evt-menu-btn') || ev.target.closest('.evt-menu')) return;
           var id = this.querySelector('.evt-menu-btn').getAttribute('data-evt-id');
-          console.log('Evento clickeado: ' + id);
+          abrirDetalleEvento(id);
         });
       }
     }
@@ -2792,6 +3118,533 @@
           btn.disabled = false;
           btn.textContent = 'Crear evento';
         });
+      });
+    }
+
+    // === SVG ICONS ===
+    var SVG_COOK = '<svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="5"/><path d="M5 22v-2a7 7 0 0114 0v2"/><path d="M8 7a4 4 0 018 0"/></svg>';
+    var SVG_PEOPLE = '<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>';
+    var SVG_PLUS = '<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+    var SVG_CHECK = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
+
+    // === DETALLE EVENTO ===
+    function abrirDetalleEvento(evtId) {
+      fetch('/api/eventos/' + evtId)
+        .then(function(r) { if (!r.ok) throw new Error('No encontrado'); return r.json(); })
+        .then(function(evt) { renderDetalleEvento(evt); })
+        .catch(function(err) { showError(friendlyError(err)); });
+    }
+
+    function renderDetalleEvento(evt) {
+      var overlay = document.getElementById('evtDetalleOverlay');
+      var content = document.getElementById('evtDetalleContent');
+      var finalizado = evt.estado === 'finalizado';
+      var badgeClass = evt.tipo === 'comida_social' ? 'evt-badge-comida' : 'evt-badge-evento';
+      var badgeText = evt.tipo === 'comida_social' ? 'COMIDA SOCIAL' : 'EVENTO';
+
+      // Calcular resumen
+      var totalPersonas = 0;
+      var totalCobrado = 0;
+      var ppp = 0; // precio por persona
+      for (var i = 0; i < evt.asistentes.length; i++) {
+        var a = evt.asistentes[i];
+        totalPersonas += 1 + (a.invitados || 0);
+      }
+      if (evt.modo_calculo === 'precio_fijo') {
+        ppp = evt.precio_por_persona || 0;
+      } else {
+        ppp = totalPersonas > 0 ? Math.round(((evt.coste_total || 0) / totalPersonas) * 100) / 100 : 0;
+      }
+      var totalRecaudar = evt.modo_calculo === 'total_dividido' ? (evt.coste_total || 0) : ppp * totalPersonas;
+      for (var j = 0; j < evt.asistentes.length; j++) {
+        if (evt.asistentes[j].pagado) totalCobrado += (1 + (evt.asistentes[j].invitados || 0)) * ppp;
+      }
+
+      var bannerHtml = finalizado ? '<div class="evt-det-banner">\u2713 Evento finalizado</div>' : '';
+      var notasHtml = evt.notas ? '<div class="evt-det-notas">' + escapeHtml(evt.notas.length > 80 ? evt.notas.substring(0, 80) + '...' : evt.notas) + '</div>' : '';
+
+      // Botones de acción
+      var actionBtns = '';
+      if (evt.tipo === 'comida_social') {
+        actionBtns =
+          '<button class="evt-action-btn" id="btnCocineros"' + (finalizado ? ' disabled' : '') + '>' + SVG_COOK + 'Cocineros (' + (evt.cocineros || []).length + ')</button>' +
+          '<button class="evt-action-btn" id="btnComensales"' + (finalizado ? ' disabled' : '') + '>' + SVG_PEOPLE + 'Comensales (' + evt.asistentes.length + ')</button>' +
+          '<button class="evt-action-btn" id="btnInvitados"' + (finalizado ? ' disabled' : '') + '>' + SVG_PLUS + 'Invitados</button>';
+      } else {
+        actionBtns =
+          '<button class="evt-action-btn" id="btnComensales"' + (finalizado ? ' disabled' : '') + '>' + SVG_PEOPLE + 'Asistentes (' + evt.asistentes.length + ')</button>' +
+          '<button class="evt-action-btn" id="btnInvitados"' + (finalizado ? ' disabled' : '') + '>' + SVG_PLUS + 'Invitados</button>';
+      }
+
+      // Listado asistentes
+      var asistHtml = '';
+      if (evt.asistentes.length === 0) {
+        asistHtml = '<div class="sel-hint" style="padding:20px 16px;color:#999">A\u00fan no hay asistentes. Pulsa ' + (evt.tipo === 'comida_social' ? 'Comensales' : 'Asistentes') + ' para a\u00f1adir.</div>';
+      } else {
+        var sorted = evt.asistentes.slice().sort(function(a, b) {
+          var sa = findSocio(a.socio_id);
+          var sb = findSocio(b.socio_id);
+          if (!sa || !sb) return 0;
+          return norm(sa.apellidos).localeCompare(norm(sb.apellidos));
+        });
+        asistHtml = '<div class="evt-asist-list">';
+        for (var k = 0; k < sorted.length; k++) {
+          var as = sorted[k];
+          var soc = findSocio(as.socio_id);
+          if (!soc) continue;
+          var isCook = (evt.cocineros || []).indexOf(as.socio_id) !== -1;
+          var avatarBg = soc.avatar_color || '#85B7EB';
+          var avatarTxt = TEXT_COLORS[avatarBg] || '#333';
+          var ini = getInitials(soc.nombre, soc.apellidos);
+          var avatarInner = soc.foto_url
+            ? '<img src="' + cloudinaryThumb(soc.foto_url, 80) + '" alt="" loading="lazy">'
+            : '<span style="color:' + avatarTxt + '">' + ini + '</span>';
+          var cookBadge = isCook ? '<div class="evt-asist-cook-badge"><svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M6 21v-1a6 6 0 0112 0v1"/></svg></div>' : '';
+          var invText = as.invitados > 0 ? '<div class="evt-asist-extra">+ ' + as.invitados + ' invitado' + (as.invitados > 1 ? 's' : '') + '</div>' : '';
+          var amount = (1 + (as.invitados || 0)) * ppp;
+          asistHtml +=
+            '<div class="evt-asist-row">' +
+              '<div class="evt-asist-avatar" style="background:' + (soc.foto_url ? 'transparent' : avatarBg) + '">' + avatarInner + cookBadge + '</div>' +
+              '<div class="evt-asist-info"><div class="evt-asist-name">' + escapeHtml(soc.nombre + ' ' + soc.apellidos) + '</div>' + invText + '</div>' +
+              '<span class="evt-asist-amount">' + amount.toFixed(2) + ' \u20ac</span>' +
+              '<button class="check-pagado' + (as.pagado ? ' checked' : '') + '" data-sid="' + as.socio_id + '">' + SVG_CHECK + '</button>' +
+            '</div>';
+        }
+        asistHtml += '</div>';
+      }
+
+      var html =
+        '<div class="ficha-bar" style="position:relative">' +
+          '<button class="ficha-back" id="evtDetBack">\u2190 Volver</button>' +
+          '<button class="evt-menu-btn" id="evtDetMenuBtn" style="position:absolute;right:16px">\u22ef</button>' +
+          '<div class="evt-det-menu" id="evtDetMenu">' +
+            '<button class="evt-det-menu-item" id="evtDetEditar">Editar datos</button>' +
+            '<button class="evt-det-menu-item" id="evtDetEstado">' + (finalizado ? 'Reabrir evento' : 'Marcar como finalizado') + '</button>' +
+            '<button class="evt-det-menu-item danger" id="evtDetEliminar">Eliminar evento</button>' +
+          '</div>' +
+        '</div>' +
+        bannerHtml +
+        '<div class="evt-det-header">' +
+          '<span class="evt-badge ' + badgeClass + '">' + badgeText + '</span>' +
+          '<div class="evt-det-name">' + escapeHtml(evt.nombre) + '</div>' +
+          '<div class="evt-det-date">' + escapeHtml(formatFechaEvento(evt.fecha)) + '</div>' +
+          notasHtml +
+        '</div>' +
+        '<hr class="ficha-sep">' +
+        '<div class="evt-resumen">' +
+          '<div class="evt-resumen-card"><div class="evt-resumen-num">' + totalPersonas + '</div><div class="evt-resumen-label">Asistentes</div></div>' +
+          '<div class="evt-resumen-card"><div class="evt-resumen-num">' + (totalPersonas > 0 ? ppp.toFixed(2) + ' \u20ac' : '\u2014') + '</div><div class="evt-resumen-label">Por persona</div></div>' +
+          '<div class="evt-resumen-card"><div class="evt-resumen-num">' + totalRecaudar.toFixed(2) + ' \u20ac</div><div class="evt-resumen-label">Total</div></div>' +
+          '<div class="evt-resumen-card"><div class="evt-resumen-num">' + totalCobrado.toFixed(2) + ' \u20ac</div><div class="evt-resumen-label">Cobrado</div></div>' +
+        '</div>' +
+        '<hr class="ficha-sep">' +
+        '<div class="evt-action-btns">' + actionBtns + '</div>' +
+        '<hr class="ficha-sep">' +
+        asistHtml +
+        '<div class="ficha-bottom-bar">' +
+          '<button class="ficha-back" id="evtDetBackMobile">\u2190 Volver</button>' +
+          '<button class="btn-guardar" id="evtDetPdf" style="min-width:80px">PDF</button>' +
+        '</div>';
+
+      content.innerHTML = html;
+      overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+
+      function cerrarDetalle() {
+        overlay.classList.remove('open');
+        document.removeEventListener('keydown', escH);
+        setTimeout(function() { document.body.style.overflow = ''; cargarEventos(); }, 300);
+      }
+      document.getElementById('evtDetBack').addEventListener('click', cerrarDetalle);
+      document.getElementById('evtDetBackMobile').addEventListener('click', cerrarDetalle);
+      var escH = function(e) { if (e.key === 'Escape') cerrarDetalle(); };
+      document.addEventListener('keydown', escH);
+
+      // Menu
+      document.getElementById('evtDetMenuBtn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        document.getElementById('evtDetMenu').classList.toggle('open');
+      });
+      document.addEventListener('click', function closeDetMenu() {
+        var m = document.getElementById('evtDetMenu');
+        if (m) m.classList.remove('open');
+      });
+
+      // Estado
+      document.getElementById('evtDetEstado').addEventListener('click', function() {
+        var newEstado = finalizado ? 'abierto' : 'finalizado';
+        fetch('/api/eventos/' + evt.id + '/estado', {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ estado: newEstado })
+        }).then(function(r) { return r.json(); })
+        .then(function(updated) { renderDetalleEvento(updated); showToast('\u2713 Estado actualizado'); })
+        .catch(function(err) { showError(friendlyError(err)); });
+      });
+
+      // Editar
+      document.getElementById('evtDetEditar').addEventListener('click', function() {
+        abrirFormularioEventoEdicion(evt, function() {
+          fetch('/api/eventos/' + evt.id).then(function(r) { return r.json(); }).then(renderDetalleEvento);
+        });
+      });
+
+      // Eliminar
+      document.getElementById('evtDetEliminar').addEventListener('click', function() {
+        if (!confirm('\u00bfSeguro que quieres eliminar este evento?')) return;
+        fetch('/api/eventos/' + evt.id, { method: 'DELETE' })
+          .then(function(r) { if (!r.ok) throw new Error('Error'); return r.json(); })
+          .then(function() { cerrarDetalle(); showToast('\u2713 Evento eliminado'); })
+          .catch(function(err) { showError(friendlyError(err)); });
+      });
+
+      // PDF placeholder
+      document.getElementById('evtDetPdf').addEventListener('click', function() {
+        showToast('PDF pendiente de Fase E3');
+      });
+
+      // Check pagado
+      var checks = content.querySelectorAll('.check-pagado');
+      for (var ch = 0; ch < checks.length; ch++) {
+        checks[ch].addEventListener('click', function() {
+          var sid = this.getAttribute('data-sid');
+          var btn = this;
+          var wasPagado = btn.classList.contains('checked');
+          btn.classList.toggle('checked');
+          fetch('/api/eventos/' + evt.id + '/asistente/' + sid, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pagado: !wasPagado })
+          }).then(function(r) { if (!r.ok) throw new Error('Error'); return r.json(); })
+          .then(function(updated) {
+            evt = updated;
+            // Recalcular cobrado sin re-render
+            var newCobrado = 0;
+            for (var cc = 0; cc < evt.asistentes.length; cc++) {
+              if (evt.asistentes[cc].pagado) newCobrado += (1 + (evt.asistentes[cc].invitados || 0)) * ppp;
+            }
+            var cobradoEl = content.querySelectorAll('.evt-resumen-num')[3];
+            if (cobradoEl) cobradoEl.textContent = newCobrado.toFixed(2) + ' \u20ac';
+          })
+          .catch(function() { btn.classList.toggle('checked'); showError('Error al actualizar pago'); });
+        });
+      }
+
+      // Cocineros button
+      var btnCock = document.getElementById('btnCocineros');
+      if (btnCock) btnCock.addEventListener('click', function() {
+        abrirSeleccion('cocineros', evt, function(updated) { renderDetalleEvento(updated); });
+      });
+
+      // Comensales button
+      var btnCom = document.getElementById('btnComensales');
+      if (btnCom) btnCom.addEventListener('click', function() {
+        abrirSeleccion('comensales', evt, function(updated) { renderDetalleEvento(updated); });
+      });
+
+      // Invitados button
+      var btnInv = document.getElementById('btnInvitados');
+      if (btnInv) btnInv.addEventListener('click', function() {
+        abrirSeleccion('invitados', evt, function(updated) { renderDetalleEvento(updated); });
+      });
+    }
+
+    // === EDITAR EVENTO ===
+    function abrirFormularioEventoEdicion(evt, onDone) {
+      var overlay = document.getElementById('evtFormOverlay');
+      var content = document.getElementById('evtFormContent');
+      var modoSel = evt.modo_calculo || 'precio_fijo';
+
+      var camposDin = '';
+      if (evt.tipo === 'comida_social') {
+        camposDin =
+          '<div class="form-field">' +
+            '<label class="form-label">Precio por persona</label>' +
+            '<div class="input-with-unit">' +
+              '<input class="form-input" id="evtPrecio" type="number" value="' + (evt.precio_por_persona || 25) + '" min="0" step="0.5">' +
+              '<span class="input-unit">\u20ac</span>' +
+            '</div>' +
+          '</div>';
+      } else {
+        camposDin =
+          '<div class="form-field">' +
+            '<label class="form-label">Nombre del evento *</label>' +
+            '<input class="form-input" id="evtNombre" type="text" value="' + escapeHtml(evt.nombre) + '">' +
+          '</div>' +
+          '<label class="form-label">C\u00e1lculo del coste</label>' +
+          '<div class="modo-radios" id="modoRadios">' +
+            '<button type="button" class="modo-radio' + (modoSel === 'precio_fijo' ? ' selected' : '') + '" data-modo="precio_fijo">Precio fijo</button>' +
+            '<button type="button" class="modo-radio' + (modoSel === 'total_dividido' ? ' selected' : '') + '" data-modo="total_dividido">Total dividido</button>' +
+          '</div>' +
+          '<div id="evtCosteCampo"></div>';
+      }
+
+      var html =
+        '<div class="form-bar">' +
+          '<button class="ficha-back" id="evtFormBack">\u2190</button>' +
+          '<span class="form-bar-title">Editar evento</span>' +
+        '</div>' +
+        '<div class="form-body">' +
+          '<div class="form-error-banner" id="evtFormError"></div>' +
+          '<div class="form-field"><label class="form-label">Tipo</label><div style="font-size:14px;color:#666;padding:6px 0">' + (evt.tipo === 'comida_social' ? 'Comida social' : 'Evento') + '</div></div>' +
+          '<div class="form-field"><label class="form-label">Fecha *</label><input class="form-input" id="evtFecha" type="date" value="' + evt.fecha + '"></div>' +
+          '<div id="evtCamposDinamicos">' + camposDin + '</div>' +
+          '<div class="form-field"><label class="form-label">Notas</label><textarea class="notas-textarea-neutral" id="evtNotas">' + escapeHtml(evt.notas || '') + '</textarea></div>' +
+        '</div>' +
+        '<div class="form-actions">' +
+          '<button class="btn-cancel" id="evtFormCancel">Cancelar</button>' +
+          '<button class="btn-submit" id="evtFormSubmit">Guardar cambios</button>' +
+        '</div>';
+
+      content.innerHTML = html;
+      overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+
+      // Modo radios for evento type
+      if (evt.tipo === 'evento') {
+        renderCosteCampoEdit();
+        var modos = document.querySelectorAll('#modoRadios .modo-radio');
+        for (var i = 0; i < modos.length; i++) {
+          modos[i].addEventListener('click', function() {
+            modoSel = this.getAttribute('data-modo');
+            var all = document.querySelectorAll('#modoRadios .modo-radio');
+            for (var l = 0; l < all.length; l++) all[l].classList.toggle('selected', all[l].getAttribute('data-modo') === modoSel);
+            renderCosteCampoEdit();
+          });
+        }
+      }
+
+      function renderCosteCampoEdit() {
+        var c = document.getElementById('evtCosteCampo');
+        if (!c) return;
+        if (modoSel === 'precio_fijo') {
+          c.innerHTML = '<div class="form-field"><label class="form-label">Precio por persona</label><div class="input-with-unit"><input class="form-input" id="evtPrecio" type="number" value="' + (evt.precio_por_persona || '') + '" min="0" step="0.5"><span class="input-unit">\u20ac</span></div></div>';
+        } else {
+          c.innerHTML = '<div class="form-field"><label class="form-label">Gasto total</label><div class="input-with-unit"><input class="form-input" id="evtCosteTotal" type="number" value="' + (evt.coste_total || '') + '" min="0" step="1"><span class="input-unit">\u20ac</span></div></div>';
+        }
+      }
+
+      function cerrarEvtEdit() {
+        overlay.classList.remove('open');
+        setTimeout(function() { document.body.style.overflow = ''; }, 300);
+      }
+      document.getElementById('evtFormCancel').addEventListener('click', cerrarEvtEdit);
+      document.getElementById('evtFormBack').addEventListener('click', cerrarEvtEdit);
+
+      document.getElementById('evtFormSubmit').addEventListener('click', function() {
+        var btn = this;
+        var banner = document.getElementById('evtFormError');
+        banner.style.display = 'none';
+        var body = { fecha: document.getElementById('evtFecha').value, notas: document.getElementById('evtNotas').value };
+        if (evt.tipo === 'comida_social') {
+          body.precio_por_persona = parseFloat((document.getElementById('evtPrecio') || {}).value) || 25;
+          body.modo_calculo = 'precio_fijo';
+        } else {
+          body.nombre = (document.getElementById('evtNombre') || {}).value;
+          if (!body.nombre || !body.nombre.trim()) { banner.textContent = 'Nombre obligatorio'; banner.style.display = 'block'; return; }
+          body.modo_calculo = modoSel;
+          if (modoSel === 'precio_fijo') {
+            body.precio_por_persona = parseFloat((document.getElementById('evtPrecio') || {}).value);
+            if (!body.precio_por_persona || body.precio_por_persona <= 0) { banner.textContent = 'Precio inv\u00e1lido'; banner.style.display = 'block'; return; }
+          } else {
+            body.coste_total = parseFloat((document.getElementById('evtCosteTotal') || {}).value);
+            if (!body.coste_total || body.coste_total <= 0) { banner.textContent = 'Total inv\u00e1lido'; banner.style.display = 'block'; return; }
+          }
+        }
+        btn.disabled = true;
+        fetch('/api/eventos/' + evt.id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+          .then(function(r) { if (!r.ok) throw new Error('Error'); return r.json(); })
+          .then(function() { cerrarEvtEdit(); showToast('\u2713 Evento actualizado'); if (onDone) onDone(); })
+          .catch(function(err) { banner.textContent = friendlyError(err); banner.style.display = 'block'; btn.disabled = false; });
+      });
+    }
+
+    // === PANTALLAS DE SELECCIÓN ===
+    function abrirSeleccion(modo, evt, onDone) {
+      var overlay = document.getElementById('selOverlay');
+      var content = document.getElementById('selContent');
+      var titulo = modo === 'cocineros' ? 'Cocineros' : (modo === 'invitados' ? 'Invitados extra' : (evt.tipo === 'comida_social' ? 'Comensales' : 'Asistentes'));
+      var hint = '';
+      if (modo === 'cocineros') hint = 'Toca los socios que van a cocinar. Toca de nuevo para quitarlos.';
+      else if (modo === 'comensales') hint = 'Toca los socios que van a asistir.';
+      else hint = 'Toca para a\u00f1adir +1 invitado. Mant\u00e9n pulsado para quitar.';
+
+      // Determinar socios a mostrar
+      var sociosVista = modo === 'invitados'
+        ? socios.filter(function(s) { return evt.asistentes.some(function(a) { return a.socio_id === s.id; }); })
+        : socios.slice();
+
+      // Estado local
+      var selCook = (evt.cocineros || []).slice();
+      var selAsist = evt.asistentes.map(function(a) { return a.socio_id; });
+      var invMap = {};
+      for (var iv = 0; iv < evt.asistentes.length; iv++) invMap[evt.asistentes[iv].socio_id] = evt.asistentes[iv].invitados || 0;
+
+      var searchHtml = modo !== 'invitados' ? '<div style="padding:0 16px 8px"><input class="search-input" id="selSearch" placeholder="Buscar..." autocomplete="off"></div>' : '';
+
+      var html =
+        '<div class="sel-bar">' +
+          '<button class="ficha-back" id="selBack">\u2190 Volver</button>' +
+          '<span class="sel-bar-title">' + titulo + '</span>' +
+          '<button class="btn-hecho" id="selDone">Hecho</button>' +
+        '</div>' +
+        '<div class="sel-hint">' + hint + '</div>' +
+        searchHtml +
+        '<div class="main" id="selGrid" style="padding:8px"></div>';
+
+      content.innerHTML = html;
+      overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+
+      function renderSelGrid() {
+        var grid = document.getElementById('selGrid');
+        var query = '';
+        var searchEl = document.getElementById('selSearch');
+        if (searchEl) query = norm(searchEl.value.trim());
+        var filtered = sociosVista.filter(function(s) {
+          if (!query) return true;
+          return norm(s.nombre + ' ' + s.apellidos).indexOf(query) !== -1;
+        });
+        filtered.sort(function(a, b) { return norm(a.apellidos).localeCompare(norm(b.apellidos)); });
+        grid.innerHTML = '';
+        var gridDiv = document.createElement('div');
+        gridDiv.className = 'grid cols-2';
+        gridDiv.style.gap = '6px';
+
+        for (var i = 0; i < filtered.length; i++) {
+          var s = filtered[i];
+          var bgC = s.avatar_color || '#85B7EB';
+          var txtC = TEXT_COLORS[bgC] || '#333';
+          var ini = getInitials(s.nombre, s.apellidos);
+          var avatarHtml = s.foto_url
+            ? '<img src="' + cloudinaryThumb(s.foto_url, 120) + '" alt="" loading="lazy">'
+            : '<span style="color:' + txtC + '">' + ini + '</span>';
+
+          var overlayHtml = '';
+          if (modo === 'cocineros') {
+            var isSel = selCook.indexOf(s.id) !== -1;
+            if (isSel) {
+              overlayHtml = '<div class="sel-cook-overlay">' + SVG_COOK + '</div><div class="sel-check">' + SVG_CHECK + '</div>';
+            }
+          } else if (modo === 'comensales') {
+            var isSel2 = selAsist.indexOf(s.id) !== -1;
+            var isCookLocked = selCook.indexOf(s.id) !== -1;
+            if (isSel2) overlayHtml = '<div class="sel-check">' + SVG_CHECK + '</div>';
+            if (isCookLocked) overlayHtml += '<div class="evt-asist-cook-badge" style="top:-2px;left:-2px"><svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M6 21v-1a6 6 0 0112 0v1"/></svg></div>';
+          } else {
+            var invN = invMap[s.id] || 0;
+            if (invN > 0) overlayHtml = '<div class="inv-badge">' + invN + '</div>';
+            else overlayHtml = '<div class="inv-badge" style="background:#D0D0D0">0</div>';
+          }
+
+          var card = document.createElement('div');
+          card.className = 'card';
+          card.style.cssText = 'padding:10px;gap:8px;flex-direction:row;cursor:pointer';
+          card.setAttribute('data-sid', s.id);
+          card.innerHTML =
+            '<div class="avatar-wrap" style="position:relative">' +
+              '<div class="avatar" style="background:' + (s.foto_url ? 'transparent' : bgC) + ';width:56px;height:56px;font-size:18px">' + avatarHtml + '</div>' +
+              overlayHtml +
+            '</div>' +
+            '<div class="card-info"><div class="card-name" style="font-size:13px">' + escapeHtml(s.nombre) + '</div><div class="card-surname" style="font-size:11px">' + escapeHtml(s.apellidos) + '</div></div>';
+          gridDiv.appendChild(card);
+        }
+        grid.innerHTML = '';
+        grid.appendChild(gridDiv);
+
+        // Tap handlers
+        var cards = gridDiv.querySelectorAll('.card');
+        for (var c = 0; c < cards.length; c++) {
+          (function(card) {
+            var sid = card.getAttribute('data-sid');
+            if (modo === 'cocineros') {
+              card.addEventListener('click', function() {
+                var idx = selCook.indexOf(sid);
+                if (idx === -1) selCook.push(sid);
+                else selCook.splice(idx, 1);
+                renderSelGrid();
+              });
+            } else if (modo === 'comensales') {
+              card.addEventListener('click', function() {
+                if (selCook.indexOf(sid) !== -1) {
+                  showToast('El cocinero asiste obligatoriamente');
+                  return;
+                }
+                var idx = selAsist.indexOf(sid);
+                if (idx === -1) selAsist.push(sid);
+                else selAsist.splice(idx, 1);
+                renderSelGrid();
+              });
+            } else {
+              // Invitados: tap +1, long press -1
+              var timer = null;
+              card.addEventListener('mousedown', function() { timer = setTimeout(function() { timer = 'long'; }, 500); });
+              card.addEventListener('touchstart', function() { timer = setTimeout(function() { timer = 'long'; }, 500); }, { passive: true });
+              card.addEventListener('mouseup', handleInvTap);
+              card.addEventListener('touchend', handleInvTap);
+              function handleInvTap(e) {
+                e.preventDefault();
+                if (timer === 'long') {
+                  // Decrement
+                  if ((invMap[sid] || 0) > 0) {
+                    invMap[sid]--;
+                    var soc = findSocio(sid);
+                    showToast('\u2212 1 invitado de ' + (soc ? soc.nombre : sid));
+                    if (navigator.vibrate) navigator.vibrate(50);
+                  }
+                } else {
+                  clearTimeout(timer);
+                  invMap[sid] = (invMap[sid] || 0) + 1;
+                }
+                timer = null;
+                // Optimistic update to server
+                fetch('/api/eventos/' + evt.id + '/asistente/' + sid, {
+                  method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ invitados: invMap[sid] || 0 })
+                }).catch(function() { showError('Error al actualizar invitados'); });
+                renderSelGrid();
+              }
+            }
+          })(cards[c]);
+        }
+      }
+
+      renderSelGrid();
+
+      // Search
+      var searchEl = document.getElementById('selSearch');
+      if (searchEl) searchEl.addEventListener('input', renderSelGrid);
+
+      // Back
+      function cerrarSel() {
+        overlay.classList.remove('open');
+        setTimeout(function() { document.body.style.overflow = ''; }, 300);
+      }
+
+      document.getElementById('selBack').addEventListener('click', function() {
+        if (modo === 'invitados') { cerrarSel(); fetch('/api/eventos/' + evt.id).then(function(r) { return r.json(); }).then(function(u) { if (onDone) onDone(u); }); return; }
+        cerrarSel();
+      });
+
+      // Done
+      document.getElementById('selDone').addEventListener('click', function() {
+        if (modo === 'cocineros') {
+          fetch('/api/eventos/' + evt.id + '/cocineros', {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cocineros: selCook })
+          }).then(function(r) { return r.json(); })
+          .then(function(updated) { cerrarSel(); if (onDone) onDone(updated); showToast('\u2713 Cocineros guardados'); })
+          .catch(function() { showError('Error al guardar cocineros'); });
+        } else if (modo === 'comensales') {
+          var asistBody = selAsist.map(function(sid) { return { socio_id: sid }; });
+          fetch('/api/eventos/' + evt.id + '/asistentes', {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ asistentes: asistBody })
+          }).then(function(r) { return r.json(); })
+          .then(function(updated) { cerrarSel(); if (onDone) onDone(updated); showToast('\u2713 Asistentes guardados'); })
+          .catch(function() { showError('Error al guardar asistentes'); });
+        } else {
+          cerrarSel();
+          fetch('/api/eventos/' + evt.id).then(function(r) { return r.json(); }).then(function(u) { if (onDone) onDone(u); });
+        }
       });
     }
 
