@@ -2465,7 +2465,6 @@
     }
 
     // === TABS ===
-    var eventosLoaded = false;
     function setTab(tab) {
       localStorage.setItem('la_boya_tab', tab);
       var tabs = document.querySelectorAll('.tab-btn');
@@ -2475,8 +2474,7 @@
       }
       document.getElementById('tab-socios').className = 'tab-content' + (tab === 'socios' ? ' active' : '');
       document.getElementById('tab-eventos').className = 'tab-content' + (tab === 'eventos' ? ' active' : '');
-      if (tab === 'eventos' && !eventosLoaded) {
-        eventosLoaded = true;
+      if (tab === 'eventos') {
         cargarEventos();
       }
     }
@@ -2499,10 +2497,12 @@
         .then(function(r) { return r.json(); })
         .then(function(data) {
           eventos = data;
+          console.log('Eventos cargados:', data.length);
           loaderE.style.display = 'none';
           renderEventos();
         })
         .catch(function(err) {
+          console.error('Error al cargar eventos:', err);
           loaderE.style.display = 'none';
           showError(friendlyError(err));
         });
