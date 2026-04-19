@@ -125,6 +125,29 @@ function inicializarDatos() {
   try {
     var evts = JSON.parse(fs.readFileSync(EVENTOS_FILE, 'utf8'));
     console.log('Eventos cargados: ' + evts.length);
+
+    // Migración: añadir fecha al nombre de eventos genéricos
+    var evtMigrados = 0;
+    for (var em = 0; em < evts.length; em++) {
+      if (evts[em].tipo === 'evento' && evts[em].fecha && !FECHA_SUFFIX_RE.test(evts[em].nombre)) {
+        // Backup antes de migrar (una vez)
+        if (evtMigrados === 0) {
+          var nowE = new Date();
+          var tsE = nowE.getFullYear() + String(nowE.getMonth()+1).padStart(2,'0') + String(nowE.getDate()).padStart(2,'0') + '-' + String(nowE.getHours()).padStart(2,'0') + String(nowE.getMinutes()).padStart(2,'0');
+          var backupEvt = path.join(DATA_DIR, 'eventos.backup.' + tsE + '.json');
+          if (!fs.existsSync(backupEvt)) {
+            fs.writeFileSync(backupEvt, JSON.stringify(evts, null, 2), 'utf8');
+            console.log('Backup eventos creado: eventos.backup.' + tsE + '.json');
+          }
+        }
+        evts[em].nombre = generarNombreEvento(evts[em].nombre, evts[em].fecha);
+        evtMigrados++;
+      }
+    }
+    if (evtMigrados > 0) {
+      fs.writeFileSync(EVENTOS_FILE, JSON.stringify(evts, null, 2), 'utf8');
+      console.log('Eventos migrados con fecha en el nombre: ' + evtMigrados);
+    }
   } catch (e) {
     fs.writeFileSync(EVENTOS_FILE, '[]', 'utf8');
     console.log('Eventos cargados: 0');
@@ -368,13 +391,24 @@ app.delete('/api/socios/:id', async (req, res) => {
 
 // === EVENTOS ===
 const MESES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+var FECHA_SUFFIX_RE = /\s*-\s*\d{1,2}\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\s+\d{4}$/i;
+
+function formatFechaES(fechaStr) {
+  var parts = fechaStr.split('-');
+  return parseInt(parts[2], 10) + ' ' + MESES_ES[parseInt(parts[1], 10) - 1] + ' ' + parts[0];
+}
 
 function generarNombreComida(fechaStr) {
-  var parts = fechaStr.split('-');
-  var d = parseInt(parts[2], 10);
-  var m = parseInt(parts[1], 10) - 1;
-  var y = parts[0];
-  return 'Comida social - ' + d + ' ' + MESES_ES[m] + ' ' + y;
+  return 'Comida social - ' + formatFechaES(fechaStr);
+}
+
+function generarNombreEvento(nombreBase, fechaStr) {
+  var base = nombreBase.replace(FECHA_SUFFIX_RE, '').trim();
+  return base + ' - ' + formatFechaES(fechaStr);
+}
+
+function extraerNombreBase(nombre) {
+  return nombre.replace(FECHA_SUFFIX_RE, '').trim();
 }
 
 function leerEventos() {
@@ -437,6 +471,7 @@ app.post('/api/eventos', (req, res) => {
       costeTotal = null;
     } else {
       if (!nombre) return res.status(400).json({ error: 'Nombre requerido para eventos' });
+      nombre = generarNombreEvento(nombre, fecha);
       // Evento genérico: coste puede ser null (se asigna después)
       if (modoCalculo && ['precio_fijo', 'total_dividido'].includes(modoCalculo)) {
         if (modoCalculo === 'precio_fijo') {
@@ -503,9 +538,15 @@ app.put('/api/eventos/:id', (req, res) => {
     var evt = data[idx];
     if (req.body.fecha !== undefined) {
       evt.fecha = req.body.fecha;
-      if (evt.tipo === 'comida_social') evt.nombre = generarNombreComida(evt.fecha);
+      if (evt.tipo === 'comida_social') {
+        evt.nombre = generarNombreComida(evt.fecha);
+      } else {
+        evt.nombre = generarNombreEvento(extraerNombreBase(evt.nombre), evt.fecha);
+      }
     }
-    if (req.body.nombre !== undefined && evt.tipo === 'evento') evt.nombre = req.body.nombre.trim();
+    if (req.body.nombre !== undefined && evt.tipo === 'evento') {
+      evt.nombre = generarNombreEvento(req.body.nombre.trim(), evt.fecha);
+    }
     if (req.body.estado !== undefined) evt.estado = req.body.estado;
     if (req.body.precio_por_persona !== undefined) evt.precio_por_persona = req.body.precio_por_persona != null ? parseFloat(req.body.precio_por_persona) : null;
     if (req.body.coste_total !== undefined) evt.coste_total = req.body.coste_total != null ? parseFloat(req.body.coste_total) : null;

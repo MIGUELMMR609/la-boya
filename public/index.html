@@ -3608,6 +3608,7 @@
             '<div class="form-field">' +
               '<label class="form-label">Nombre del evento *</label>' +
               '<input class="form-input" id="evtNombre" type="text" placeholder="Parrillada de verano...">' +
+              '<div style="font-size:10px;color:#999;margin-top:3px">La fecha se a\u00f1adir\u00e1 autom\u00e1ticamente al final.</div>' +
             '</div>';
         }
       }
@@ -3840,7 +3841,6 @@
         '<div class="evt-det-header">' +
           '<span class="evt-badge ' + badgeClass + '">' + badgeText + '</span>' +
           '<div class="evt-det-name">' + escapeHtml(evt.nombre) + '</div>' +
-          '<div class="evt-det-date">' + escapeHtml(formatFechaEvento(evt.fecha)) + '</div>' +
           notasHtml +
         '</div>' +
         '<hr class="ficha-sep">' +
@@ -4099,7 +4099,8 @@
         camposDin =
           '<div class="form-field">' +
             '<label class="form-label">Nombre del evento *</label>' +
-            '<input class="form-input" id="evtNombre" type="text" value="' + escapeHtml(evt.nombre) + '">' +
+            '<input class="form-input" id="evtNombre" type="text" value="' + escapeHtml(evt.nombre.replace(/\s*-\s*\d{1,2}\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\s+\d{4}$/i, '')) + '">' +
+            '<div style="font-size:10px;color:#999;margin-top:3px">La fecha se a\u00f1adir\u00e1 autom\u00e1ticamente al final.</div>' +
           '</div>' +
           '<label class="form-label">C\u00e1lculo del coste</label>' +
           '<div class="modo-radios" id="modoRadios">' +
