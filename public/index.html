@@ -12,6 +12,7 @@
   <link rel="manifest" href="/manifest.json">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     * {
       margin: 0;
@@ -1380,6 +1381,40 @@
     }
     .notas-textarea-neutral:focus {
       border-color: #B5D4F4;
+    }
+
+    /* === PDF MODAL === */
+    .pdf-option {
+      padding: 16px;
+      border: 1.5px solid #E0E0E0;
+      border-radius: 10px;
+      background: #fff;
+      cursor: pointer;
+      text-align: center;
+      margin-bottom: 8px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .pdf-option:active { background: #F5F5F5; }
+    .pdf-option svg {
+      display: block;
+      margin: 0 auto 6px;
+      width: 32px;
+      height: 32px;
+      stroke: #185FA5;
+      fill: none;
+      stroke-width: 1.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .pdf-option-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 2px;
+    }
+    .pdf-option-sub {
+      font-size: 11px;
+      color: #999;
     }
 
     /* === COSTE MODAL === */
@@ -3535,9 +3570,13 @@
           .catch(function(err) { showError(friendlyError(err)); });
       });
 
-      // PDF placeholder
+      // PDF: modal con 2 opciones
       document.getElementById('evtDetPdf').addEventListener('click', function() {
-        showToast('PDF pendiente de Fase E3');
+        if (evt.asistentes.length === 0 && (!evt.invitados_boya || evt.invitados_boya.length === 0)) {
+          showToast('A\u00f1ade asistentes primero'); return;
+        }
+        if (!window.jspdf) { showToast('No se pudo cargar el generador de PDF'); return; }
+        abrirModalPdf(evt, ppp, totalPersonas, pagantes, totalRecaudar, totalCobrado, nBoya, costeBoya);
       });
 
       // Asignar / Modificar coste
@@ -4140,6 +4179,277 @@
           .then(function(updated) { div.remove(); renderDetalleEvento(updated); showToast('\u2713 Coste actualizado'); })
           .catch(function(err) { showError(friendlyError(err)); });
       });
+    }
+
+    // === PDF ===
+    var DIAS_SEMANA = ['domingo','lunes','martes','mi\u00e9rcoles','jueves','viernes','s\u00e1bado'];
+
+    function pdfFileName(evt, suffix) {
+      var base = evt.tipo === 'comida_social' ? 'Comida' : evt.nombre;
+      base = base.replace(/[^a-zA-Z0-9\u00e0-\u00ff ]/g, '').replace(/\s+/g, '_').substring(0, 30);
+      var dp = evt.fecha.split('-');
+      return 'LA_BOYA_' + base + '_' + dp[2] + MESES_LARGO[parseInt(dp[1],10)-1] + dp[0] + '_' + suffix + '.pdf';
+    }
+
+    function pdfFechaLarga(str) {
+      var p = str.split('-');
+      var d = new Date(parseInt(p[0],10), parseInt(p[1],10)-1, parseInt(p[2],10));
+      return DIAS_SEMANA[d.getDay()] + ' ' + parseInt(p[2],10) + ' ' + MESES_LARGO[parseInt(p[1],10)-1] + ' ' + p[0];
+    }
+
+    function abrirModalPdf(evt, ppp, totalPersonas, pagantes, totalRecaudar, totalCobrado, nBoya, costeBoya) {
+      var ex = document.getElementById('pdfModalOverlay');
+      if (ex) ex.remove();
+      var div = document.createElement('div');
+      div.className = 'coste-modal-overlay open';
+      div.id = 'pdfModalOverlay';
+      div.innerHTML =
+        '<div class="coste-modal">' +
+          '<div class="coste-modal-title">Generar PDF</div>' +
+          '<div class="pdf-option" id="pdfMovil">' +
+            '<svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>' +
+            '<div class="pdf-option-title">PDF para m\u00f3vil</div>' +
+            '<div class="pdf-option-sub">Compacto, ideal para WhatsApp</div>' +
+          '</div>' +
+          '<div class="pdf-option" id="pdfA4">' +
+            '<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' +
+            '<div class="pdf-option-title">PDF para imprimir (A4)</div>' +
+            '<div class="pdf-option-sub">Formato formal para archivar</div>' +
+          '</div>' +
+          '<button class="btn-cancel" id="pdfCancel" style="width:100%;margin-top:8px">Cancelar</button>' +
+        '</div>';
+      document.body.appendChild(div);
+      document.getElementById('pdfCancel').addEventListener('click', function() { div.remove(); });
+      document.getElementById('pdfMovil').addEventListener('click', function() { div.remove(); generarPdfMovil(evt, ppp, totalPersonas, pagantes, totalRecaudar, totalCobrado, nBoya, costeBoya); });
+      document.getElementById('pdfA4').addEventListener('click', function() { div.remove(); generarPdfA4(evt, ppp, totalPersonas, pagantes, totalRecaudar, totalCobrado, nBoya, costeBoya); });
+    }
+
+    function getPdfAsistentes(evt) {
+      var sortFn = function(a, b) {
+        var sa = findSocio(a.socio_id); var sb = findSocio(b.socio_id);
+        if (!sa || !sb) return 0;
+        return norm(sa.apellidos).localeCompare(norm(sb.apellidos));
+      };
+      return {
+        pendientes: evt.asistentes.filter(function(a) { return !a.pagado; }).sort(sortFn),
+        pagados: evt.asistentes.filter(function(a) { return a.pagado; }).sort(sortFn),
+        boya: (evt.invitados_boya || []).slice().sort(function(a,b) { return norm(a.nombre).localeCompare(norm(b.nombre)); })
+      };
+    }
+
+    function generarPdfMovil(evt, ppp, totalPersonas, pagantes, totalRecaudar, totalCobrado, nBoya, costeBoya) {
+      try {
+        var doc = new window.jspdf.jsPDF({ format: 'a5', orientation: 'portrait' });
+        var w = doc.internal.pageSize.getWidth();
+        var h = doc.internal.pageSize.getHeight();
+        var mx = 12; var y = 15;
+        var pendiente = Math.round((totalRecaudar - totalCobrado) * 100) / 100;
+        var data = getPdfAsistentes(evt);
+
+        // Cabecera
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.setTextColor(12, 68, 124);
+        doc.text('LA BOYA', w / 2, y, { align: 'center' }); y += 7;
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(12); doc.setTextColor(51, 51, 51);
+        var titulo = evt.tipo === 'comida_social' ? evt.nombre : 'Evento: ' + evt.nombre;
+        doc.text(titulo, w / 2, y, { align: 'center' }); y += 5;
+        doc.setFontSize(10); doc.setTextColor(102, 102, 102);
+        doc.text(pdfFechaLarga(evt.fecha), w / 2, y, { align: 'center' }); y += 4;
+        doc.setDrawColor(200); doc.line(mx, y, w - mx, y); y += 6;
+
+        // Resumen
+        doc.setFontSize(9); doc.setTextColor(102, 102, 102);
+        doc.text('Asistentes: ' + totalPersonas + '  |  Por persona: ' + ppp.toFixed(2) + ' \u20ac', mx, y); y += 4;
+        doc.text('Total: ' + totalRecaudar.toFixed(2) + ' \u20ac  |  Cobrado: ' + totalCobrado.toFixed(2) + ' \u20ac', mx, y); y += 4;
+        if (pendiente > 0) { doc.setTextColor(121, 31, 31); doc.text('Pendiente: ' + pendiente.toFixed(2) + ' \u20ac', mx, y); }
+        else { doc.setTextColor(23, 52, 4); doc.text('Pendiente: 0 \u20ac - Todo pagado', mx, y); }
+        y += 3; doc.setDrawColor(200); doc.line(mx, y, w - mx, y); y += 6;
+
+        // Helper: render asistentes rows
+        function renderRows(list, label) {
+          if (list.length === 0) return;
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(102, 102, 102);
+          doc.text(label, mx, y); y += 5;
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+          for (var i = 0; i < list.length; i++) {
+            if (y > h - 15) { doc.addPage(); y = 15; }
+            var a = list[i]; var soc = findSocio(a.socio_id);
+            if (!soc) continue;
+            if (i % 2 === 0) { doc.setFillColor(250, 250, 250); doc.rect(mx, y - 3.5, w - mx * 2, 5.5, 'F'); }
+            doc.setTextColor(51, 51, 51);
+            var name = soc.nombre + ' ' + soc.apellidos;
+            doc.text(name, mx + 1, y, { maxWidth: w - mx * 2 - 50 });
+            var amt = ((1 + (a.invitados || 0)) * ppp).toFixed(2) + ' \u20ac';
+            doc.text(amt, w - mx - 25, y, { align: 'right' });
+            if (a.pagado) { doc.setTextColor(23, 52, 4); doc.text('PAGADO', w - mx - 1, y, { align: 'right' }); }
+            else { doc.setTextColor(121, 31, 31); doc.text('PDTE', w - mx - 1, y, { align: 'right' }); }
+            y += 4;
+            if (a.invitados > 0) {
+              doc.setFontSize(8); doc.setTextColor(153, 153, 153);
+              doc.text('+ ' + a.invitados + ' invitado' + (a.invitados > 1 ? 's' : ''), mx + 3, y); y += 3.5;
+              doc.setFontSize(10);
+            }
+          }
+          y += 2;
+        }
+
+        renderRows(data.pendientes, 'PENDIENTES DE PAGO (' + data.pendientes.length + ')');
+        renderRows(data.pagados, 'PAGADOS (' + data.pagados.length + ')');
+
+        // BOYA
+        if (data.boya.length > 0) {
+          if (y > h - 20) { doc.addPage(); y = 15; }
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(102, 102, 102);
+          doc.text('INVITADOS BOYA (sin pago)', mx, y); y += 5;
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(51, 51, 51);
+          for (var b = 0; b < data.boya.length; b++) {
+            if (y > h - 15) { doc.addPage(); y = 15; }
+            doc.text(data.boya[b].nombre, mx + 1, y); y += 4;
+          }
+          if (costeBoya > 0) {
+            y += 2; doc.setFontSize(9); doc.setTextColor(102, 102, 102);
+            doc.text('Coste asumido por la sociedad: ' + costeBoya.toFixed(2) + ' \u20ac', mx, y); y += 4;
+          }
+        }
+
+        // Pie
+        doc.setFontSize(8); doc.setTextColor(153, 153, 153);
+        doc.text('Generado el ' + formatFechaEvento(new Date().toISOString().split('T')[0]) + ' \u00b7 LA BOYA', w / 2, h - 8, { align: 'center' });
+
+        var fn = pdfFileName(evt, 'movil');
+        doc.save(fn);
+        console.log('PDF generado: ' + fn);
+        showToast('\u2713 PDF descargado');
+      } catch (err) {
+        console.error('Error generando PDF:', err);
+        showError('Error al generar el PDF');
+      }
+    }
+
+    function generarPdfA4(evt, ppp, totalPersonas, pagantes, totalRecaudar, totalCobrado, nBoya, costeBoya) {
+      try {
+        var doc = new window.jspdf.jsPDF({ format: 'a4', orientation: 'portrait' });
+        var w = doc.internal.pageSize.getWidth();
+        var h = doc.internal.pageSize.getHeight();
+        var mx = 20; var y = 25;
+        var pendiente = Math.round((totalRecaudar - totalCobrado) * 100) / 100;
+        var data = getPdfAsistentes(evt);
+        var cw = w - mx * 2; // content width
+
+        // Cabecera
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(22); doc.setTextColor(12, 68, 124);
+        doc.text('SOCIEDAD RECREATIVA LA BOYA', w / 2, y, { align: 'center' }); y += 4;
+        doc.setDrawColor(12, 68, 124); doc.setLineWidth(0.5); doc.line(mx + 30, y, w - mx - 30, y); y += 10;
+        doc.setFontSize(16); doc.setTextColor(51, 51, 51);
+        var titulo = evt.tipo === 'comida_social' ? evt.nombre : evt.nombre;
+        doc.text(titulo, w / 2, y, { align: 'center' }); y += 6;
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.setTextColor(102, 102, 102);
+        doc.text(pdfFechaLarga(evt.fecha), w / 2, y, { align: 'center' }); y += 10;
+
+        // Resumen en 4 cajas
+        var boxW = (cw - 12) / 4; var boxH = 18;
+        var labels = ['Asistentes', 'Por persona', 'Total', 'Cobrado'];
+        var vals = [String(totalPersonas), ppp.toFixed(2) + ' \u20ac', totalRecaudar.toFixed(2) + ' \u20ac', totalCobrado.toFixed(2) + ' \u20ac'];
+        for (var bx = 0; bx < 4; bx++) {
+          var bxX = mx + bx * (boxW + 4);
+          doc.setFillColor(245, 245, 245); doc.roundedRect(bxX, y, boxW, boxH, 2, 2, 'F');
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(51, 51, 51);
+          doc.text(vals[bx], bxX + boxW / 2, y + 8, { align: 'center' });
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(102, 102, 102);
+          doc.text(labels[bx].toUpperCase(), bxX + boxW / 2, y + 14, { align: 'center' });
+        }
+        y += boxH + 4;
+        // Pendiente box
+        if (pendiente > 0) { doc.setFillColor(252, 235, 235); } else { doc.setFillColor(234, 243, 222); }
+        doc.roundedRect(mx, y, cw, 12, 2, 2, 'F');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+        if (pendiente > 0) { doc.setTextColor(121, 31, 31); doc.text('PENDIENTE: ' + pendiente.toFixed(2) + ' \u20ac', w / 2, y + 8, { align: 'center' }); }
+        else { doc.setTextColor(23, 52, 4); doc.text('TODO PAGADO', w / 2, y + 8, { align: 'center' }); }
+        y += 18;
+
+        // Tabla asistentes
+        var colX = [mx, mx + 10, mx + 100, mx + 130, w - mx - 20];
+        var colW = [10, 90, 30, cw - 140, 20];
+
+        function renderTableHeader() {
+          doc.setFillColor(240, 240, 240); doc.rect(mx, y - 4, cw, 7, 'F');
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(102, 102, 102);
+          doc.text('N\u00ba', colX[0] + 1, y);
+          doc.text('NOMBRE', colX[1] + 1, y);
+          doc.text('INV.', colX[2] + 1, y);
+          doc.text('IMPORTE', w - mx - 35, y, { align: 'right' });
+          doc.text('ESTADO', w - mx - 1, y, { align: 'right' });
+          y += 5;
+        }
+
+        function renderTableRows(list, sectionLabel) {
+          if (list.length === 0) return;
+          if (y > h - 30) { doc.addPage(); y = 20; }
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(102, 102, 102);
+          doc.text(sectionLabel, mx, y); y += 5;
+          renderTableHeader();
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+          for (var i = 0; i < list.length; i++) {
+            if (y > h - 20) { doc.addPage(); y = 20; renderTableHeader(); }
+            var a = list[i]; var soc = findSocio(a.socio_id);
+            if (!soc) continue;
+            if (i % 2 === 0) { doc.setFillColor(250, 250, 250); doc.rect(mx, y - 3, cw, 6, 'F'); }
+            doc.setTextColor(51, 51, 51);
+            doc.text(String(i + 1), colX[0] + 1, y);
+            doc.text((soc.nombre + ' ' + soc.apellidos), colX[1] + 1, y, { maxWidth: 85 });
+            doc.text(a.invitados > 0 ? '+' + a.invitados : '-', colX[2] + 1, y);
+            var amt = ((1 + (a.invitados || 0)) * ppp).toFixed(2) + ' \u20ac';
+            doc.text(amt, w - mx - 35, y, { align: 'right' });
+            if (a.pagado) { doc.setTextColor(23, 52, 4); doc.text('\u2713', w - mx - 5, y, { align: 'right' }); }
+            else { doc.setTextColor(200, 200, 200); doc.rect(w - mx - 8, y - 3, 4, 4); }
+            y += 7;
+          }
+          y += 3;
+        }
+
+        renderTableRows(data.pendientes, 'PENDIENTES DE PAGO (' + data.pendientes.length + ')');
+        renderTableRows(data.pagados, 'PAGADOS (' + data.pagados.length + ')');
+
+        // BOYA
+        if (data.boya.length > 0) {
+          if (y > h - 30) { doc.addPage(); y = 20; }
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(102, 102, 102);
+          doc.text('INVITADOS BOYA (sin pago)', mx, y); y += 6;
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(51, 51, 51);
+          for (var b = 0; b < data.boya.length; b++) {
+            if (y > h - 15) { doc.addPage(); y = 20; }
+            doc.text((b + 1) + '. ' + data.boya[b].nombre, mx + 1, y); y += 5;
+          }
+          if (costeBoya > 0) {
+            y += 2; doc.setFontSize(9); doc.setTextColor(102, 102, 102);
+            doc.text('Coste asumido por la sociedad: ' + costeBoya.toFixed(2) + ' \u20ac', mx, y); y += 6;
+          }
+        }
+
+        // Totales al pie
+        if (y > h - 50) { doc.addPage(); y = 20; }
+        y += 6;
+        doc.setDrawColor(200); doc.line(mx, y, w - mx, y); y += 8;
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(51, 51, 51);
+        doc.text('Total a recaudar: ' + totalRecaudar.toFixed(2) + ' \u20ac', mx, y); y += 6;
+        doc.text('Total cobrado: ' + totalCobrado.toFixed(2) + ' \u20ac', mx, y); y += 6;
+        if (pendiente > 0) doc.setTextColor(121, 31, 31);
+        else doc.setTextColor(23, 52, 4);
+        doc.text('Pendiente: ' + pendiente.toFixed(2) + ' \u20ac', mx, y); y += 12;
+        doc.setTextColor(102, 102, 102); doc.setFontSize(9);
+        doc.text('Firma del tesorero: ________________________', mx, y); y += 6;
+
+        // Pie de pagina
+        doc.setFontSize(8); doc.setTextColor(153, 153, 153);
+        doc.text('Generado el ' + formatFechaEvento(new Date().toISOString().split('T')[0]) + ' \u00b7 LA BOYA - Sociedad Recreativa', w / 2, h - 10, { align: 'center' });
+
+        var fn = pdfFileName(evt, 'A4');
+        doc.save(fn);
+        console.log('PDF generado: ' + fn);
+        showToast('\u2713 PDF descargado');
+      } catch (err) {
+        console.error('Error generando PDF:', err);
+        showError('Error al generar el PDF');
+      }
     }
 
     document.addEventListener('DOMContentLoaded', init);
