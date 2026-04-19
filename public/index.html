@@ -2104,7 +2104,6 @@
     <div class="header-top">
       <div>
         <span class="header-title">LA BOYA</span>
-        <button id="adminLockIcon" title="Modo administrador activo" style="display:none;background:none;border:none;cursor:pointer;margin-left:6px;vertical-align:middle;align-items:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#185FA5" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/><line x1="8" y1="7" x2="8" y2="7" stroke-width="0"/></svg></button>
       </div>
       <div class="tabs-row" style="flex:1;max-width:none;padding:0;margin:0 16px">
         <button class="tab-btn active" data-tab="socios">Socios</button>
@@ -2236,30 +2235,26 @@
 
   <script>
     // === PROTECCIÓN DATOS — CLAVE ADMIN ===
-    // ATENCIÓN: Esta protección es BÁSICA, contra accesos casuales.
-    // La clave está en el código del frontend y puede verse con F12.
-    // NO sustituye seguridad real (login en servidor).
+    /*
+     * PROTECCIÓN RGPD BÁSICA
+     *
+     * - Pide clave EN CADA acción sensible (ver teléfono, WhatsApp).
+     *   NO hay sesión persistente: cada acción independiente requiere clave.
+     *
+     * - La clave está en el frontend y puede verse con F12.
+     *   No sustituye seguridad real. Protege contra accesos casuales.
+     *
+     * - Pendiente: mover verificación al backend con login real.
+     */
     window.esAdmin = true;
-    window.claveAdminDesbloqueada = false;
 
     function verificarClaveAdmin() {
-      if (window.claveAdminDesbloqueada) return true;
       var claveCorrecta = '101';
-      var claveIngresada = prompt('Introduce la clave de administrador:\n\n(Protege datos personales - RGPD)');
+      var claveIngresada = prompt('Introduce la clave para ver este dato:\n\n(Dato personal protegido por RGPD)');
       if (claveIngresada === null) return false;
-      if (claveIngresada === claveCorrecta) {
-        window.claveAdminDesbloqueada = true;
-        console.log('Clave administrador aceptada. Desbloqueado en esta sesi\u00f3n.');
-        actualizarIconoCandado();
-        return true;
-      }
+      if (claveIngresada === claveCorrecta) return true;
       alert('Clave incorrecta.');
       return false;
-    }
-
-    function actualizarIconoCandado() {
-      var el = document.getElementById('adminLockIcon');
-      if (el) el.style.display = window.claveAdminDesbloqueada ? 'inline-flex' : 'none';
     }
 
     // === CONSTANTES ===
@@ -2558,15 +2553,6 @@
       // Nuevo evento
       document.getElementById('btnAddEvento').addEventListener('click', function() {
         abrirFormularioEvento();
-      });
-
-      // Candado admin
-      document.getElementById('adminLockIcon').addEventListener('click', function() {
-        if (confirm('\u00bfBloquear tel\u00e9fonos de nuevo?')) {
-          window.claveAdminDesbloqueada = false;
-          actualizarIconoCandado();
-          showToast('Tel\u00e9fonos bloqueados');
-        }
       });
 
       // WhatsApp masivo desde pestaña Socios
