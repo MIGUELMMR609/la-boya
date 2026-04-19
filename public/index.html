@@ -1241,8 +1241,45 @@
       border: 0.5px solid #E0E0E0;
       border-radius: 12px;
       padding: 14px 16px;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
       position: relative;
+    }
+    .evt-stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .evt-stat {
+      background: #F5F5F5;
+      border-radius: 8px;
+      padding: 8px 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      min-height: 58px;
+    }
+    .evt-stat svg {
+      width: 18px;
+      height: 18px;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
+    .evt-stat-num {
+      font-size: 18px;
+      font-weight: 700;
+      color: #333;
+      line-height: 1;
+    }
+    .evt-stat-label {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: #5F5E5A;
     }
     .evt-card-top {
       display: flex;
@@ -1251,15 +1288,27 @@
       margin-bottom: 6px;
     }
     .evt-badge {
-      font-size: 10px;
-      font-weight: 600;
+      font-size: 11px;
+      font-weight: 700;
       text-transform: uppercase;
-      padding: 2px 8px;
+      padding: 4px 12px;
       border-radius: 999px;
-      letter-spacing: 0.3px;
+      letter-spacing: 0.8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
     }
-    .evt-badge-comida { background: #EAF3DE; color: #173404; }
-    .evt-badge-evento { background: #E6F1FB; color: #0C447C; }
+    .evt-badge svg {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .evt-badge-comida { background: #9FE1CB; color: #04342C; }
+    .evt-badge-evento { background: #B5D4F4; color: #042C53; }
     .evt-date {
       font-size: 13px;
       color: #888;
@@ -1280,9 +1329,11 @@
       color: #999;
     }
     .evt-price {
-      font-size: 12px;
+      font-size: 13px;
       color: #666;
       font-weight: 500;
+      text-align: right;
+      margin-top: 8px;
     }
     .evt-menu-btn {
       background: none;
@@ -3341,34 +3392,74 @@
         return;
       }
 
+      var svgBadgeComida = '<svg viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h2v11"/><line x1="5" y1="2" x2="5" y2="11"/><line x1="7" y1="2" x2="7" y2="11"/><path d="M14 2v20"/><path d="M17 2c2 0 4 1 4 4v6c0 1-1 2-2 2h-1v10"/></svg>';
+      var svgBadgeEvento = '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+      var svgCook = '<svg viewBox="0 0 24 24" stroke="#534AB7"><circle cx="12" cy="7" r="5"/><path d="M5 22v-2a7 7 0 0114 0v2"/></svg>';
+      var svgPeople = '<svg viewBox="0 0 24 24" stroke="#0C447C"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>';
+      var svgInvPlus = '<svg viewBox="0 0 24 24" stroke="#D85A30"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>';
+      var svgCheckStat = '<svg viewBox="0 0 24 24" stroke="#173404"><polyline points="20 6 9 17 4 12"/></svg>';
+      var svgPending = '<svg viewBox="0 0 24 24" stroke="#791F1F"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12" y2="16.01"/></svg>';
+      var svgGift = '<svg viewBox="0 0 24 24" stroke="#412402"><rect x="3" y="8" width="18" height="4" rx="1"/><rect x="3" y="12" width="18" height="9" rx="1"/><line x1="12" y1="8" x2="12" y2="21"/><path d="M7.5 8C6 6.5 6 4 7.5 4s3 2 4.5 4M16.5 8C18 6.5 18 4 16.5 4s-3 2-4.5 4"/></svg>';
+
       for (var i = 0; i < eventos.length; i++) {
         var e = eventos[i];
         var badgeClass = e.tipo === 'comida_social' ? 'evt-badge-comida' : 'evt-badge-evento';
+        var badgeSvg = e.tipo === 'comida_social' ? svgBadgeComida : svgBadgeEvento;
         var badgeText = e.tipo === 'comida_social' ? 'COMIDA SOCIAL' : 'EVENTO';
-        var infoText = e.estado === 'finalizado' ? '\u2713 Finalizado' :
-          (e.asistentes && e.asistentes.length > 0 ? e.asistentes.length + ' asistentes' : 'Sin asistentes a\u00fan');
+
+        // Stats fila 1: asistencia
+        var totalInvExtra = 0;
+        for (var ai = 0; ai < e.asistentes.length; ai++) totalInvExtra += (e.asistentes[ai].invitados || 0);
+        var nBoyaCard = (e.invitados_boya || []).length;
+
+        var stats1 = '';
+        if (e.tipo === 'comida_social') stats1 += '<div class="evt-stat"><div>' + svgCook + '</div><div class="evt-stat-num">' + (e.cocineros || []).length + '</div><div class="evt-stat-label">Cocineros</div></div>';
+        stats1 += '<div class="evt-stat"><div>' + svgPeople + '</div><div class="evt-stat-num">' + e.asistentes.length + '</div><div class="evt-stat-label">Socios</div></div>';
+        if (totalInvExtra > 0) stats1 += '<div class="evt-stat"><div>' + svgInvPlus + '</div><div class="evt-stat-num">' + totalInvExtra + '</div><div class="evt-stat-label">Invitados</div></div>';
+        if (nBoyaCard > 0) stats1 += '<div class="evt-stat"><div>' + svgInvPlus.replace('#D85A30', '#D85A30') + '</div><div class="evt-stat-num">' + nBoyaCard + '</div><div class="evt-stat-label">Inv. BOYA</div></div>';
+
+        // Stats fila 2: cobros
+        var stats2 = '';
+        if (e.modo_calculo != null && e.asistentes.length > 0) {
+          var totalPagCab = 0; var pagadosCab = 0;
+          for (var pi = 0; pi < e.asistentes.length; pi++) {
+            var cab = 1 + (e.asistentes[pi].invitados || 0);
+            totalPagCab += cab;
+            if (e.asistentes[pi].pagado) pagadosCab += cab;
+          }
+          var pendCab = totalPagCab - pagadosCab;
+          stats2 += '<div class="evt-stat" style="background:#EAF3DE"><div>' + svgCheckStat + '</div><div class="evt-stat-num" style="color:#173404">' + pagadosCab + '</div><div class="evt-stat-label" style="color:#173404">Pagado</div></div>';
+          var pendBg = pendCab > 0 ? '#FCEBEB' : '#EAF3DE';
+          var pendCol = pendCab > 0 ? '#791F1F' : '#173404';
+          var pendSvg = svgPending.replace('#791F1F', pendCol);
+          stats2 += '<div class="evt-stat" style="background:' + pendBg + '"><div>' + pendSvg + '</div><div class="evt-stat-num" style="color:' + pendCol + '">' + pendCab + '</div><div class="evt-stat-label" style="color:' + pendCol + '">Pendiente</div></div>';
+          if (nBoyaCard > 0) stats2 += '<div class="evt-stat" style="background:#FAEEDA"><div>' + svgGift + '</div><div class="evt-stat-num" style="color:#412402">' + nBoyaCard + '</div><div class="evt-stat-label" style="color:#412402">No pagan</div></div>';
+        }
+
+        // Precio pie
         var priceText = '';
         if (e.modo_calculo === 'precio_fijo' && e.precio_por_persona != null) {
-          priceText = e.precio_por_persona + ' \u20ac/persona';
+          priceText = '<strong>' + e.precio_por_persona + ' \u20ac</strong>/persona';
         } else if (e.modo_calculo === 'total_dividido' && e.coste_total != null) {
-          priceText = 'Total: ' + e.coste_total + ' \u20ac';
+          priceText = 'Total: <strong>' + e.coste_total + ' \u20ac</strong>';
+        } else {
+          priceText = '<span style="color:#CCC">Coste por asignar</span>';
         }
 
         var card = document.createElement('div');
         card.className = 'evt-card';
         card.innerHTML =
           '<div class="evt-card-top">' +
-            '<span class="evt-badge ' + badgeClass + '">' + badgeText + '</span>' +
+            '<span class="evt-badge ' + badgeClass + '">' + badgeSvg + badgeText + '</span>' +
             '<div style="display:flex;align-items:center;gap:8px">' +
               '<span class="evt-date">' + escapeHtml(formatFechaEvento(e.fecha)) + '</span>' +
               '<button class="evt-menu-btn" data-evt-id="' + e.id + '">\u22ef</button>' +
             '</div>' +
           '</div>' +
           '<div class="evt-name">' + escapeHtml(e.nombre) + '</div>' +
-          '<div class="evt-info-row">' +
-            '<span class="evt-info">' + infoText + '</span>' +
-            '<span class="evt-price">' + escapeHtml(priceText) + '</span>' +
-          '</div>' +
+          '<div class="evt-stats-row">' + stats1 + '</div>' +
+          (stats2 ? '<div class="evt-stats-row">' + stats2 + '</div>' : '') +
+          '<div class="evt-price">' + priceText + '</div>' +
           '<div class="evt-menu" id="menu_' + e.id + '">' +
             '<button class="evt-menu-item" data-del-id="' + e.id + '">Eliminar evento</button>' +
           '</div>';
