@@ -1613,34 +1613,33 @@
 
     /* Barra inferior fija evento */
     .evt-bottom-bar {
-      display: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-top: 0.5px solid #E0E0E0;
+      background: #fff;
+    }
+    .evt-bottom-bar .ficha-back {
+      min-height: 44px;
+      padding: 8px 16px;
+    }
+    .evt-bottom-bar .btn-guardar {
+      min-height: 44px;
+      padding: 8px 24px;
+      border-radius: 8px;
     }
     @media (max-width: 599px) {
       .evt-bottom-bar {
-        display: flex;
         position: fixed;
         bottom: 0;
         left: 0;
         right: 0;
         z-index: 210;
-        background: #fff;
-        border-top: 0.5px solid #E0E0E0;
-        padding: 12px 16px;
         padding-bottom: calc(12px + env(safe-area-inset-bottom));
-        align-items: center;
-        justify-content: space-between;
-      }
-      .evt-bottom-bar .ficha-back {
-        min-height: 44px;
-        padding: 8px 16px;
-      }
-      .evt-bottom-bar .btn-guardar {
-        min-height: 44px;
-        padding: 8px 24px;
-        border-radius: 8px;
       }
       .evt-det-scroll {
-        padding-bottom: calc(76px + env(safe-area-inset-bottom));
+        padding-bottom: calc(80px + env(safe-area-inset-bottom));
       }
     }
 
