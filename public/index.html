@@ -1613,12 +1613,36 @@
     .evt-asist-list {
       padding: 0 16px 16px;
     }
+    .evt-asist-section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #999;
+      padding: 16px 0 6px;
+    }
+    .evt-asist-section-title:first-child {
+      padding-top: 0;
+    }
+    .evt-asist-all-paid {
+      background: #EAF3DE;
+      color: #173404;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 12px;
+    }
     .evt-asist-row {
       display: flex;
       align-items: center;
       gap: 10px;
       padding: 12px 0;
       border-bottom: 0.5px solid #F0F0F0;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    .evt-asist-row.fading {
+      opacity: 0;
+      transform: translateY(8px);
     }
     .evt-asist-avatar {
       width: 44px;
@@ -3324,22 +3348,28 @@
           boyaBtn;
       }
 
-      // Listado asistentes
+      // Listado asistentes (agrupados: pendientes arriba, pagados abajo)
       var asistHtml = '';
       if (evt.asistentes.length === 0) {
         asistHtml = '<div class="sel-hint" style="padding:20px 16px;color:#999">A\u00fan no hay asistentes. Pulsa ' + (evt.tipo === 'comida_social' ? 'Comensales' : 'Asistentes') + ' para a\u00f1adir.</div>';
       } else {
-        var sorted = evt.asistentes.slice().sort(function(a, b) {
-          var sa = findSocio(a.socio_id);
-          var sb = findSocio(b.socio_id);
+        var sortByApellidos = function(a, b) {
+          var sa = findSocio(a.socio_id); var sb = findSocio(b.socio_id);
           if (!sa || !sb) return 0;
           return norm(sa.apellidos).localeCompare(norm(sb.apellidos));
-        });
-        asistHtml = '<div class="evt-asist-list">';
-        for (var k = 0; k < sorted.length; k++) {
-          var as = sorted[k];
+        };
+        var pendientes = evt.asistentes.filter(function(a) { return !a.pagado; }).sort(sortByApellidos);
+        var pagados = evt.asistentes.filter(function(a) { return a.pagado; }).sort(sortByApellidos);
+
+        asistHtml = '<div class="evt-asist-list" id="asistListContainer">';
+
+        if (pendientes.length === 0 && pagados.length > 0) {
+          asistHtml += '<div class="evt-asist-all-paid">\u2713 Todos los asistentes han pagado</div>';
+        }
+
+        function renderAsistRow(as) {
           var soc = findSocio(as.socio_id);
-          if (!soc) continue;
+          if (!soc) return '';
           var isCook = (evt.cocineros || []).indexOf(as.socio_id) !== -1;
           var avatarBg = soc.avatar_color || '#85B7EB';
           var avatarTxt = TEXT_COLORS[avatarBg] || '#333';
@@ -3350,14 +3380,23 @@
           var cookBadge = isCook ? '<div class="evt-asist-cook-badge"><svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M6 21v-1a6 6 0 0112 0v1"/></svg></div>' : '';
           var invText = as.invitados > 0 ? '<div class="evt-asist-extra">+ ' + as.invitados + ' invitado' + (as.invitados > 1 ? 's' : '') + '</div>' : '';
           var amount = (1 + (as.invitados || 0)) * ppp;
-          asistHtml +=
-            '<div class="evt-asist-row">' +
-              '<div class="evt-asist-avatar" style="background:' + (soc.foto_url ? 'transparent' : avatarBg) + '">' + avatarInner + cookBadge + '</div>' +
-              '<div class="evt-asist-info"><div class="evt-asist-name">' + escapeHtml(soc.nombre + ' ' + soc.apellidos) + '</div>' + invText + '</div>' +
-              '<span class="evt-asist-amount">' + amount.toFixed(2) + ' \u20ac</span>' +
-              '<button class="check-pagado' + (as.pagado ? ' checked' : '') + '" data-sid="' + as.socio_id + '">' + SVG_CHECK + '</button>' +
-            '</div>';
+          return '<div class="evt-asist-row" data-row-sid="' + as.socio_id + '">' +
+            '<div class="evt-asist-avatar" style="background:' + (soc.foto_url ? 'transparent' : avatarBg) + '">' + avatarInner + cookBadge + '</div>' +
+            '<div class="evt-asist-info"><div class="evt-asist-name">' + escapeHtml(soc.nombre + ' ' + soc.apellidos) + '</div>' + invText + '</div>' +
+            '<span class="evt-asist-amount">' + amount.toFixed(2) + ' \u20ac</span>' +
+            '<button class="check-pagado' + (as.pagado ? ' checked' : '') + '" data-sid="' + as.socio_id + '">' + SVG_CHECK + '</button>' +
+          '</div>';
         }
+
+        if (pendientes.length > 0) {
+          asistHtml += '<div class="evt-asist-section-title">PENDIENTES DE PAGO (' + pendientes.length + ')</div>';
+          for (var k = 0; k < pendientes.length; k++) asistHtml += renderAsistRow(pendientes[k]);
+        }
+        if (pagados.length > 0) {
+          asistHtml += '<div class="evt-asist-section-title">PAGADOS (' + pagados.length + ')</div>';
+          for (var k2 = 0; k2 < pagados.length; k2++) asistHtml += renderAsistRow(pagados[k2]);
+        }
+
         asistHtml += '</div>';
       }
 
@@ -3518,45 +3557,50 @@
         }
       }
 
-      // Check pagado
+      // Check pagado con reordenación animada
       var checks = content.querySelectorAll('.check-pagado');
       for (var ch = 0; ch < checks.length; ch++) {
         checks[ch].addEventListener('click', function() {
           var sid = this.getAttribute('data-sid');
-          var btn = this;
-          var wasPagado = btn.classList.contains('checked');
-          btn.classList.toggle('checked');
+          var checkBtn = this;
+          var wasPagado = checkBtn.classList.contains('checked');
+          var row = content.querySelector('[data-row-sid="' + sid + '"]');
+
+          // Optimistic: toggle check
+          checkBtn.classList.toggle('checked');
+
+          // Flash color on the row
+          if (row) {
+            row.style.background = wasPagado ? '#FEF5F5' : '#F5FAE8';
+            setTimeout(function() { row.style.background = ''; }, 400);
+          }
+
+          // Update local data
+          for (var ai = 0; ai < evt.asistentes.length; ai++) {
+            if (evt.asistentes[ai].socio_id === sid) { evt.asistentes[ai].pagado = !wasPagado; break; }
+          }
+
+          // Animate fade-out → re-render list → fade-in
+          if (row) row.classList.add('fading');
+          setTimeout(function() {
+            // Re-render just the asistentes list section
+            renderDetalleEvento(evt);
+          }, 220);
+
+          // Backend call
           fetch('/api/eventos/' + evt.id + '/asistente/' + sid, {
             method: 'PUT', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ pagado: !wasPagado })
           }).then(function(r) { if (!r.ok) throw new Error('Error'); return r.json(); })
-          .then(function(updated) {
-            evt = updated;
-            // Recalcular cobrado sin re-render
-            var newCobrado = 0;
-            for (var cc = 0; cc < evt.asistentes.length; cc++) {
-              if (evt.asistentes[cc].pagado) newCobrado += (1 + (evt.asistentes[cc].invitados || 0)) * ppp;
+          .then(function(updated) { evt = updated; })
+          .catch(function() {
+            // Revert
+            for (var ri = 0; ri < evt.asistentes.length; ri++) {
+              if (evt.asistentes[ri].socio_id === sid) { evt.asistentes[ri].pagado = wasPagado; break; }
             }
-            var cobradoCard = content.querySelectorAll('.evt-resumen-card')[3];
-            var cobradoEl = content.querySelectorAll('.evt-resumen-num')[3];
-            if (cobradoEl) cobradoEl.innerHTML = '<span style="white-space:nowrap">' + newCobrado.toFixed(2) + ' \u20ac' + (newCobrado > 0 && newCobrado >= totalRecaudar ? ' \u2713' : '') + '</span>';
-            if (cobradoCard) {
-              if (newCobrado > 0) cobradoCard.classList.add('pendiente-verde');
-              else cobradoCard.classList.remove('pendiente-verde');
-            }
-            // Actualizar pendiente
-            var newPend = Math.round((totalRecaudar - newCobrado) * 100) / 100;
-            var pendEl = content.querySelectorAll('.evt-resumen-card')[4];
-            if (pendEl) {
-              var pendNumEl = pendEl.querySelector('.evt-resumen-num');
-              var pendLblEl = pendEl.querySelector('.evt-resumen-label');
-              pendEl.className = 'evt-resumen-card ' + (newPend > 0 ? 'pendiente-rojo' : (newPend === 0 ? 'pendiente-verde' : 'pendiente-azul'));
-              if (newPend > 0) { pendNumEl.innerHTML = '<span style="white-space:nowrap">' + newPend.toFixed(2) + ' \u20ac</span>'; pendLblEl.textContent = 'PENDIENTE'; }
-              else if (newPend === 0) { pendNumEl.textContent = '\u2713 OK'; pendLblEl.textContent = 'PENDIENTE'; }
-              else { pendNumEl.innerHTML = '<span style="white-space:nowrap">+' + Math.abs(newPend).toFixed(2) + ' \u20ac</span>'; pendLblEl.textContent = 'SOBRANTE'; }
-            }
-          })
-          .catch(function() { btn.classList.toggle('checked'); showError('Error al actualizar pago'); });
+            renderDetalleEvento(evt);
+            showError('Error al actualizar pago');
+          });
         });
       }
 
