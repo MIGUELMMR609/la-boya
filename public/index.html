@@ -1500,6 +1500,54 @@
       justify-content: center;
     }
 
+    /* === WA CHIPS === */
+    .wa-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      padding: 8px 0;
+      max-height: 60px;
+      overflow: hidden;
+    }
+    .wa-chip {
+      background: #E6F1FB;
+      color: #0C447C;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .wa-no-tel {
+      opacity: 0.45;
+      pointer-events: none;
+    }
+    .wa-no-tel-badge {
+      background: #FCEBEB;
+      color: #791F1F;
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      margin-top: 2px;
+      display: inline-block;
+    }
+    .wa-tpl-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .wa-tpl-btn {
+      background: none;
+      border: 1px solid #25D366;
+      color: #25D366;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
     /* === COSTE MODAL === */
     .coste-card {
       background: #FAEEDA;
@@ -2090,6 +2138,7 @@
         <button class="pill" id="pillNumSocio" data-sort="num_socio">Nº socio <span class="pill-arrow"></span></button>
         <button class="pill" id="pillAsiduidad" data-sort="asiduidad">Asiduidad</button>
         <button class="pill pill-asiduos" id="pillSoloAsiduos"><span class="pill-dot"></span> Solo asiduos</button>
+        <button class="btn-wa" id="btnWaMasivo" style="border-radius:999px;padding:6px 12px;font-size:13px"><svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.304-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/></svg> WhatsApp</button>
       </div>
     </div>
     <!-- MOSAICO -->
@@ -2153,6 +2202,16 @@
   <!-- DETALLE EVENTO -->
   <div class="ficha-overlay" id="evtDetalleOverlay">
     <div class="ficha-content" id="evtDetalleContent"></div>
+  </div>
+
+  <!-- WA SELECCIÓN DESTINATARIOS -->
+  <div class="ficha-overlay" id="waSelOverlay" style="z-index:230">
+    <div class="ficha-content" id="waSelContent"></div>
+  </div>
+
+  <!-- WA ESCRIBIR MENSAJE -->
+  <div class="ficha-overlay" id="waMsgOverlay" style="z-index:240">
+    <div class="ficha-content" id="waMsgContent"></div>
   </div>
 
   <!-- SUB-PANTALLA SELECCIÓN (cocineros/comensales/invitados) -->
@@ -2465,6 +2524,11 @@
       // Nuevo evento
       document.getElementById('btnAddEvento').addEventListener('click', function() {
         abrirFormularioEvento();
+      });
+
+      // WhatsApp masivo desde pestaña Socios
+      document.getElementById('btnWaMasivo').addEventListener('click', function() {
+        abrirWaSeleccion();
       });
 
       // Cargar socios
@@ -4711,6 +4775,199 @@
         var fn = pdfFileName(evt, 'A4'); doc.save(fn);
         console.log('PDF generado: ' + fn); showToast('\u2713 PDF descargado');
       } catch (err) { console.error('Error generando PDF:', err); showError('Error al generar el PDF'); }
+    }
+
+    // === WHATSAPP MASIVO DESDE SOCIOS ===
+    function abrirWaSeleccion() {
+      var overlay = document.getElementById('waSelOverlay');
+      var content = document.getElementById('waSelContent');
+      var selected = [];
+      var sociosOrdenados = socios.slice().sort(function(a, b) { return (a.num_socio || 0) - (b.num_socio || 0); });
+
+      function renderWaSel() {
+        var searchEl = document.getElementById('waSelSearch');
+        var query = searchEl ? norm(searchEl.value.trim()) : '';
+        var filtered = sociosOrdenados.filter(function(s) {
+          if (!query) return true;
+          return norm(s.nombre + ' ' + s.apellidos).indexOf(query) !== -1;
+        });
+
+        var conTel = socios.filter(function(s) { return !!s.telefono; }).length;
+        var sinTel = socios.length - conTel;
+
+        var counterHtml = '<span style="font-size:13px;font-weight:500;color:#185FA5">' + selected.length + ' de ' + conTel + ' seleccionados</span>';
+        if (sinTel > 0) counterHtml += ' <span style="font-size:11px;color:#999">(' + sinTel + ' sin tel\u00e9fono)</span>';
+
+        var gridHtml = '';
+        for (var i = 0; i < filtered.length; i++) {
+          var s = filtered[i];
+          var hasTel = !!s.telefono;
+          var isSel = selected.indexOf(s.id) !== -1;
+          var bgC = s.avatar_color || '#85B7EB';
+          var txtC = TEXT_COLORS[bgC] || '#333';
+          var ini = getInitials(s.nombre, s.apellidos);
+          var avatarHtml = s.foto_url
+            ? '<img src="' + cloudinaryThumb(s.foto_url, 120) + '" alt="" loading="lazy">'
+            : '<span style="color:' + txtC + '">' + ini + '</span>';
+          var checkHtml = isSel ? '<div class="sel-check">' + SVG_CHECK + '</div>' : '';
+          var noTelBadge = !hasTel ? '<div class="wa-no-tel-badge">Sin tel\u00e9fono</div>' : '';
+          gridHtml +=
+            '<div class="card' + (!hasTel ? ' wa-no-tel' : '') + '" data-wa-sid="' + s.id + '" style="padding:10px;gap:8px;flex-direction:row;cursor:' + (hasTel ? 'pointer' : 'not-allowed') + '">' +
+              '<div class="avatar-wrap" style="position:relative">' +
+                '<div class="avatar" style="background:' + (s.foto_url ? 'transparent' : bgC) + ';width:56px;height:56px;font-size:18px">' + avatarHtml + '</div>' +
+                checkHtml +
+              '</div>' +
+              '<div class="card-info"><div class="card-name" style="font-size:13px">' + escapeHtml(s.nombre) + '</div><div class="card-surname" style="font-size:11px">' + escapeHtml(s.apellidos) + '</div>' + noTelBadge + '</div>' +
+            '</div>';
+        }
+
+        var el = document.getElementById('waSelGrid');
+        if (el) { el.innerHTML = '<div class="grid cols-2" style="gap:6px">' + gridHtml + '</div>'; }
+        var cEl = document.getElementById('waSelCounter');
+        if (cEl) cEl.innerHTML = counterHtml;
+        var nextBtn = document.getElementById('waSelNext');
+        if (nextBtn) { nextBtn.disabled = selected.length === 0; nextBtn.style.opacity = selected.length === 0 ? '0.5' : '1'; }
+
+        // Tap handlers
+        var cards = el ? el.querySelectorAll('.card:not(.wa-no-tel)') : [];
+        for (var c = 0; c < cards.length; c++) {
+          cards[c].addEventListener('click', function() {
+            var sid = this.getAttribute('data-wa-sid');
+            var idx = selected.indexOf(sid);
+            if (idx === -1) selected.push(sid); else selected.splice(idx, 1);
+            renderWaSel();
+          });
+        }
+      }
+
+      content.innerHTML =
+        '<div class="sel-bar">' +
+          '<button class="ficha-back" id="waSelBack">\u2190 Volver</button>' +
+          '<span class="sel-bar-title">Enviar WhatsApp</span>' +
+          '<span></span>' +
+        '</div>' +
+        '<div style="padding:8px 16px"><input class="search-input" id="waSelSearch" placeholder="Buscar socio..." autocomplete="off"></div>' +
+        '<div style="padding:0 16px 8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">' +
+          '<div style="display:flex;gap:6px">' +
+            '<button class="pill" id="waSelAll" style="font-size:11px;padding:4px 10px">\u2713 Seleccionar todos</button>' +
+            '<button class="pill" id="waDeselAll" style="font-size:11px;padding:4px 10px">\u2717 Deseleccionar</button>' +
+          '</div>' +
+          '<div id="waSelCounter"></div>' +
+        '</div>' +
+        '<div class="main" id="waSelGrid" style="padding:4px 8px"></div>' +
+        '<div class="evt-bottom-bar" style="display:flex">' +
+          '<button class="btn-cancel" id="waSelCancel">Cancelar</button>' +
+          '<button class="btn-wa" id="waSelNext" style="padding:8px 20px;font-size:14px" disabled>' + SVG_WA + ' Siguiente \u2192</button>' +
+        '</div>';
+
+      overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      renderWaSel();
+
+      document.getElementById('waSelSearch').addEventListener('input', renderWaSel);
+      document.getElementById('waSelAll').addEventListener('click', function() {
+        selected = socios.filter(function(s) { return !!s.telefono; }).map(function(s) { return s.id; });
+        renderWaSel();
+      });
+      document.getElementById('waDeselAll').addEventListener('click', function() {
+        selected = [];
+        renderWaSel();
+      });
+
+      function cerrarWaSel() { overlay.classList.remove('open'); setTimeout(function() { document.body.style.overflow = ''; }, 300); }
+      document.getElementById('waSelBack').addEventListener('click', cerrarWaSel);
+      document.getElementById('waSelCancel').addEventListener('click', cerrarWaSel);
+
+      document.getElementById('waSelNext').addEventListener('click', function() {
+        if (selected.length === 0) return;
+        abrirWaMensaje(selected, cerrarWaSel);
+      });
+    }
+
+    function abrirWaMensaje(selectedIds, cerrarSeleccion) {
+      var overlay = document.getElementById('waMsgOverlay');
+      var content = document.getElementById('waMsgContent');
+
+      var dests = selectedIds.map(function(id) { return findSocio(id); }).filter(Boolean);
+      var chipsHtml = '';
+      var max = 10;
+      for (var i = 0; i < Math.min(dests.length, max); i++) {
+        chipsHtml += '<span class="wa-chip">' + escapeHtml(dests[i].nombre.split(' ')[0] + ' ' + (dests[i].apellidos || '').split(' ')[0]) + '</span>';
+      }
+      if (dests.length > max) chipsHtml += '<span class="wa-chip" style="background:#F5F5F5;color:#666">...y ' + (dests.length - max) + ' m\u00e1s</span>';
+
+      content.innerHTML =
+        '<div class="sel-bar">' +
+          '<button class="ficha-back" id="waMsgBack">\u2190 Volver</button>' +
+          '<span class="sel-bar-title">Escribir mensaje</span>' +
+          '<span></span>' +
+        '</div>' +
+        '<div style="padding:12px 16px">' +
+          '<div style="font-size:13px;font-weight:500;color:#333;margin-bottom:4px">Destinatarios: ' + dests.length + ' socios</div>' +
+          '<div class="wa-chips">' + chipsHtml + '</div>' +
+        '</div>' +
+        '<div style="padding:0 16px">' +
+          '<textarea class="notas-textarea-neutral" id="waMsgText" style="min-height:160px;font-size:14px;line-height:1.5" placeholder="Escribe aqu\u00ed tu mensaje..."></textarea>' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">' +
+            '<span style="font-size:11px;color:#999" id="waMsgChars">0 caracteres</span>' +
+          '</div>' +
+          '<div class="wa-tpl-row">' +
+            '<button class="wa-tpl-btn" data-tpl="asamblea">Asamblea</button>' +
+            '<button class="wa-tpl-btn" data-tpl="comida">Pr\u00f3xima comida</button>' +
+            '<button class="wa-tpl-btn" data-tpl="felicita">Felicitaci\u00f3n</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="evt-bottom-bar" style="display:flex">' +
+          '<button class="btn-cancel" id="waMsgCancel">Cancelar</button>' +
+          '<button class="btn-wa" id="waMsgSend" style="padding:8px 16px;font-size:14px" disabled>' + SVG_WA + ' Abrir WhatsApp (' + dests.length + ')</button>' +
+        '</div>';
+
+      overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+
+      var textarea = document.getElementById('waMsgText');
+      var sendBtn = document.getElementById('waMsgSend');
+      textarea.addEventListener('input', function() {
+        document.getElementById('waMsgChars').textContent = textarea.value.length + ' caracteres';
+        sendBtn.disabled = !textarea.value.trim();
+        sendBtn.style.opacity = textarea.value.trim() ? '1' : '0.5';
+      });
+
+      // Templates
+      var tpls = {
+        asamblea: 'Hola, os convocamos a la pr\u00f3xima Asamblea General de LA BOYA el d\u00eda [FECHA] a las [HORA]. Por favor confirmad asistencia. Saludos.',
+        comida: 'Hola, os recordamos que la pr\u00f3xima Comida Social de LA BOYA ser\u00e1 el [FECHA]. Los interesados en asistir, confirmar. Un saludo.',
+        felicita: '\u00a1Felicidades desde LA BOYA! Un abrazo.'
+      };
+      var tplBtns = content.querySelectorAll('.wa-tpl-btn');
+      for (var t = 0; t < tplBtns.length; t++) {
+        tplBtns[t].addEventListener('click', function() {
+          textarea.value = tpls[this.getAttribute('data-tpl')] || '';
+          textarea.dispatchEvent(new Event('input'));
+        });
+      }
+
+      function cerrarWaMsg() { overlay.classList.remove('open'); setTimeout(function() { document.body.style.overflow = ''; }, 300); }
+      document.getElementById('waMsgBack').addEventListener('click', cerrarWaMsg);
+      document.getElementById('waMsgCancel').addEventListener('click', function() { cerrarWaMsg(); cerrarSeleccion(); });
+
+      sendBtn.addEventListener('click', function() {
+        if (!textarea.value.trim()) return;
+        if (!confirm('Se abrir\u00e1n ' + dests.length + ' pesta\u00f1as de WhatsApp. Deber\u00e1s pulsar Enviar en cada una. \u00bfContinuar?')) return;
+        var msg = textarea.value;
+        var count = 0;
+        for (var d = 0; d < dests.length; d++) {
+          if (!dests[d].telefono) continue;
+          (function(tel, delay) {
+            setTimeout(function() { abrirWhatsApp(tel, msg); }, delay);
+          })(dests[d].telefono, count * 400);
+          count++;
+        }
+        cerrarWaMsg();
+        cerrarSeleccion();
+        console.log('WhatsApp masivo: ' + count + ' mensajes abiertos desde LA BOYA');
+        showToast('\u2713 ' + count + ' conversaciones abiertas en WhatsApp');
+      });
     }
 
     // === MODAL AVISAR WHATSAPP ===
