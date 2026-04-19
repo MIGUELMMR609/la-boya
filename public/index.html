@@ -1466,6 +1466,40 @@
       color: #CCC;
     }
 
+    /* === WHATSAPP === */
+    .btn-wa {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #25D366;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-family: inherit;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-wa svg { width: 14px; height: 14px; fill: white; flex-shrink: 0; }
+    .btn-wa-sm {
+      padding: 3px 6px;
+      font-size: 0;
+      min-width: 28px;
+      min-height: 28px;
+      justify-content: center;
+      border-radius: 50%;
+    }
+    .btn-wa-sm svg { width: 16px; height: 16px; }
+    .btn-wa-big {
+      padding: 10px 20px;
+      font-size: 14px;
+      border-radius: 8px;
+      width: 100%;
+      justify-content: center;
+    }
+
     /* === COSTE MODAL === */
     .coste-card {
       background: #FAEEDA;
@@ -2611,7 +2645,7 @@
           } else if (!window.esAdmin) {
             return '<div class="tel-block">' + telSvg + '<span class="tel-masked">Dato restringido</span></div>';
           } else {
-            return '<div class="tel-block" id="telBlock">' + telSvg + '<span class="tel-masked" id="telDisplay">\u2022\u2022\u2022 \u2022\u2022\u2022 \u2022\u2022\u2022</span><button class="tel-toggle" id="telToggle">Ver</button></div>';
+            return '<div class="tel-block" id="telBlock">' + telSvg + '<span class="tel-masked" id="telDisplay">\u2022\u2022\u2022 \u2022\u2022\u2022 \u2022\u2022\u2022</span><button class="tel-toggle" id="telToggle">Ver</button><button class="btn-wa" id="btnWaSocio">' + SVG_WA + ' WhatsApp</button></div>';
           }
         })() +
         '<hr class="ficha-sep">' +
@@ -2686,6 +2720,15 @@
         if (badge) badge.remove();
         var tog = document.getElementById('telToggle');
         if (tog) tog.textContent = 'Ver';
+      }
+
+      // WhatsApp socio
+      var btnWa = document.getElementById('btnWaSocio');
+      if (btnWa) {
+        btnWa.addEventListener('click', function() {
+          console.log('WhatsApp abierto a: ' + s.nombre);
+          abrirWhatsApp(s.telefono, '');
+        });
       }
 
       // Detectar cambios pendientes
@@ -3423,6 +3466,19 @@
     var SVG_PEOPLE = '<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>';
     var SVG_PLUS = '<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
     var SVG_CHECK = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
+    var SVG_WA = '<svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.304-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/></svg>';
+
+    function abrirWhatsApp(telefono, mensaje) {
+      if (!telefono) { showToast('Este socio no tiene tel\u00e9fono guardado'); return; }
+      var num = telefono.replace(/[\s\-\+]/g, '');
+      var url = 'https://wa.me/' + num + (mensaje ? '?text=' + encodeURIComponent(mensaje) : '');
+      window.open(url, '_blank');
+    }
+
+    function fechaDiaMes(str) {
+      var p = str.split('-');
+      return parseInt(p[2], 10) + ' de ' + MESES_LARGO[parseInt(p[1], 10) - 1];
+    }
     var SVG_BOYA = '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 21v-2a7 7 0 0114 0v2"/><path d="M16 3l2 2-2 2"/></svg>';
 
     // === DETALLE EVENTO ===
@@ -3523,6 +3579,7 @@
             '<div class="evt-asist-avatar" style="background:' + (soc.foto_url ? 'transparent' : avatarBg) + '">' + avatarInner + cookBadge + '</div>' +
             '<div class="evt-asist-info"><div class="evt-asist-name">' + escapeHtml(soc.nombre + ' ' + soc.apellidos) + '</div>' + invText + '</div>' +
             '<span class="evt-asist-amount">' + amount.toFixed(2) + ' \u20ac</span>' +
+            (!as.pagado && soc.telefono ? '<button class="btn-wa-sm btn-wa-recall" data-recall-sid="' + as.socio_id + '" title="Recordar pago por WhatsApp">' + SVG_WA + '</button>' : '') +
             '<button class="check-pagado' + (as.pagado ? ' checked' : '') + '" data-sid="' + as.socio_id + '">' + SVG_CHECK + '</button>' +
           '</div>';
         }
@@ -3614,6 +3671,9 @@
         ) +
         '<hr class="ficha-sep">' +
         '<div class="evt-action-btns">' + actionBtns + '</div>' +
+        (evt.asistentes.some(function(a) { var sc = findSocio(a.socio_id); return sc && sc.telefono; })
+          ? '<div style="padding:0 16px 8px"><button class="btn-wa btn-wa-big" id="btnAvisarWa">' + SVG_WA + ' Avisar a asistentes</button></div>'
+          : '') +
         '<hr class="ficha-sep">' +
         asistHtml +
         '</div>' +
@@ -3744,6 +3804,30 @@
             renderDetalleEvento(evt);
             showError('Error al actualizar pago');
           });
+        });
+      }
+
+      // WhatsApp recordar pago
+      var recallBtns = content.querySelectorAll('.btn-wa-recall');
+      for (var rb = 0; rb < recallBtns.length; rb++) {
+        recallBtns[rb].addEventListener('click', function(e) {
+          e.stopPropagation();
+          var sid = this.getAttribute('data-recall-sid');
+          var soc = findSocio(sid);
+          if (!soc || !soc.telefono) { showToast('Sin tel\u00e9fono'); return; }
+          var asist = evt.asistentes.find(function(a) { return a.socio_id === sid; });
+          var amt = asist ? ((1 + (asist.invitados || 0)) * ppp).toFixed(2) : '0';
+          var nombre1 = soc.nombre.split(' ')[0];
+          var msg = 'Hola ' + nombre1 + ', te recuerdo que quedan pendientes ' + amt + '\u20ac por ' + evt.nombre + ' del ' + fechaDiaMes(evt.fecha) + '. Un saludo. LA BOYA.';
+          abrirWhatsApp(soc.telefono, msg);
+        });
+      }
+
+      // Avisar a asistentes masivo
+      var btnAvisar = document.getElementById('btnAvisarWa');
+      if (btnAvisar) {
+        btnAvisar.addEventListener('click', function() {
+          abrirModalAvisarWa(evt, ppp);
         });
       }
 
@@ -4627,6 +4711,64 @@
         var fn = pdfFileName(evt, 'A4'); doc.save(fn);
         console.log('PDF generado: ' + fn); showToast('\u2713 PDF descargado');
       } catch (err) { console.error('Error generando PDF:', err); showError('Error al generar el PDF'); }
+    }
+
+    // === MODAL AVISAR WHATSAPP ===
+    function abrirModalAvisarWa(evt, ppp) {
+      var ex = document.getElementById('waAvisarOverlay');
+      if (ex) ex.remove();
+      var dp = evt.fecha.split('-');
+      var dObj = new Date(parseInt(dp[0],10), parseInt(dp[1],10)-1, parseInt(dp[2],10));
+      var fechaComp = DIAS_SEMANA[dObj.getDay()] + ', ' + fechaDiaMes(evt.fecha);
+      var precioTxt = ppp > 0 ? ppp.toFixed(2) : '(por definir)';
+      var defMsg = evt.tipo === 'comida_social'
+        ? 'Hola, os recuerdo que el ' + fechaComp + ' tenemos ' + evt.nombre + ' en LA BOYA. Precio por persona: ' + precioTxt + '\u20ac. \u00a1Os esperamos!'
+        : 'Hola, os recuerdo que el ' + fechaComp + ' tenemos el evento \'' + evt.nombre + '\' en LA BOYA. Precio por persona: ' + precioTxt + '\u20ac. \u00a1Os esperamos!';
+
+      var listHtml = '';
+      for (var i = 0; i < evt.asistentes.length; i++) {
+        var soc = findSocio(evt.asistentes[i].socio_id);
+        if (!soc) continue;
+        if (soc.telefono) {
+          listHtml += '<label style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px"><input type="checkbox" class="wa-check" data-wa-sid="' + soc.id + '" checked> ' + escapeHtml(soc.nombre + ' ' + soc.apellidos) + '</label>';
+        } else {
+          listHtml += '<div style="padding:4px 0;font-size:12px;color:#CCC">' + escapeHtml(soc.nombre + ' ' + soc.apellidos) + ' \u2014 sin tel\u00e9fono</div>';
+        }
+      }
+
+      var div = document.createElement('div');
+      div.className = 'coste-modal-overlay open';
+      div.id = 'waAvisarOverlay';
+      div.innerHTML =
+        '<div class="coste-modal" style="max-width:440px;max-height:90vh;overflow-y:auto">' +
+          '<div class="coste-modal-title">Avisar por WhatsApp</div>' +
+          '<div class="form-field"><label class="form-label">Mensaje</label><textarea class="notas-textarea-neutral" id="waMsgText" style="min-height:80px">' + escapeHtml(defMsg) + '</textarea></div>' +
+          '<div class="form-field"><label class="form-label">Asistentes a notificar</label><div style="max-height:200px;overflow-y:auto;border:0.5px solid #E0E0E0;border-radius:8px;padding:8px">' + listHtml + '</div></div>' +
+          '<div style="display:flex;gap:8px;margin-top:12px">' +
+            '<button class="btn-cancel" id="waCancel" style="flex:1">Cancelar</button>' +
+            '<button class="btn-wa btn-wa-big" id="waEnviar" style="flex:2">' + SVG_WA + ' Abrir WhatsApp</button>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(div);
+
+      document.getElementById('waCancel').addEventListener('click', function() { div.remove(); });
+      document.getElementById('waEnviar').addEventListener('click', function() {
+        var msg = document.getElementById('waMsgText').value;
+        var checks = div.querySelectorAll('.wa-check:checked');
+        var count = 0;
+        for (var c = 0; c < checks.length; c++) {
+          var sid = checks[c].getAttribute('data-wa-sid');
+          var soc = findSocio(sid);
+          if (!soc || !soc.telefono) continue;
+          (function(tel, delay) {
+            setTimeout(function() { abrirWhatsApp(tel, msg); }, delay);
+          })(soc.telefono, count * 500);
+          count++;
+        }
+        div.remove();
+        if (count > 0) showToast(count + ' conversaciones abiertas en WhatsApp');
+        else showToast('No hay asistentes con tel\u00e9fono seleccionados');
+      });
     }
 
     document.addEventListener('DOMContentLoaded', init);
