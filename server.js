@@ -50,6 +50,43 @@ const SEED_FILE = path.join(__dirname, 'data', 'socios.json');
 const EVENTOS_FILE = path.join(DATA_DIR, 'eventos.json');
 const EVENTOS_SEED_FILE = path.join(__dirname, 'data', 'eventos.json');
 
+// === BLINDAJE DE DATOS: backup antes de escribir + bloqueo de vaciados ===
+function backupAntesDeEscribir(rutaArchivo, etiqueta) {
+  try {
+    if (!fs.existsSync(rutaArchivo)) return;
+    var contenido = fs.readFileSync(rutaArchivo, 'utf8');
+    var datos = JSON.parse(contenido);
+    if (!Array.isArray(datos) || datos.length === 0) return;
+    var nombreArchivo = path.basename(rutaArchivo, '.json');
+    var dir = path.dirname(rutaArchivo);
+    var ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 16);
+    var backupPath = path.join(dir, nombreArchivo + '.backup.' + ts + '.' + etiqueta + '.json');
+    fs.writeFileSync(backupPath, contenido);
+  } catch (err) {
+    console.error('Error creando backup ' + etiqueta + ':', err.message);
+  }
+}
+
+function guardarDatosSeguro(rutaArchivo, datos, etiqueta, opts) {
+  if (!Array.isArray(datos)) {
+    console.error('Intento de escribir no-array en ' + rutaArchivo + '. Cancelado.');
+    throw new Error('Datos invalidos al guardar ' + etiqueta + ': no es un array');
+  }
+  if (datos.length === 0 && fs.existsSync(rutaArchivo)) {
+    try {
+      var actual = JSON.parse(fs.readFileSync(rutaArchivo, 'utf8'));
+      if (Array.isArray(actual) && actual.length > 0 && !(opts && opts.permitirVaciado)) {
+        console.error('BLOQUEADO: intento de vaciar ' + rutaArchivo + ' (tenia ' + actual.length + ' items). ' + etiqueta);
+        throw new Error('BLOQUEADO: no se puede vaciar archivo con datos. Origen: ' + etiqueta);
+      }
+    } catch (err) {
+      if (err.message.startsWith('BLOQUEADO')) throw err;
+    }
+  }
+  backupAntesDeEscribir(rutaArchivo, etiqueta);
+  fs.writeFileSync(rutaArchivo, JSON.stringify(datos, null, 2), 'utf8');
+}
+
 // Inicializar datos: si el disco persistente está vacío, copiar seed del repo
 function inicializarDatos() {
   console.log('Ruta de datos: ' + SOCIOS_FILE);
@@ -105,7 +142,7 @@ function inicializarDatos() {
     }
   }
   if (migrados > 0) {
-    fs.writeFileSync(SOCIOS_FILE, JSON.stringify(contenido, null, 2), 'utf8');
+    guardarDatosSeguro(SOCIOS_FILE, contenido, 'migracion-telefono');
     console.log('Migracion: campo telefono a\u00f1adido a ' + migrados + ' socios');
   }
 
@@ -125,17 +162,18 @@ function inicializarDatos() {
   try {
     var evts = JSON.parse(fs.readFileSync(EVENTOS_FILE, 'utf8'));
     console.log('Eventos cargados: ' + evts.length);
-
-    // Migración de eventos DESHABILITADA tras fallo (FECHA_SUFFIX_RE no disponible aquí)
-    // Se re-habilitará cuando se mueva la regex antes de inicializarDatos()
-    // var MIGRACION_EVENTOS_HABILITADA = false;
+    // Backup de arranque si hay datos
+    if (evts.length > 0) {
+      backupAntesDeEscribir(EVENTOS_FILE, 'arranque');
+    } else {
+      console.log('eventos.json esta vacio al arrancar');
+    }
   } catch (e) {
-    // NUNCA sobrescribir con [] — eso borró los eventos
     console.error('Error leyendo eventos.json:', e.message);
     if (!fs.existsSync(EVENTOS_FILE)) {
       fs.writeFileSync(EVENTOS_FILE, '[]', 'utf8');
+      console.log('eventos.json no existia, inicializado vacio');
     }
-    console.log('Eventos cargados: 0 (error de lectura, archivo no sobrescrito si existia)');
   }
 }
 
@@ -176,7 +214,7 @@ app.put('/api/socios/:id/asiduidad', (req, res) => {
     }
     data[idx].asiduidad = asiduidad;
     data[idx].fecha_modificacion = fechaHoy();
-    fs.writeFileSync(SOCIOS_FILE, JSON.stringify(data, null, 2), 'utf8');
+    guardarDatosSeguro(SOCIOS_FILE, data, 'socio-asiduidad');
     res.json(data[idx]);
   } catch (err) {
     console.error('Error actualizando asiduidad:', err);
@@ -196,7 +234,7 @@ app.put('/api/socios/:id/notas', (req, res) => {
     data[idx].notas = notas;
     data[idx].notas_editado = fechaHoy();
     data[idx].fecha_modificacion = fechaHoy();
-    fs.writeFileSync(SOCIOS_FILE, JSON.stringify(data, null, 2), 'utf8');
+    guardarDatosSeguro(SOCIOS_FILE, data, 'socio-notas');
     res.json(data[idx]);
   } catch (err) {
     console.error('Error actualizando notas:', err);
@@ -287,7 +325,7 @@ app.post('/api/socios', upload.single('foto'), async (req, res) => {
     }
 
     data.push(socio);
-    fs.writeFileSync(SOCIOS_FILE, JSON.stringify(data, null, 2), 'utf8');
+    guardarDatosSeguro(SOCIOS_FILE, data, 'socio-crear');
     console.log('Socio creado: ' + nombre + ' ' + apellidos + ' (id: ' + newId + ')');
     res.status(201).json(socio);
   } catch (err) {
@@ -340,7 +378,7 @@ app.put('/api/socios/:id', upload.single('foto'), async (req, res) => {
 
     socio.fecha_modificacion = fechaHoy();
     data[idx] = socio;
-    fs.writeFileSync(SOCIOS_FILE, JSON.stringify(data, null, 2), 'utf8');
+    guardarDatosSeguro(SOCIOS_FILE, data, 'socio-editar');
     res.json(socio);
   } catch (err) {
     console.error('Error editando socio:', err);
@@ -365,6 +403,7 @@ app.delete('/api/socios/:id', async (req, res) => {
     }
 
     data.splice(idx, 1);
+    backupAntesDeEscribir(SOCIOS_FILE, 'socio-eliminar');
     fs.writeFileSync(SOCIOS_FILE, JSON.stringify(data, null, 2), 'utf8');
     console.log('Socio eliminado: ' + socio.nombre + ' (id: ' + socio.id + ')');
     res.json({ ok: true });
@@ -407,8 +446,8 @@ function leerEventos() {
   } catch (e) { return []; }
 }
 
-function guardarEventos(data) {
-  fs.writeFileSync(EVENTOS_FILE, JSON.stringify(data, null, 2), 'utf8');
+function guardarEventos(data, etiqueta) {
+  guardarDatosSeguro(EVENTOS_FILE, data, etiqueta || 'evento');
 }
 
 // GET /api/eventos
@@ -504,7 +543,7 @@ app.post('/api/eventos', (req, res) => {
     };
 
     data.push(evento);
-    guardarEventos(data);
+    guardarEventos(data, 'crear');
     console.log('Evento creado: ' + nombre + ' (id: ' + newId + ')');
     res.status(201).json(evento);
   } catch (err) {
@@ -542,7 +581,7 @@ app.put('/api/eventos/:id', (req, res) => {
 
     evt.fecha_modificacion = fechaHoy();
     data[idx] = evt;
-    guardarEventos(data);
+    guardarEventos(data, 'editar');
     console.log('Evento actualizado: ' + evt.id);
     res.json(evt);
   } catch (err) {
@@ -559,7 +598,8 @@ app.delete('/api/eventos/:id', (req, res) => {
     if (idx === -1) return res.status(404).json({ error: 'Evento no encontrado' });
     var evtId = data[idx].id;
     data.splice(idx, 1);
-    guardarEventos(data);
+    backupAntesDeEscribir(EVENTOS_FILE, 'eliminar');
+    fs.writeFileSync(EVENTOS_FILE, JSON.stringify(data, null, 2), 'utf8');
     console.log('Evento eliminado: ' + evtId);
     res.json({ ok: true });
   } catch (err) {
@@ -586,7 +626,7 @@ app.put('/api/eventos/:id/cocineros', (req, res) => {
     }
     evt.fecha_modificacion = fechaHoy();
     data[idx] = evt;
-    guardarEventos(data);
+    guardarEventos(data, 'cocineros');
     console.log('Cocineros actualizados evento ' + evt.id);
     res.json(evt);
   } catch (err) {
@@ -621,7 +661,7 @@ app.put('/api/eventos/:id/asistentes', (req, res) => {
     evt.asistentes = resultado;
     evt.fecha_modificacion = fechaHoy();
     data[idx] = evt;
-    guardarEventos(data);
+    guardarEventos(data, 'asistentes');
     console.log('Asistentes actualizados evento ' + evt.id + ': ' + resultado.length);
     res.json(evt);
   } catch (err) {
@@ -643,7 +683,7 @@ app.put('/api/eventos/:id/asistente/:socio_id', (req, res) => {
     if (req.body.pagado !== undefined) asist.pagado = !!req.body.pagado;
     evt.fecha_modificacion = fechaHoy();
     data[idx] = evt;
-    guardarEventos(data);
+    guardarEventos(data, 'pagado');
     res.json(evt);
   } catch (err) {
     console.error('Error actualizando asistente:', err);
@@ -665,7 +705,7 @@ app.put('/api/eventos/:id/estado', (req, res) => {
     evt.estado = estado;
     evt.fecha_modificacion = fechaHoy();
     data[idx] = evt;
-    guardarEventos(data);
+    guardarEventos(data, 'estado');
     console.log('Estado evento ' + evt.id + ': ' + estado);
     res.json(evt);
   } catch (err) {
@@ -685,7 +725,7 @@ app.post('/api/eventos/:id/invitados-boya', (req, res) => {
     var inv = { id: 'inv_' + Math.random().toString(36).substr(2, 9), nombre: nombre };
     data[idx].invitados_boya.push(inv);
     data[idx].fecha_modificacion = fechaHoy();
-    guardarEventos(data);
+    guardarEventos(data, 'invitado-boya-crear');
     console.log('Invitado BOYA creado: ' + nombre + ' en evento ' + data[idx].id);
     res.status(201).json(data[idx]);
   } catch (err) {
@@ -705,7 +745,7 @@ app.delete('/api/eventos/:id/invitados-boya/:invitado_id', (req, res) => {
     if (invIdx === -1) return res.status(404).json({ error: 'Invitado no encontrado' });
     evt.invitados_boya.splice(invIdx, 1);
     evt.fecha_modificacion = fechaHoy();
-    guardarEventos(data);
+    guardarEventos(data, 'invitado-boya-eliminar');
     res.json(evt);
   } catch (err) {
     console.error('Error eliminando invitado BOYA:', err);
@@ -725,7 +765,7 @@ app.put('/api/eventos/:id/invitados-boya/:invitado_id', (req, res) => {
     if (!nombre) return res.status(400).json({ error: 'Nombre requerido' });
     inv.nombre = nombre;
     data[idx].fecha_modificacion = fechaHoy();
-    guardarEventos(data);
+    guardarEventos(data, 'invitado-boya-editar');
     res.json(data[idx]);
   } catch (err) {
     console.error('Error editando invitado BOYA:', err);
@@ -793,6 +833,7 @@ app.post('/api/admin/importar-socios-oficiales', async (req, res) => {
     }
 
     // Escribir
+    backupAntesDeEscribir(SOCIOS_FILE, 'import-oficiales');
     fs.writeFileSync(SOCIOS_FILE, JSON.stringify(nuevos, null, 2), 'utf8');
     console.log('Importacion completada: ' + nuevos.length + ' socios oficiales cargados, ' + eliminados + ' anteriores eliminados');
 
@@ -830,7 +871,7 @@ app.post('/api/admin/importar-telefonos', (req, res) => {
         noEncontrados.push(entry.num_socio);
       }
     }
-    fs.writeFileSync(SOCIOS_FILE, JSON.stringify(data, null, 2), 'utf8');
+    guardarDatosSeguro(SOCIOS_FILE, data, 'import-telefonos');
     var conFoto = data.filter(function(s) { return s.foto_url && s.foto_url !== ''; }).length;
     console.log('Telefonos importados: ' + actualizados + ', no encontrados: ' + noEncontrados.length + ', fotos preservadas: ' + conFoto);
     res.json({ ok: true, actualizados: actualizados, no_encontrados: noEncontrados, fotos_preservadas: conFoto + '/' + data.length });
@@ -900,6 +941,36 @@ app.post('/api/admin/restaurar-eventos', (req, res) => {
     console.error('Error restaurando:', err);
     res.status(500).json({ error: err.message });
   }
+});
+
+// === ADMIN: Health datos ===
+app.get('/api/admin/health-datos', (req, res) => {
+  if (req.query.clave !== CLAVE_ADMIN) return res.status(403).json({ error: 'Clave incorrecta' });
+  function infoArchivo(ruta, tipo) {
+    var result = { archivo_existe: false, cuenta: 0, archivo_bytes: 0, backups: 0, backup_mas_reciente: null };
+    try {
+      if (fs.existsSync(ruta)) {
+        result.archivo_existe = true;
+        var stat = fs.statSync(ruta);
+        result.archivo_bytes = stat.size;
+        result.ultimo_cambio = stat.mtime.toISOString();
+        result.cuenta = JSON.parse(fs.readFileSync(ruta, 'utf8')).length;
+      }
+    } catch(e) { result.error = e.message; }
+    try {
+      var files = fs.readdirSync(DATA_DIR).filter(function(f) { return f.startsWith(tipo + '.backup.'); });
+      result.backups = files.length;
+      files.sort().reverse();
+      if (files.length > 0) result.backup_mas_reciente = files[0];
+    } catch(e) {}
+    return result;
+  }
+  res.json({
+    ok: true,
+    fecha_consulta: new Date().toISOString(),
+    socios: infoArchivo(SOCIOS_FILE, 'socios'),
+    eventos: infoArchivo(EVENTOS_FILE, 'eventos')
+  });
 });
 
 app.listen(PORT, () => {
