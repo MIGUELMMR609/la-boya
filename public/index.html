@@ -4236,92 +4236,151 @@
       };
     }
 
+    // Helper: nueva pagina con mini-cabecera
+    function pdfNewPage(doc, mx, evtNombre, format) {
+      doc.addPage();
+      var w = doc.internal.pageSize.getWidth();
+      var barH = format === 'a5' ? 8 : 10;
+      doc.setFillColor(12, 68, 124); doc.rect(0, 0, w, barH, 'F');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(format === 'a5' ? 9 : 10); doc.setTextColor(255, 255, 255);
+      doc.text('LA BOYA \u00b7 ' + evtNombre, w / 2, barH - 2.5, { align: 'center' });
+      return barH + 6;
+    }
+
     function generarPdfMovil(evt, ppp, totalPersonas, pagantes, totalRecaudar, totalCobrado, nBoya, costeBoya) {
       try {
         var doc = new window.jspdf.jsPDF({ format: 'a5', orientation: 'portrait' });
         var w = doc.internal.pageSize.getWidth();
         var h = doc.internal.pageSize.getHeight();
-        var mx = 12; var y = 15;
+        var mx = 12; var cw = w - mx * 2; var y = 0;
         var pendiente = Math.round((totalRecaudar - totalCobrado) * 100) / 100;
         var data = getPdfAsistentes(evt);
+        var tipoLabel = evt.tipo === 'comida_social' ? 'COMIDA SOCIAL' : 'EVENTO';
 
-        // Cabecera
-        doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.setTextColor(12, 68, 124);
-        doc.text('LA BOYA', w / 2, y, { align: 'center' }); y += 7;
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(12); doc.setTextColor(51, 51, 51);
-        var titulo = evt.tipo === 'comida_social' ? evt.nombre : 'Evento: ' + evt.nombre;
-        doc.text(titulo, w / 2, y, { align: 'center' }); y += 5;
-        doc.setFontSize(10); doc.setTextColor(102, 102, 102);
-        doc.text(pdfFechaLarga(evt.fecha), w / 2, y, { align: 'center' }); y += 4;
-        doc.setDrawColor(200); doc.line(mx, y, w - mx, y); y += 6;
+        // Cabecera azul
+        doc.setFillColor(12, 68, 124); doc.rect(0, 0, w, 18, 'F');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(20); doc.setTextColor(255, 255, 255);
+        doc.text('LA BOYA', w / 2, 10, { align: 'center' });
+        doc.setLineWidth(0.3); doc.setDrawColor(255, 255, 255); doc.line(w / 2 - 30, 13, w / 2 + 30, 13);
+        doc.setFontSize(8); doc.text(tipoLabel, w / 2, 16.5, { align: 'center' });
+        y = 26;
 
-        // Resumen
-        doc.setFontSize(9); doc.setTextColor(102, 102, 102);
-        doc.text('Asistentes: ' + totalPersonas + '  |  Por persona: ' + ppp.toFixed(2) + ' \u20ac', mx, y); y += 4;
-        doc.text('Total: ' + totalRecaudar.toFixed(2) + ' \u20ac  |  Cobrado: ' + totalCobrado.toFixed(2) + ' \u20ac', mx, y); y += 4;
-        if (pendiente > 0) { doc.setTextColor(121, 31, 31); doc.text('Pendiente: ' + pendiente.toFixed(2) + ' \u20ac', mx, y); }
-        else { doc.setTextColor(23, 52, 4); doc.text('Pendiente: 0 \u20ac - Todo pagado', mx, y); }
-        y += 3; doc.setDrawColor(200); doc.line(mx, y, w - mx, y); y += 6;
+        // Nombre y fecha
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(30, 30, 30);
+        doc.text(evt.nombre, w / 2, y, { align: 'center', maxWidth: cw }); y += 5;
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(102, 102, 102);
+        doc.text(pdfFechaLarga(evt.fecha), w / 2, y, { align: 'center' }); y += 8;
 
-        // Helper: render asistentes rows
-        function renderRows(list, label) {
+        // Resumen cards - fila 1 (3 cards)
+        var gap = 3; var cardW = (cw - gap * 2) / 3; var cardH = 16;
+        var r1 = [
+          { label: 'ASISTENTES', val: String(totalPersonas), bg: [245,245,245], tc: [30,30,30] },
+          { label: 'POR PERSONA', val: ppp.toFixed(2) + ' \u20ac', bg: [245,245,245], tc: [30,30,30] },
+          { label: 'TOTAL', val: totalRecaudar.toFixed(2) + ' \u20ac', bg: [245,245,245], tc: [30,30,30] }
+        ];
+        for (var c = 0; c < 3; c++) {
+          var cx = mx + c * (cardW + gap);
+          doc.setFillColor(r1[c].bg[0], r1[c].bg[1], r1[c].bg[2]); doc.roundedRect(cx, y, cardW, cardH, 2, 2, 'F');
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(r1[c].tc[0], r1[c].tc[1], r1[c].tc[2]);
+          doc.text(r1[c].val, cx + cardW / 2, y + 7, { align: 'center' });
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(102, 102, 102);
+          doc.text(r1[c].label, cx + cardW / 2, y + 12.5, { align: 'center' });
+        }
+        y += cardH + gap;
+        // Fila 2 (2 cards: cobrado + pendiente)
+        var card2W = (cw - gap) / 2;
+        var cobBg = totalCobrado > 0 ? [234,243,222] : [245,245,245];
+        var cobTc = totalCobrado > 0 ? [23,52,4] : [30,30,30];
+        doc.setFillColor(cobBg[0], cobBg[1], cobBg[2]); doc.roundedRect(mx, y, card2W, cardH, 2, 2, 'F');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(cobTc[0], cobTc[1], cobTc[2]);
+        doc.text(totalCobrado.toFixed(2) + ' \u20ac', mx + card2W / 2, y + 7, { align: 'center' });
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(cobTc[0], cobTc[1], cobTc[2]);
+        doc.text('COBRADO', mx + card2W / 2, y + 12.5, { align: 'center' });
+
+        var px = mx + card2W + gap;
+        var pBg = pendiente > 0 ? [252,235,235] : [234,243,222];
+        var pTc = pendiente > 0 ? [121,31,31] : [23,52,4];
+        doc.setFillColor(pBg[0], pBg[1], pBg[2]); doc.roundedRect(px, y, card2W, cardH, 2, 2, 'F');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(pTc[0], pTc[1], pTc[2]);
+        doc.text(pendiente > 0 ? pendiente.toFixed(2) + ' \u20ac' : '\u2713 OK', px + card2W / 2, y + 7, { align: 'center' });
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5);
+        doc.text('PENDIENTE', px + card2W / 2, y + 12.5, { align: 'center' });
+        y += cardH + 8;
+
+        // Render section
+        function renderSection(list, label, bgColor, textColor, isPagado) {
           if (list.length === 0) return;
-          doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(102, 102, 102);
-          doc.text(label, mx, y); y += 5;
-          doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+          if (y > h - 25) y = pdfNewPage(doc, mx, evt.nombre, 'a5');
+          // Section header bar
+          doc.setFillColor(bgColor[0], bgColor[1], bgColor[2]); doc.roundedRect(mx, y, cw, 7, 1.5, 1.5, 'F');
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+          doc.text(label, mx + 4, y + 5); y += 10;
+
           for (var i = 0; i < list.length; i++) {
-            if (y > h - 15) { doc.addPage(); y = 15; }
-            var a = list[i]; var soc = findSocio(a.socio_id);
-            if (!soc) continue;
-            if (i % 2 === 0) { doc.setFillColor(250, 250, 250); doc.rect(mx, y - 3.5, w - mx * 2, 5.5, 'F'); }
-            doc.setTextColor(51, 51, 51);
-            var name = soc.nombre + ' ' + soc.apellidos;
-            doc.text(name, mx + 1, y, { maxWidth: w - mx * 2 - 50 });
+            if (y > h - 18) y = pdfNewPage(doc, mx, evt.nombre, 'a5');
+            var a = list[i]; var soc = findSocio(a.socio_id); if (!soc) continue;
+            if (i % 2 === 0) { doc.setFillColor(250, 250, 250); doc.rect(mx, y - 3, cw, a.invitados > 0 ? 10 : 7, 'F'); }
+            // Name
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5); doc.setTextColor(30, 30, 30);
+            doc.text(soc.nombre + ' ' + soc.apellidos, mx + 2, y, { maxWidth: cw - 55 });
+            // Amount
             var amt = ((1 + (a.invitados || 0)) * ppp).toFixed(2) + ' \u20ac';
-            doc.text(amt, w - mx - 25, y, { align: 'right' });
-            if (a.pagado) { doc.setTextColor(23, 52, 4); doc.text('PAGADO', w - mx - 1, y, { align: 'right' }); }
-            else { doc.setTextColor(121, 31, 31); doc.text('PDTE', w - mx - 1, y, { align: 'right' }); }
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5); doc.setTextColor(30, 30, 30);
+            doc.text(amt, w - mx - 20, y, { align: 'right' });
+            // Badge
+            var badgeX = w - mx - 17; var badgeY = y - 3;
+            if (isPagado) {
+              doc.setFillColor(23, 52, 4); doc.roundedRect(badgeX, badgeY, 15, 5, 1, 1, 'F');
+              doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(255, 255, 255);
+              doc.text('\u2713', badgeX + 7.5, y, { align: 'center' });
+            } else {
+              doc.setFillColor(121, 31, 31); doc.roundedRect(badgeX, badgeY, 15, 5, 1, 1, 'F');
+              doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(255, 255, 255);
+              doc.text('PDTE', badgeX + 7.5, y, { align: 'center' });
+            }
             y += 4;
             if (a.invitados > 0) {
-              doc.setFontSize(8); doc.setTextColor(153, 153, 153);
-              doc.text('+ ' + a.invitados + ' invitado' + (a.invitados > 1 ? 's' : ''), mx + 3, y); y += 3.5;
-              doc.setFontSize(10);
+              doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+              doc.text('+ ' + a.invitados + ' invitado' + (a.invitados > 1 ? 's' : ''), mx + 4, y); y += 3;
             }
+            // Separator
+            if (i < list.length - 1) { doc.setDrawColor(220, 220, 220); doc.setLineWidth(0.2); doc.line(mx, y, w - mx, y); }
+            y += 3;
           }
-          y += 2;
+          y += 4;
         }
 
-        renderRows(data.pendientes, 'PENDIENTES DE PAGO (' + data.pendientes.length + ')');
-        renderRows(data.pagados, 'PAGADOS (' + data.pagados.length + ')');
+        renderSection(data.pendientes, 'PENDIENTES DE PAGO (' + data.pendientes.length + ')', [252,235,235], [121,31,31], false);
+        renderSection(data.pagados, 'PAGADOS (' + data.pagados.length + ')', [234,243,222], [23,52,4], true);
 
         // BOYA
         if (data.boya.length > 0) {
-          if (y > h - 20) { doc.addPage(); y = 15; }
-          doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(102, 102, 102);
-          doc.text('INVITADOS BOYA (sin pago)', mx, y); y += 5;
-          doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(51, 51, 51);
+          if (y > h - 20) y = pdfNewPage(doc, mx, evt.nombre, 'a5');
+          doc.setFillColor(250, 238, 218); doc.roundedRect(mx, y, cw, 7, 1.5, 1.5, 'F');
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(74, 27, 12);
+          doc.text('INVITADOS BOYA (SIN PAGO)', mx + 4, y + 5); y += 10;
           for (var b = 0; b < data.boya.length; b++) {
-            if (y > h - 15) { doc.addPage(); y = 15; }
-            doc.text(data.boya[b].nombre, mx + 1, y); y += 4;
+            if (y > h - 15) y = pdfNewPage(doc, mx, evt.nombre, 'a5');
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5); doc.setTextColor(30, 30, 30);
+            doc.text(data.boya[b].nombre, mx + 2, y);
+            if (b < data.boya.length - 1) { y += 3; doc.setDrawColor(220, 220, 220); doc.setLineWidth(0.2); doc.line(mx, y, w - mx, y); }
+            y += 4;
           }
           if (costeBoya > 0) {
-            y += 2; doc.setFontSize(9); doc.setTextColor(102, 102, 102);
-            doc.text('Coste asumido por la sociedad: ' + costeBoya.toFixed(2) + ' \u20ac', mx, y); y += 4;
+            y += 2; doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(74, 27, 12);
+            doc.text('La sociedad asume: ' + costeBoya.toFixed(2) + ' \u20ac', mx + 2, y); y += 4;
           }
         }
 
         // Pie
-        doc.setFontSize(8); doc.setTextColor(153, 153, 153);
-        doc.text('Generado el ' + formatFechaEvento(new Date().toISOString().split('T')[0]) + ' \u00b7 LA BOYA', w / 2, h - 8, { align: 'center' });
+        doc.setDrawColor(200, 200, 200); doc.setLineWidth(0.3); doc.line(mx, h - 14, w - mx, h - 14);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(150, 150, 150);
+        var hoyStr = new Date().toISOString().split('T')[0].split('-');
+        doc.text('Generado el ' + hoyStr[2] + '/' + hoyStr[1] + '/' + hoyStr[0] + ' \u00b7 Sociedad Recreativa LA BOYA', w / 2, h - 10, { align: 'center' });
 
-        var fn = pdfFileName(evt, 'movil');
-        doc.save(fn);
-        console.log('PDF generado: ' + fn);
-        showToast('\u2713 PDF descargado');
-      } catch (err) {
-        console.error('Error generando PDF:', err);
-        showError('Error al generar el PDF');
-      }
+        var fn = pdfFileName(evt, 'movil'); doc.save(fn);
+        console.log('PDF generado: ' + fn); showToast('\u2713 PDF descargado');
+      } catch (err) { console.error('Error generando PDF:', err); showError('Error al generar el PDF'); }
     }
 
     function generarPdfA4(evt, ppp, totalPersonas, pagantes, totalRecaudar, totalCobrado, nBoya, costeBoya) {
@@ -4329,126 +4388,140 @@
         var doc = new window.jspdf.jsPDF({ format: 'a4', orientation: 'portrait' });
         var w = doc.internal.pageSize.getWidth();
         var h = doc.internal.pageSize.getHeight();
-        var mx = 20; var y = 25;
+        var mx = 20; var cw = w - mx * 2; var y = 0;
         var pendiente = Math.round((totalRecaudar - totalCobrado) * 100) / 100;
         var data = getPdfAsistentes(evt);
-        var cw = w - mx * 2; // content width
+        var tipoLabel = evt.tipo === 'comida_social' ? 'COMIDA SOCIAL' : 'EVENTO';
 
-        // Cabecera
-        doc.setFont('helvetica', 'bold'); doc.setFontSize(22); doc.setTextColor(12, 68, 124);
-        doc.text('SOCIEDAD RECREATIVA LA BOYA', w / 2, y, { align: 'center' }); y += 4;
-        doc.setDrawColor(12, 68, 124); doc.setLineWidth(0.5); doc.line(mx + 30, y, w - mx - 30, y); y += 10;
-        doc.setFontSize(16); doc.setTextColor(51, 51, 51);
-        var titulo = evt.tipo === 'comida_social' ? evt.nombre : evt.nombre;
-        doc.text(titulo, w / 2, y, { align: 'center' }); y += 6;
+        // Cabecera azul
+        doc.setFillColor(12, 68, 124); doc.rect(0, 0, w, 24, 'F');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(22); doc.setTextColor(255, 255, 255);
+        doc.text('SOCIEDAD RECREATIVA LA BOYA', w / 2, 12, { align: 'center' });
+        doc.setLineWidth(0.3); doc.setDrawColor(255, 255, 255); doc.line(w / 2 - 50, 16, w / 2 + 50, 16);
+        doc.setFontSize(9); doc.text(tipoLabel, w / 2, 21, { align: 'center' });
+        y = 32;
+
+        // Nombre y fecha
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.setTextColor(30, 30, 30);
+        doc.text(evt.nombre, w / 2, y, { align: 'center', maxWidth: cw }); y += 7;
         doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.setTextColor(102, 102, 102);
         doc.text(pdfFechaLarga(evt.fecha), w / 2, y, { align: 'center' }); y += 10;
 
-        // Resumen en 4 cajas
-        var boxW = (cw - 12) / 4; var boxH = 18;
-        var labels = ['Asistentes', 'Por persona', 'Total', 'Cobrado'];
-        var vals = [String(totalPersonas), ppp.toFixed(2) + ' \u20ac', totalRecaudar.toFixed(2) + ' \u20ac', totalCobrado.toFixed(2) + ' \u20ac'];
-        for (var bx = 0; bx < 4; bx++) {
-          var bxX = mx + bx * (boxW + 4);
-          doc.setFillColor(245, 245, 245); doc.roundedRect(bxX, y, boxW, boxH, 2, 2, 'F');
-          doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(51, 51, 51);
-          doc.text(vals[bx], bxX + boxW / 2, y + 8, { align: 'center' });
-          doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(102, 102, 102);
-          doc.text(labels[bx].toUpperCase(), bxX + boxW / 2, y + 14, { align: 'center' });
+        // Resumen cards - fila 1 (3 cards)
+        var gap = 4; var cardW = (cw - gap * 2) / 3; var cardH = 20;
+        var r1 = [
+          { label: 'ASISTENTES', val: String(totalPersonas) },
+          { label: 'POR PERSONA', val: ppp.toFixed(2) + ' \u20ac' },
+          { label: 'TOTAL', val: totalRecaudar.toFixed(2) + ' \u20ac' }
+        ];
+        for (var c = 0; c < 3; c++) {
+          var cx = mx + c * (cardW + gap);
+          doc.setFillColor(245, 245, 245); doc.roundedRect(cx, y, cardW, cardH, 2, 2, 'F');
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(30, 30, 30);
+          doc.text(r1[c].val, cx + cardW / 2, y + 9, { align: 'center' });
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(102, 102, 102);
+          doc.text(r1[c].label, cx + cardW / 2, y + 16, { align: 'center' });
         }
-        y += boxH + 4;
-        // Pendiente box
-        if (pendiente > 0) { doc.setFillColor(252, 235, 235); } else { doc.setFillColor(234, 243, 222); }
-        doc.roundedRect(mx, y, cw, 12, 2, 2, 'F');
-        doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
-        if (pendiente > 0) { doc.setTextColor(121, 31, 31); doc.text('PENDIENTE: ' + pendiente.toFixed(2) + ' \u20ac', w / 2, y + 8, { align: 'center' }); }
-        else { doc.setTextColor(23, 52, 4); doc.text('TODO PAGADO', w / 2, y + 8, { align: 'center' }); }
-        y += 18;
+        y += cardH + gap;
+        // Fila 2 (2 cards)
+        var card2W = (cw - gap) / 2;
+        var cobBg = totalCobrado > 0 ? [234,243,222] : [245,245,245];
+        var cobTc = totalCobrado > 0 ? [23,52,4] : [30,30,30];
+        doc.setFillColor(cobBg[0], cobBg[1], cobBg[2]); doc.roundedRect(mx, y, card2W, cardH, 2, 2, 'F');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(cobTc[0], cobTc[1], cobTc[2]);
+        doc.text(totalCobrado.toFixed(2) + ' \u20ac', mx + card2W / 2, y + 9, { align: 'center' });
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.text('COBRADO', mx + card2W / 2, y + 16, { align: 'center' });
+
+        var px = mx + card2W + gap;
+        var pBg = pendiente > 0 ? [252,235,235] : [234,243,222];
+        var pTc = pendiente > 0 ? [121,31,31] : [23,52,4];
+        doc.setFillColor(pBg[0], pBg[1], pBg[2]); doc.roundedRect(px, y, card2W, cardH, 2, 2, 'F');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(pTc[0], pTc[1], pTc[2]);
+        doc.text(pendiente > 0 ? pendiente.toFixed(2) + ' \u20ac' : '\u2713 OK', px + card2W / 2, y + 9, { align: 'center' });
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.text('PENDIENTE', px + card2W / 2, y + 16, { align: 'center' });
+        y += cardH + 10;
 
         // Tabla asistentes
-        var colX = [mx, mx + 10, mx + 100, mx + 130, w - mx - 20];
-        var colW = [10, 90, 30, cw - 140, 20];
-
         function renderTableHeader() {
-          doc.setFillColor(240, 240, 240); doc.rect(mx, y - 4, cw, 7, 'F');
+          doc.setFillColor(240, 240, 240); doc.rect(mx, y - 4.5, cw, 8, 'F');
           doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(102, 102, 102);
-          doc.text('N\u00ba', colX[0] + 1, y);
-          doc.text('NOMBRE', colX[1] + 1, y);
-          doc.text('INV.', colX[2] + 1, y);
-          doc.text('IMPORTE', w - mx - 35, y, { align: 'right' });
-          doc.text('ESTADO', w - mx - 1, y, { align: 'right' });
+          doc.text('N\u00ba', mx + 2, y); doc.text('NOMBRE', mx + 12, y); doc.text('INV.', mx + 110, y);
+          doc.text('IMPORTE', w - mx - 30, y, { align: 'right' }); doc.text('ESTADO', w - mx - 2, y, { align: 'right' });
+          y += 6;
+        }
+
+        function renderA4Section(list, label, bgColor, textColor, isPagado) {
+          if (list.length === 0) return;
+          if (y > h - 30) y = pdfNewPage(doc, mx, evt.nombre, 'a4');
+          doc.setFillColor(bgColor[0], bgColor[1], bgColor[2]); doc.roundedRect(mx, y, cw, 8, 1.5, 1.5, 'F');
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+          doc.text(label, mx + 4, y + 5.5); y += 12;
+          renderTableHeader();
+
+          for (var i = 0; i < list.length; i++) {
+            if (y > h - 20) { y = pdfNewPage(doc, mx, evt.nombre, 'a4'); renderTableHeader(); }
+            var a = list[i]; var soc = findSocio(a.socio_id); if (!soc) continue;
+            if (i % 2 === 0) { doc.setFillColor(250, 250, 250); doc.rect(mx, y - 4, cw, 8, 'F'); }
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(30, 30, 30);
+            doc.text(String(i + 1), mx + 2, y);
+            doc.text(soc.nombre + ' ' + soc.apellidos, mx + 12, y, { maxWidth: 95 });
+            doc.text(a.invitados > 0 ? '+' + a.invitados : '-', mx + 110, y);
+            var amt = ((1 + (a.invitados || 0)) * ppp).toFixed(2) + ' \u20ac';
+            doc.text(amt, w - mx - 30, y, { align: 'right' });
+            // Estado: checkbox
+            var cbX = w - mx - 8; var cbY = y - 3.5;
+            if (isPagado) {
+              doc.setFillColor(23, 52, 4); doc.roundedRect(cbX, cbY, 6, 6, 1, 1, 'F');
+              doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(255, 255, 255);
+              doc.text('\u2713', cbX + 3, y + 0.5, { align: 'center' });
+            } else {
+              doc.setDrawColor(200, 200, 200); doc.setLineWidth(0.3); doc.rect(cbX, cbY, 6, 6);
+            }
+            y += 8;
+          }
           y += 5;
         }
 
-        function renderTableRows(list, sectionLabel) {
-          if (list.length === 0) return;
-          if (y > h - 30) { doc.addPage(); y = 20; }
-          doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(102, 102, 102);
-          doc.text(sectionLabel, mx, y); y += 5;
-          renderTableHeader();
-          doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
-          for (var i = 0; i < list.length; i++) {
-            if (y > h - 20) { doc.addPage(); y = 20; renderTableHeader(); }
-            var a = list[i]; var soc = findSocio(a.socio_id);
-            if (!soc) continue;
-            if (i % 2 === 0) { doc.setFillColor(250, 250, 250); doc.rect(mx, y - 3, cw, 6, 'F'); }
-            doc.setTextColor(51, 51, 51);
-            doc.text(String(i + 1), colX[0] + 1, y);
-            doc.text((soc.nombre + ' ' + soc.apellidos), colX[1] + 1, y, { maxWidth: 85 });
-            doc.text(a.invitados > 0 ? '+' + a.invitados : '-', colX[2] + 1, y);
-            var amt = ((1 + (a.invitados || 0)) * ppp).toFixed(2) + ' \u20ac';
-            doc.text(amt, w - mx - 35, y, { align: 'right' });
-            if (a.pagado) { doc.setTextColor(23, 52, 4); doc.text('\u2713', w - mx - 5, y, { align: 'right' }); }
-            else { doc.setTextColor(200, 200, 200); doc.rect(w - mx - 8, y - 3, 4, 4); }
-            y += 7;
-          }
-          y += 3;
-        }
-
-        renderTableRows(data.pendientes, 'PENDIENTES DE PAGO (' + data.pendientes.length + ')');
-        renderTableRows(data.pagados, 'PAGADOS (' + data.pagados.length + ')');
+        renderA4Section(data.pendientes, 'PENDIENTES DE PAGO (' + data.pendientes.length + ')', [252,235,235], [121,31,31], false);
+        renderA4Section(data.pagados, 'PAGADOS (' + data.pagados.length + ')', [234,243,222], [23,52,4], true);
 
         // BOYA
         if (data.boya.length > 0) {
-          if (y > h - 30) { doc.addPage(); y = 20; }
-          doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(102, 102, 102);
-          doc.text('INVITADOS BOYA (sin pago)', mx, y); y += 6;
-          doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(51, 51, 51);
+          if (y > h - 30) y = pdfNewPage(doc, mx, evt.nombre, 'a4');
+          doc.setFillColor(250, 238, 218); doc.roundedRect(mx, y, cw, 8, 1.5, 1.5, 'F');
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(74, 27, 12);
+          doc.text('INVITADOS BOYA (SIN PAGO)', mx + 4, y + 5.5); y += 12;
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(30, 30, 30);
           for (var b = 0; b < data.boya.length; b++) {
-            if (y > h - 15) { doc.addPage(); y = 20; }
-            doc.text((b + 1) + '. ' + data.boya[b].nombre, mx + 1, y); y += 5;
+            if (y > h - 15) y = pdfNewPage(doc, mx, evt.nombre, 'a4');
+            doc.text((b + 1) + '. ' + data.boya[b].nombre, mx + 4, y); y += 6;
           }
           if (costeBoya > 0) {
-            y += 2; doc.setFontSize(9); doc.setTextColor(102, 102, 102);
-            doc.text('Coste asumido por la sociedad: ' + costeBoya.toFixed(2) + ' \u20ac', mx, y); y += 6;
+            y += 2; doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(74, 27, 12);
+            doc.text('La sociedad asume: ' + costeBoya.toFixed(2) + ' \u20ac', mx + 4, y); y += 6;
           }
         }
 
-        // Totales al pie
-        if (y > h - 50) { doc.addPage(); y = 20; }
-        y += 6;
-        doc.setDrawColor(200); doc.line(mx, y, w - mx, y); y += 8;
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(51, 51, 51);
-        doc.text('Total a recaudar: ' + totalRecaudar.toFixed(2) + ' \u20ac', mx, y); y += 6;
-        doc.text('Total cobrado: ' + totalCobrado.toFixed(2) + ' \u20ac', mx, y); y += 6;
-        if (pendiente > 0) doc.setTextColor(121, 31, 31);
-        else doc.setTextColor(23, 52, 4);
-        doc.text('Pendiente: ' + pendiente.toFixed(2) + ' \u20ac', mx, y); y += 12;
+        // Totales y firma
+        if (y > h - 55) y = pdfNewPage(doc, mx, evt.nombre, 'a4');
+        y += 6; doc.setDrawColor(200); doc.setLineWidth(0.3); doc.line(mx, y, w - mx, y); y += 8;
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(30, 30, 30);
+        doc.text('Total a recaudar: ' + totalRecaudar.toFixed(2) + ' \u20ac', mx, y); y += 7;
+        doc.text('Total cobrado: ' + totalCobrado.toFixed(2) + ' \u20ac', mx, y); y += 7;
+        if (pendiente > 0) doc.setTextColor(121, 31, 31); else doc.setTextColor(23, 52, 4);
+        doc.text('Pendiente: ' + pendiente.toFixed(2) + ' \u20ac', mx, y); y += 14;
         doc.setTextColor(102, 102, 102); doc.setFontSize(9);
-        doc.text('Firma del tesorero: ________________________', mx, y); y += 6;
+        doc.text('Firma del tesorero: ________________________', mx, y);
 
-        // Pie de pagina
-        doc.setFontSize(8); doc.setTextColor(153, 153, 153);
-        doc.text('Generado el ' + formatFechaEvento(new Date().toISOString().split('T')[0]) + ' \u00b7 LA BOYA - Sociedad Recreativa', w / 2, h - 10, { align: 'center' });
+        // Pie
+        doc.setDrawColor(200); doc.setLineWidth(0.3); doc.line(mx, h - 16, w - mx, h - 16);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(150, 150, 150);
+        var hoyStr = new Date().toISOString().split('T')[0].split('-');
+        doc.text('Generado el ' + hoyStr[2] + '/' + hoyStr[1] + '/' + hoyStr[0] + ' \u00b7 SOCIEDAD RECREATIVA LA BOYA', w / 2, h - 11, { align: 'center' });
 
-        var fn = pdfFileName(evt, 'A4');
-        doc.save(fn);
-        console.log('PDF generado: ' + fn);
-        showToast('\u2713 PDF descargado');
-      } catch (err) {
-        console.error('Error generando PDF:', err);
-        showError('Error al generar el PDF');
-      }
+        var fn = pdfFileName(evt, 'A4'); doc.save(fn);
+        console.log('PDF generado: ' + fn); showToast('\u2713 PDF descargado');
+      } catch (err) { console.error('Error generando PDF:', err); showError('Error al generar el PDF'); }
     }
 
     document.addEventListener('DOMContentLoaded', init);
