@@ -1253,8 +1253,8 @@
       border-top-left-radius: 12px;
       border-bottom-left-radius: 12px;
     }
-    .evt-card.banda-comida::before { background: #0F6E56; }
-    .evt-card.banda-evento::before { background: #185FA5; }
+    .evt-card.banda-comida::before { background: #1D9E75; }
+    .evt-card.banda-evento::before { background: #378ADD; }
     .evt-stats-row {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
@@ -3439,12 +3439,13 @@
             if (e.asistentes[pi].pagado) pagadosCab += cab;
           }
           var pendCab = totalPagCab - pagadosCab;
-          stats2 += '<div class="evt-stat" style="background:#EAF3DE"><div>' + svgCheckStat + '</div><div class="evt-stat-num" style="color:#173404">' + pagadosCab + '</div><div class="evt-stat-label" style="color:#173404">Pagado</div></div>';
-          var pendBg = pendCab > 0 ? '#FCEBEB' : '#EAF3DE';
+          stats2 += '<div class="evt-stat" style="background:#C0DD97;border:0.5px solid #97C459"><div>' + svgCheckStat + '</div><div class="evt-stat-num" style="color:#173404">' + pagadosCab + '</div><div class="evt-stat-label" style="color:#173404">Pagado</div></div>';
+          var pendBg = pendCab > 0 ? '#F7C1C1' : '#C0DD97';
+          var pendBorder = pendCab > 0 ? '#F09595' : '#97C459';
           var pendCol = pendCab > 0 ? '#791F1F' : '#173404';
           var pendSvg = svgPending.replace('#791F1F', pendCol);
-          stats2 += '<div class="evt-stat" style="background:' + pendBg + '"><div>' + pendSvg + '</div><div class="evt-stat-num" style="color:' + pendCol + '">' + pendCab + '</div><div class="evt-stat-label" style="color:' + pendCol + '">Pendiente</div></div>';
-          if (nBoyaCard > 0) stats2 += '<div class="evt-stat" style="background:#FAEEDA"><div>' + svgGift + '</div><div class="evt-stat-num" style="color:#412402">' + nBoyaCard + '</div><div class="evt-stat-label" style="color:#412402">No pagan</div></div>';
+          stats2 += '<div class="evt-stat" style="background:' + pendBg + ';border:0.5px solid ' + pendBorder + '"><div>' + pendSvg + '</div><div class="evt-stat-num" style="color:' + pendCol + '">' + pendCab + '</div><div class="evt-stat-label" style="color:' + pendCol + '">Pendiente</div></div>';
+          if (nBoyaCard > 0) stats2 += '<div class="evt-stat" style="background:#FAC775;border:0.5px solid #EF9F27"><div>' + svgGift + '</div><div class="evt-stat-num" style="color:#412402">' + nBoyaCard + '</div><div class="evt-stat-label" style="color:#412402">No pagan</div></div>';
         }
 
         // Precio pie
@@ -3474,7 +3475,7 @@
             var tp = e.asistentes.length;
             for (var ti = 0; ti < e.asistentes.length; ti++) tp += (e.asistentes[ti].invitados || 0);
             tp += (e.invitados_boya || []).length;
-            return (tp > 0 ? '<div style="width:100%;background:#E6F1FB;color:#0C447C;border:0.5px solid #B5D4F4;border-radius:8px;padding:8px 12px;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;font-weight:700;letter-spacing:0.2px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0C447C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>' + tp + (tp === 1 ? ' persona' : ' personas') + ' en la mesa</div>' : '') +
+            return (tp > 0 ? '<div style="width:100%;background:#378ADD;color:#fff;border:none;border-radius:8px;padding:8px 12px;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;font-weight:700;letter-spacing:0.2px;box-shadow:0 1px 3px rgba(55,138,221,0.25)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>' + tp + (tp === 1 ? ' persona' : ' personas') + ' en la mesa</div>' : '') +
               '<div class="evt-price">' + priceText + '</div>';
           })() +
           '<div class="evt-menu" id="menu_' + e.id + '">' +
