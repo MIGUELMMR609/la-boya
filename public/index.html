@@ -1417,6 +1417,55 @@
       color: #999;
     }
 
+    /* === TELÉFONO PROTEGIDO === */
+    .tel-block {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 16px;
+      margin-bottom: 8px;
+    }
+    .tel-block svg {
+      width: 16px;
+      height: 16px;
+      stroke: #999;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      flex-shrink: 0;
+    }
+    .tel-masked {
+      font-size: 13px;
+      color: #999;
+      letter-spacing: 2px;
+    }
+    .tel-real {
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+    }
+    .tel-toggle {
+      background: none;
+      border: none;
+      font-size: 11px;
+      color: #185FA5;
+      cursor: pointer;
+      font-family: inherit;
+      padding: 2px 6px;
+    }
+    .tel-privacy-badge {
+      background: #FAEEDA;
+      color: #412402;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 500;
+    }
+    .tel-empty {
+      font-size: 13px;
+      color: #CCC;
+    }
+
     /* === COSTE MODAL === */
     .coste-card {
       background: #FAEEDA;
@@ -2083,6 +2132,9 @@
   </div>
 
   <script>
+    // === ROLES (preparado para futuro sistema de contraseña) ===
+    window.esAdmin = true;
+
     // === CONSTANTES ===
     var ASIDUIDAD_COLORS = { 1: '#639922', 2: '#EF9F27', 3: '#E24B4A' };
     var TEXT_COLORS = {
@@ -2552,6 +2604,17 @@
           '<div class="ficha-info">Socio n\u00ba ' + s.num_socio + ' \u00b7 ' + s.antiguedad_años + ' a\u00f1os de antig\u00fcedad</div>' +
         '</div>' +
         '<hr class="ficha-sep">' +
+        (function() {
+          var telSvg = '<svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>';
+          if (!s.telefono) {
+            return '<div class="tel-block">' + telSvg + '<span class="tel-empty">Sin tel\u00e9fono</span></div>';
+          } else if (!window.esAdmin) {
+            return '<div class="tel-block">' + telSvg + '<span class="tel-masked">Dato restringido</span></div>';
+          } else {
+            return '<div class="tel-block" id="telBlock">' + telSvg + '<span class="tel-masked" id="telDisplay">\u2022\u2022\u2022 \u2022\u2022\u2022 \u2022\u2022\u2022</span><button class="tel-toggle" id="telToggle">Ver</button></div>';
+          }
+        })() +
+        '<hr class="ficha-sep">' +
         '<div class="ficha-section-title">ASIDUIDAD</div>' +
         '<div class="asiduidad-buttons" id="asiduidadBtns">' +
           '<button class="asiduidad-btn' + (s.asiduidad === 1 ? ' sel-1' : '') + '" data-val="1">Va mucho</button>' +
@@ -2589,6 +2652,40 @@
         sizeBtns[i].addEventListener('click', function() {
           applyFichaSize(this.getAttribute('data-size'));
         });
+      }
+
+      // Teléfono Ver/Ocultar
+      var telToggle = document.getElementById('telToggle');
+      var telTimer = null;
+      if (telToggle && s.telefono) {
+        telToggle.addEventListener('click', function() {
+          var disp = document.getElementById('telDisplay');
+          var block = document.getElementById('telBlock');
+          if (telToggle.textContent === 'Ver') {
+            console.log('Telefono consultado: ' + s.nombre + ' ' + s.apellidos);
+            disp.className = 'tel-real';
+            disp.textContent = s.telefono;
+            telToggle.textContent = 'Ocultar';
+            // Badge privacidad
+            var badge = document.createElement('span');
+            badge.className = 'tel-privacy-badge';
+            badge.id = 'telBadge';
+            badge.textContent = 'Dato privado';
+            block.appendChild(badge);
+            telTimer = setTimeout(function() { ocultarTel(); }, 10000);
+          } else {
+            ocultarTel();
+          }
+        });
+      }
+      function ocultarTel() {
+        if (telTimer) { clearTimeout(telTimer); telTimer = null; }
+        var disp = document.getElementById('telDisplay');
+        var badge = document.getElementById('telBadge');
+        if (disp) { disp.className = 'tel-masked'; disp.textContent = '\u2022\u2022\u2022 \u2022\u2022\u2022 \u2022\u2022\u2022'; }
+        if (badge) badge.remove();
+        var tog = document.getElementById('telToggle');
+        if (tog) tog.textContent = 'Ver';
       }
 
       // Detectar cambios pendientes
@@ -2806,6 +2903,11 @@
             '<input class="form-input" id="formAntiguedad" type="number" value="' + (socioExistente ? socioExistente.antiguedad_años : '') + '">' +
           '</div>' +
           '<div class="form-field">' +
+            '<label class="form-label">Tel\u00e9fono</label>' +
+            '<input class="form-input" id="formTelefono" type="tel" placeholder="+34 600 123 456" value="' + escapeHtml(socioExistente ? (socioExistente.telefono || '') : '') + '">' +
+            '<div style="font-size:10px;color:#999;margin-top:3px">Solo visible bajo petici\u00f3n. Pr\u00f3ximamente requerir\u00e1 contrase\u00f1a de administrador.</div>' +
+          '</div>' +
+          '<div class="form-field">' +
             '<label class="form-label">Asiduidad</label>' +
             '<div class="asiduidad-buttons" id="formAsidBtns">' +
               '<button type="button" class="asiduidad-btn' + (asiduidadForm === 1 ? ' sel-1' : '') + '" data-val="1">Va mucho</button>' +
@@ -3007,6 +3109,9 @@
         formData.append('apellidos', apellidos);
         formData.append('num_socio', numSocio);
         formData.append('antiguedad_años', document.getElementById('formAntiguedad').value || '0');
+        var telVal = (document.getElementById('formTelefono').value || '').trim();
+        if (telVal && /^\d{9}$/.test(telVal.replace(/\s/g, ''))) telVal = '+34 ' + telVal;
+        formData.append('telefono', telVal);
         formData.append('asiduidad', asiduidadForm);
         formData.append('notas', document.getElementById('formNotas').value);
         if (fotoFile) formData.append('foto', fotoFile);

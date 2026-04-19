@@ -85,6 +85,34 @@ function inicializarDatos() {
 
   console.log('Socios cargados: ' + contenido.length);
 
+  // Backup antes de migrar
+  if (contenido.length > 0) {
+    var now = new Date();
+    var ts = now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '-' + String(now.getHours()).padStart(2,'0') + String(now.getMinutes()).padStart(2,'0');
+    var backupFile = path.join(DATA_DIR, 'socios.backup.' + ts + '.json');
+    if (!fs.existsSync(backupFile)) {
+      fs.writeFileSync(backupFile, JSON.stringify(contenido, null, 2), 'utf8');
+      console.log('Backup creado: socios.backup.' + ts + '.json');
+    }
+  }
+
+  // Migración: añadir campo telefono si no existe
+  var migrados = 0;
+  for (var m = 0; m < contenido.length; m++) {
+    if (contenido[m].telefono === undefined) {
+      contenido[m].telefono = '';
+      migrados++;
+    }
+  }
+  if (migrados > 0) {
+    fs.writeFileSync(SOCIOS_FILE, JSON.stringify(contenido, null, 2), 'utf8');
+    console.log('Migracion: campo telefono a\u00f1adido a ' + migrados + ' socios');
+  }
+
+  // Verificar fotos preservadas
+  var conFoto = contenido.filter(function(s) { return s.foto_url && s.foto_url !== ''; }).length;
+  console.log('Socios con foto tras migracion: ' + conFoto + '/' + contenido.length);
+
   // Inicializar eventos
   if (!fs.existsSync(EVENTOS_FILE)) {
     if (EN_RENDER && fs.existsSync(EVENTOS_SEED_FILE)) {
@@ -228,6 +256,7 @@ app.post('/api/socios', upload.single('foto'), async (req, res) => {
       foto_public_id: '',
       num_socio: numSocio,
       antiguedad_años: parseInt(req.body.antiguedad_años, 10) || 0,
+      telefono: (req.body.telefono || '').trim(),
       asiduidad: asiduidad,
       notas: notas,
       notas_editado: notas ? hoy : '',
@@ -274,6 +303,7 @@ app.put('/api/socios/:id', upload.single('foto'), async (req, res) => {
     if (req.body.apellidos !== undefined) socio.apellidos = req.body.apellidos.trim();
     if (req.body.num_socio !== undefined) socio.num_socio = parseInt(req.body.num_socio, 10);
     if (req.body.antiguedad_años !== undefined) socio.antiguedad_años = parseInt(req.body.antiguedad_años, 10) || 0;
+    if (req.body.telefono !== undefined) socio.telefono = req.body.telefono.trim();
     if (req.body.asiduidad !== undefined) {
       var asid = parseInt(req.body.asiduidad, 10);
       if ([1, 2, 3].includes(asid)) socio.asiduidad = asid;
@@ -752,8 +782,41 @@ app.post('/api/admin/importar-socios-oficiales', async (req, res) => {
   }
 });
 
+// === ADMIN: Importar teléfonos masivo ===
+const CLAVE_IMPORT_TELEFONOS = 'Xm4pLw8rNk2vQs6Tj9Yd3Bf7';
+
+app.post('/api/admin/importar-telefonos', (req, res) => {
+  try {
+    if (req.query.clave !== CLAVE_IMPORT_TELEFONOS) {
+      return res.status(403).json({ error: 'Clave incorrecta' });
+    }
+    var telefonos = req.body.telefonos || [];
+    var data = JSON.parse(fs.readFileSync(SOCIOS_FILE, 'utf8'));
+    var actualizados = 0;
+    var noEncontrados = [];
+    for (var t = 0; t < telefonos.length; t++) {
+      var entry = telefonos[t];
+      var soc = data.find(function(s) { return s.num_socio === entry.num_socio; });
+      if (soc) {
+        soc.telefono = (entry.telefono || '').trim();
+        actualizados++;
+      } else {
+        noEncontrados.push(entry.num_socio);
+      }
+    }
+    fs.writeFileSync(SOCIOS_FILE, JSON.stringify(data, null, 2), 'utf8');
+    var conFoto = data.filter(function(s) { return s.foto_url && s.foto_url !== ''; }).length;
+    console.log('Telefonos importados: ' + actualizados + ', no encontrados: ' + noEncontrados.length + ', fotos preservadas: ' + conFoto);
+    res.json({ ok: true, actualizados: actualizados, no_encontrados: noEncontrados, fotos_preservadas: conFoto + '/' + data.length });
+  } catch (err) {
+    console.error('Error importando telefonos:', err);
+    res.status(500).json({ error: 'Error en la importacion' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`LA BOYA corriendo en puerto ${PORT}`);
   console.log(`Datos en: ${SOCIOS_FILE}`);
   console.log('Clave import socios oficiales: ' + CLAVE_IMPORT);
+  console.log('Clave import telefonos: ' + CLAVE_IMPORT_TELEFONOS);
 });
