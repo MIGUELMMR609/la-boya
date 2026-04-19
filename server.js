@@ -348,8 +348,14 @@ function generarNombreComida(fechaStr) {
 }
 
 function leerEventos() {
-  try { return JSON.parse(fs.readFileSync(EVENTOS_FILE, 'utf8')); }
-  catch (e) { return []; }
+  try {
+    var data = JSON.parse(fs.readFileSync(EVENTOS_FILE, 'utf8'));
+    // Migración silenciosa: añadir invitados_boya si no existe
+    for (var i = 0; i < data.length; i++) {
+      if (!data[i].invitados_boya) data[i].invitados_boya = [];
+    }
+    return data;
+  } catch (e) { return []; }
 }
 
 function guardarEventos(data) {
@@ -441,6 +447,7 @@ app.post('/api/eventos', (req, res) => {
       modo_calculo: modoCalculo,
       cocineros: [],
       asistentes: [],
+      invitados_boya: [],
       notas: req.body.notas || '',
       fecha_creacion: hoy,
       fecha_modificacion: hoy
@@ -608,6 +615,65 @@ app.put('/api/eventos/:id/estado', (req, res) => {
   } catch (err) {
     console.error('Error actualizando estado:', err);
     res.status(500).json({ error: 'Error al actualizar estado' });
+  }
+});
+
+// POST /api/eventos/:id/invitados-boya
+app.post('/api/eventos/:id/invitados-boya', (req, res) => {
+  try {
+    var data = leerEventos();
+    var idx = data.findIndex(e => e.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Evento no encontrado' });
+    var nombre = (req.body.nombre || '').trim();
+    if (!nombre) return res.status(400).json({ error: 'Nombre requerido' });
+    var inv = { id: 'inv_' + Math.random().toString(36).substr(2, 9), nombre: nombre };
+    data[idx].invitados_boya.push(inv);
+    data[idx].fecha_modificacion = fechaHoy();
+    guardarEventos(data);
+    console.log('Invitado BOYA creado: ' + nombre + ' en evento ' + data[idx].id);
+    res.status(201).json(data[idx]);
+  } catch (err) {
+    console.error('Error creando invitado BOYA:', err);
+    res.status(500).json({ error: 'Error al crear invitado BOYA' });
+  }
+});
+
+// DELETE /api/eventos/:id/invitados-boya/:invitado_id
+app.delete('/api/eventos/:id/invitados-boya/:invitado_id', (req, res) => {
+  try {
+    var data = leerEventos();
+    var idx = data.findIndex(e => e.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Evento no encontrado' });
+    var evt = data[idx];
+    var invIdx = evt.invitados_boya.findIndex(function(i) { return i.id === req.params.invitado_id; });
+    if (invIdx === -1) return res.status(404).json({ error: 'Invitado no encontrado' });
+    evt.invitados_boya.splice(invIdx, 1);
+    evt.fecha_modificacion = fechaHoy();
+    guardarEventos(data);
+    res.json(evt);
+  } catch (err) {
+    console.error('Error eliminando invitado BOYA:', err);
+    res.status(500).json({ error: 'Error al eliminar invitado BOYA' });
+  }
+});
+
+// PUT /api/eventos/:id/invitados-boya/:invitado_id
+app.put('/api/eventos/:id/invitados-boya/:invitado_id', (req, res) => {
+  try {
+    var data = leerEventos();
+    var idx = data.findIndex(e => e.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Evento no encontrado' });
+    var inv = data[idx].invitados_boya.find(function(i) { return i.id === req.params.invitado_id; });
+    if (!inv) return res.status(404).json({ error: 'Invitado no encontrado' });
+    var nombre = (req.body.nombre || '').trim();
+    if (!nombre) return res.status(400).json({ error: 'Nombre requerido' });
+    inv.nombre = nombre;
+    data[idx].fecha_modificacion = fechaHoy();
+    guardarEventos(data);
+    res.json(data[idx]);
+  } catch (err) {
+    console.error('Error editando invitado BOYA:', err);
+    res.status(500).json({ error: 'Error al editar invitado BOYA' });
   }
 });
 
