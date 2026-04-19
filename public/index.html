@@ -3474,8 +3474,8 @@
             var tp = e.asistentes.length;
             for (var ti = 0; ti < e.asistentes.length; ti++) tp += (e.asistentes[ti].invitados || 0);
             tp += (e.invitados_boya || []).length;
-            var mesaText = tp > 0 ? '<div style="font-size:10px;color:#5F5E5A;font-style:italic">' + tp + (tp === 1 ? ' persona' : ' personas') + ' en la mesa</div>' : '';
-            return '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;margin-top:6px"><div class="evt-price" style="margin:0">' + priceText + '</div>' + mesaText + '</div>';
+            return (tp > 0 ? '<div style="width:100%;background:#E6F1FB;color:#0C447C;border:0.5px solid #B5D4F4;border-radius:8px;padding:8px 12px;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;font-weight:700;letter-spacing:0.2px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0C447C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>' + tp + (tp === 1 ? ' persona' : ' personas') + ' en la mesa</div>' : '') +
+              '<div class="evt-price">' + priceText + '</div>';
           })() +
           '<div class="evt-menu" id="menu_' + e.id + '">' +
             '<button class="evt-menu-item" data-del-id="' + e.id + '">Eliminar evento</button>' +
