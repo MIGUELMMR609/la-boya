@@ -3382,7 +3382,7 @@
             '<div class="evt-resumen-card"><div class="evt-resumen-num"><span style="white-space:nowrap">' + totalPersonas + '</span></div><div class="evt-resumen-label">Asistentes</div></div>' +
             '<div class="evt-resumen-card"><div class="evt-resumen-num"><span style="white-space:nowrap">' + (totalPersonas > 0 ? ppp.toFixed(2) + ' \u20ac' : '\u2014') + '</span></div><div class="evt-resumen-label">Por persona</div></div>' +
             '<div class="evt-resumen-card"><div class="evt-resumen-num"><span style="white-space:nowrap">' + totalRecaudar.toFixed(2) + ' \u20ac</span></div><div class="evt-resumen-label">Total</div></div>' +
-            '<div class="evt-resumen-card"><div class="evt-resumen-num"><span style="white-space:nowrap">' + totalCobrado.toFixed(2) + ' \u20ac</span></div><div class="evt-resumen-label">Cobrado</div></div>' +
+            '<div class="evt-resumen-card' + (totalCobrado > 0 ? ' pendiente-verde' : '') + '"><div class="evt-resumen-num"><span style="white-space:nowrap">' + totalCobrado.toFixed(2) + ' \u20ac' + (totalCobrado > 0 && totalCobrado >= totalRecaudar ? ' \u2713' : '') + '</span></div><div class="evt-resumen-label">Cobrado</div></div>' +
             '<div class="evt-resumen-card ' + pendClass + '"><div class="evt-resumen-num">' + pendNum + '</div><div class="evt-resumen-label">' + pendLabel + '</div></div>' +
           '</div>';
         })() +
@@ -3496,8 +3496,13 @@
             for (var cc = 0; cc < evt.asistentes.length; cc++) {
               if (evt.asistentes[cc].pagado) newCobrado += (1 + (evt.asistentes[cc].invitados || 0)) * ppp;
             }
+            var cobradoCard = content.querySelectorAll('.evt-resumen-card')[3];
             var cobradoEl = content.querySelectorAll('.evt-resumen-num')[3];
-            if (cobradoEl) cobradoEl.innerHTML = '<span style="white-space:nowrap">' + newCobrado.toFixed(2) + ' \u20ac</span>';
+            if (cobradoEl) cobradoEl.innerHTML = '<span style="white-space:nowrap">' + newCobrado.toFixed(2) + ' \u20ac' + (newCobrado > 0 && newCobrado >= totalRecaudar ? ' \u2713' : '') + '</span>';
+            if (cobradoCard) {
+              if (newCobrado > 0) cobradoCard.classList.add('pendiente-verde');
+              else cobradoCard.classList.remove('pendiente-verde');
+            }
             // Actualizar pendiente
             var newPend = Math.round((totalRecaudar - newCobrado) * 100) / 100;
             var pendEl = content.querySelectorAll('.evt-resumen-card')[4];
