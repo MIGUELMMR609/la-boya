@@ -1499,8 +1499,11 @@
       width: 100%;
       box-sizing: border-box;
     }
+    @media (min-width: 600px) {
+      .evt-resumen { grid-template-columns: repeat(3, 1fr); }
+    }
     .evt-resumen-card {
-      background: #F9F9F9;
+      background: #F5F5F5;
       border-radius: 8px;
       padding: 14px 12px;
       text-align: center;
@@ -1508,33 +1511,21 @@
     }
     .evt-resumen-num {
       font-size: 20px;
-      font-weight: 700;
+      font-weight: 500;
       color: #333;
+    }
+    @media (min-width: 600px) {
+      .evt-resumen-num { font-size: 22px; }
     }
     .evt-resumen-label {
       font-size: 11px;
-      color: #999;
+      color: #5F5E5A;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      margin-top: 2px;
+      margin-top: 4px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-    }
-    .evt-resumen-pendiente {
-      grid-column: 1 / -1;
-      padding: 16px 14px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      text-align: right;
-    }
-    .evt-resumen-pendiente .evt-resumen-label {
-      text-align: left;
-      margin-top: 0;
-    }
-    .evt-resumen-pendiente .evt-resumen-num {
-      font-size: 24px;
     }
     .pendiente-rojo { background: #FCEBEB; }
     .pendiente-rojo .evt-resumen-num { color: #791F1F; }
@@ -1545,9 +1536,6 @@
     .pendiente-azul { background: #E6F1FB; }
     .pendiente-azul .evt-resumen-num { color: #0C447C; }
     .pendiente-azul .evt-resumen-label { color: #0C447C; opacity: 0.7; }
-    @media (min-width: 600px) {
-      .evt-resumen-num { font-size: 22px; }
-    }
     .evt-action-btns {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -3383,7 +3371,7 @@
             pendLabel = 'PENDIENTE';
           } else if (pendiente === 0) {
             pendClass = 'pendiente-verde';
-            pendNum = '\u2713 Todo pagado';
+            pendNum = '\u2713 OK';
             pendLabel = 'PENDIENTE';
           } else {
             pendClass = 'pendiente-azul';
@@ -3395,7 +3383,7 @@
             '<div class="evt-resumen-card"><div class="evt-resumen-num"><span style="white-space:nowrap">' + (totalPersonas > 0 ? ppp.toFixed(2) + ' \u20ac' : '\u2014') + '</span></div><div class="evt-resumen-label">Por persona</div></div>' +
             '<div class="evt-resumen-card"><div class="evt-resumen-num"><span style="white-space:nowrap">' + totalRecaudar.toFixed(2) + ' \u20ac</span></div><div class="evt-resumen-label">Total</div></div>' +
             '<div class="evt-resumen-card"><div class="evt-resumen-num"><span style="white-space:nowrap">' + totalCobrado.toFixed(2) + ' \u20ac</span></div><div class="evt-resumen-label">Cobrado</div></div>' +
-            '<div class="evt-resumen-card evt-resumen-pendiente ' + pendClass + '"><div class="evt-resumen-num">' + pendNum + '</div><div class="evt-resumen-label">' + pendLabel + '</div></div>' +
+            '<div class="evt-resumen-card ' + pendClass + '"><div class="evt-resumen-num">' + pendNum + '</div><div class="evt-resumen-label">' + pendLabel + '</div></div>' +
           '</div>';
         })() +
           (costeBoya > 0 ? '<div style="padding:0 16px 8px;font-size:11px;color:#999">Coste asumido por la sociedad (Inv. BOYA): <strong>' + costeBoya.toFixed(2) + ' \u20ac</strong></div>' : '') +
@@ -3512,13 +3500,13 @@
             if (cobradoEl) cobradoEl.innerHTML = '<span style="white-space:nowrap">' + newCobrado.toFixed(2) + ' \u20ac</span>';
             // Actualizar pendiente
             var newPend = Math.round((totalRecaudar - newCobrado) * 100) / 100;
-            var pendEl = content.querySelector('.evt-resumen-pendiente');
+            var pendEl = content.querySelectorAll('.evt-resumen-card')[4];
             if (pendEl) {
               var pendNumEl = pendEl.querySelector('.evt-resumen-num');
               var pendLblEl = pendEl.querySelector('.evt-resumen-label');
-              pendEl.className = 'evt-resumen-card evt-resumen-pendiente ' + (newPend > 0 ? 'pendiente-rojo' : (newPend === 0 ? 'pendiente-verde' : 'pendiente-azul'));
+              pendEl.className = 'evt-resumen-card ' + (newPend > 0 ? 'pendiente-rojo' : (newPend === 0 ? 'pendiente-verde' : 'pendiente-azul'));
               if (newPend > 0) { pendNumEl.innerHTML = '<span style="white-space:nowrap">' + newPend.toFixed(2) + ' \u20ac</span>'; pendLblEl.textContent = 'PENDIENTE'; }
-              else if (newPend === 0) { pendNumEl.textContent = '\u2713 Todo pagado'; pendLblEl.textContent = 'PENDIENTE'; }
+              else if (newPend === 0) { pendNumEl.textContent = '\u2713 OK'; pendLblEl.textContent = 'PENDIENTE'; }
               else { pendNumEl.innerHTML = '<span style="white-space:nowrap">+' + Math.abs(newPend).toFixed(2) + ' \u20ac</span>'; pendLblEl.textContent = 'SOBRANTE'; }
             }
           })
