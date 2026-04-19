@@ -1494,11 +1494,8 @@
     .evt-resumen {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
+      gap: 10px;
       padding: 0 16px 12px;
-    }
-    @media (min-width: 500px) {
-      .evt-resumen { grid-template-columns: 1fr 1fr 1fr 1fr; }
     }
     .evt-resumen-card {
       background: #F9F9F9;
@@ -1507,7 +1504,7 @@
       text-align: center;
     }
     .evt-resumen-num {
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 700;
       color: #333;
     }
@@ -1516,6 +1513,34 @@
       color: #999;
       text-transform: uppercase;
       margin-top: 2px;
+    }
+    .evt-resumen-pendiente {
+      grid-column: 1 / -1;
+      padding: 16px 10px;
+    }
+    .evt-resumen-pendiente .evt-resumen-num {
+      font-size: 24px;
+    }
+    .evt-resumen-pendiente .evt-resumen-label {
+      font-size: 12px;
+    }
+    .pendiente-rojo { background: #FCEBEB; }
+    .pendiente-rojo .evt-resumen-num { color: #791F1F; }
+    .pendiente-rojo .evt-resumen-label { color: #791F1F; opacity: 0.7; }
+    .pendiente-verde { background: #EAF3DE; }
+    .pendiente-verde .evt-resumen-num { color: #173404; }
+    .pendiente-verde .evt-resumen-label { color: #173404; opacity: 0.6; }
+    .pendiente-azul { background: #E6F1FB; }
+    .pendiente-azul .evt-resumen-num { color: #0C447C; }
+    .pendiente-azul .evt-resumen-label { color: #0C447C; opacity: 0.7; }
+    @media (min-width: 600px) {
+      .evt-resumen { grid-template-columns: 1fr 1fr 1fr; }
+      .evt-resumen-pendiente { grid-column: auto; padding: 10px; }
+      .evt-resumen-pendiente .evt-resumen-num { font-size: 20px; }
+      .evt-resumen-pendiente .evt-resumen-label { font-size: 11px; }
+    }
+    @media (min-width: 768px) {
+      .evt-resumen { grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 12px; }
     }
     .evt-action-btns {
       display: grid;
@@ -3343,13 +3368,30 @@
           notasHtml +
         '</div>' +
         '<hr class="ficha-sep">' +
-        (tieneCoste ?
-          '<div class="evt-resumen">' +
+        (tieneCoste ? (function() {
+          var pendiente = Math.round((totalRecaudar - totalCobrado) * 100) / 100;
+          var pendClass, pendNum, pendLabel;
+          if (pendiente > 0) {
+            pendClass = 'pendiente-rojo';
+            pendNum = '<span style="white-space:nowrap">' + pendiente.toFixed(2) + ' \u20ac</span>';
+            pendLabel = 'PENDIENTE';
+          } else if (pendiente === 0) {
+            pendClass = 'pendiente-verde';
+            pendNum = '\u2713 Todo pagado';
+            pendLabel = 'PENDIENTE';
+          } else {
+            pendClass = 'pendiente-azul';
+            pendNum = '<span style="white-space:nowrap">+' + Math.abs(pendiente).toFixed(2) + ' \u20ac</span>';
+            pendLabel = 'SOBRANTE';
+          }
+          return '<div class="evt-resumen">' +
             '<div class="evt-resumen-card"><div class="evt-resumen-num"><span style="white-space:nowrap">' + totalPersonas + '</span></div><div class="evt-resumen-label">Asistentes</div></div>' +
             '<div class="evt-resumen-card"><div class="evt-resumen-num"><span style="white-space:nowrap">' + (totalPersonas > 0 ? ppp.toFixed(2) + ' \u20ac' : '\u2014') + '</span></div><div class="evt-resumen-label">Por persona</div></div>' +
             '<div class="evt-resumen-card"><div class="evt-resumen-num"><span style="white-space:nowrap">' + totalRecaudar.toFixed(2) + ' \u20ac</span></div><div class="evt-resumen-label">Total</div></div>' +
             '<div class="evt-resumen-card"><div class="evt-resumen-num"><span style="white-space:nowrap">' + totalCobrado.toFixed(2) + ' \u20ac</span></div><div class="evt-resumen-label">Cobrado</div></div>' +
-          '</div>' +
+            '<div class="evt-resumen-card evt-resumen-pendiente ' + pendClass + '"><div class="evt-resumen-num">' + pendNum + '</div><div class="evt-resumen-label">' + pendLabel + '</div></div>' +
+          '</div>';
+        })() +
           (costeBoya > 0 ? '<div style="padding:0 16px 8px;font-size:11px;color:#999">Coste asumido por la sociedad (Inv. BOYA): <strong>' + costeBoya.toFixed(2) + ' \u20ac</strong></div>' : '') +
           '<div style="display:flex;justify-content:center;padding:4px 16px 12px"><button class="btn-modificar-coste" id="btnModCoste"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Modificar coste del evento</button></div>'
         :
@@ -3461,7 +3503,18 @@
               if (evt.asistentes[cc].pagado) newCobrado += (1 + (evt.asistentes[cc].invitados || 0)) * ppp;
             }
             var cobradoEl = content.querySelectorAll('.evt-resumen-num')[3];
-            if (cobradoEl) cobradoEl.textContent = newCobrado.toFixed(2) + ' \u20ac';
+            if (cobradoEl) cobradoEl.innerHTML = '<span style="white-space:nowrap">' + newCobrado.toFixed(2) + ' \u20ac</span>';
+            // Actualizar pendiente
+            var newPend = Math.round((totalRecaudar - newCobrado) * 100) / 100;
+            var pendEl = content.querySelector('.evt-resumen-pendiente');
+            if (pendEl) {
+              var pendNumEl = pendEl.querySelector('.evt-resumen-num');
+              var pendLblEl = pendEl.querySelector('.evt-resumen-label');
+              pendEl.className = 'evt-resumen-card evt-resumen-pendiente ' + (newPend > 0 ? 'pendiente-rojo' : (newPend === 0 ? 'pendiente-verde' : 'pendiente-azul'));
+              if (newPend > 0) { pendNumEl.innerHTML = '<span style="white-space:nowrap">' + newPend.toFixed(2) + ' \u20ac</span>'; pendLblEl.textContent = 'PENDIENTE'; }
+              else if (newPend === 0) { pendNumEl.textContent = '\u2713 Todo pagado'; pendLblEl.textContent = 'PENDIENTE'; }
+              else { pendNumEl.innerHTML = '<span style="white-space:nowrap">+' + Math.abs(newPend).toFixed(2) + ' \u20ac</span>'; pendLblEl.textContent = 'SOBRANTE'; }
+            }
           })
           .catch(function() { btn.classList.toggle('checked'); showError('Error al actualizar pago'); });
         });
