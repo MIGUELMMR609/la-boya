@@ -3470,7 +3470,13 @@
           '<div class="evt-name">' + escapeHtml(e.nombre) + '</div>' +
           '<div class="evt-stats-row">' + stats1 + '</div>' +
           (stats2 ? '<div class="evt-stats-row">' + stats2 + '</div>' : '') +
-          '<div class="evt-price">' + priceText + '</div>' +
+          (function() {
+            var tp = e.asistentes.length;
+            for (var ti = 0; ti < e.asistentes.length; ti++) tp += (e.asistentes[ti].invitados || 0);
+            tp += (e.invitados_boya || []).length;
+            var mesaText = tp > 0 ? '<div style="font-size:10px;color:#5F5E5A;font-style:italic">' + tp + (tp === 1 ? ' persona' : ' personas') + ' en la mesa</div>' : '';
+            return '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;margin-top:6px"><div class="evt-price" style="margin:0">' + priceText + '</div>' + mesaText + '</div>';
+          })() +
           '<div class="evt-menu" id="menu_' + e.id + '">' +
             '<button class="evt-menu-item" data-del-id="' + e.id + '">Eliminar evento</button>' +
           '</div>';
