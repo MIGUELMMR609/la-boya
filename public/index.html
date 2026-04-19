@@ -320,6 +320,45 @@
       display: inline-block;
     }
 
+    /* === PATRÓN OVERLAY: header fijo arriba, content scrollable, footer fijo abajo.
+       NO mover el footer dentro del content. El footer es un flex sibling fuera del scroll. === */
+    .overlay-shell {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      max-height: 100dvh;
+      overflow: hidden;
+    }
+    .overlay-head {
+      flex: 0 0 auto;
+      background: #fff;
+      border-bottom: 0.5px solid #E0E0E0;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 10;
+    }
+    .overlay-body {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      min-height: 0;
+    }
+    .overlay-foot {
+      flex: 0 0 auto;
+      background: #fff;
+      border-top: 0.5px solid #E0E0E0;
+      padding: 12px 16px;
+      padding-bottom: calc(12px + env(safe-area-inset-bottom));
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      z-index: 10;
+    }
+    .overlay-foot button { min-height: 44px; }
+
     /* === FICHA (OVERLAY) === */
     .ficha-overlay {
       position: fixed;
@@ -1742,37 +1781,7 @@
       stroke-linejoin: round;
     }
 
-    /* Barra inferior fija evento */
-    .evt-bottom-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 16px;
-      border-top: 0.5px solid #E0E0E0;
-      background: #fff;
-    }
-    .evt-bottom-bar .ficha-back {
-      min-height: 44px;
-      padding: 8px 16px;
-    }
-    .evt-bottom-bar .btn-guardar {
-      min-height: 44px;
-      padding: 8px 24px;
-      border-radius: 8px;
-    }
-    @media (max-width: 599px) {
-      .evt-bottom-bar {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        z-index: 210;
-        padding-bottom: calc(12px + env(safe-area-inset-bottom));
-      }
-      .evt-det-scroll {
-        padding-bottom: calc(80px + env(safe-area-inset-bottom));
-      }
-    }
+    /* (evt-bottom-bar y evt-det-scroll reemplazados por overlay-foot/overlay-body) */
 
     /* Listado asistentes */
     .evt-asist-list {
@@ -3717,7 +3726,8 @@
       }
 
       var html =
-        '<div class="ficha-bar" style="position:relative;justify-content:space-between">' +
+        '<div class="overlay-shell">' +
+        '<div class="overlay-head" style="position:relative">' +
           '<button class="ficha-back" id="evtDetBack">\u2190 Volver</button>' +
           '<div style="display:flex;align-items:center;gap:8px">' +
           '<button class="evt-menu-btn" id="evtDetMenuBtn">\u22ef</button>' +
@@ -3729,7 +3739,7 @@
             '<button class="evt-det-menu-item danger" id="evtDetEliminar">Eliminar evento</button>' +
           '</div>' +
         '</div>' +
-        '<div class="evt-det-scroll">' +
+        '<div class="overlay-body">' +
         bannerHtml +
         '<div class="evt-det-header">' +
           '<span class="evt-badge ' + badgeClass + '">' + badgeText + '</span>' +
@@ -3778,9 +3788,10 @@
         '<hr class="ficha-sep">' +
         asistHtml +
         '</div>' +
-        '<div class="evt-bottom-bar">' +
+        '<div class="overlay-foot">' +
           '<button class="ficha-back" id="evtDetBackMobile">\u2190 Volver</button>' +
           '<button class="btn-guardar" id="evtDetPdf" style="min-width:80px">PDF</button>' +
+        '</div>' +
         '</div>';
 
       content.innerHTML = html;
@@ -4880,23 +4891,27 @@
       }
 
       content.innerHTML =
-        '<div class="sel-bar">' +
+        '<div class="overlay-shell">' +
+        '<div class="overlay-head">' +
           '<button class="ficha-back" id="waSelBack">\u2190 Volver</button>' +
           '<span class="sel-bar-title">Enviar WhatsApp</span>' +
           '<span></span>' +
         '</div>' +
-        '<div style="padding:8px 16px"><input class="search-input" id="waSelSearch" placeholder="Buscar socio..." autocomplete="off"></div>' +
-        '<div style="padding:0 16px 8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">' +
-          '<div style="display:flex;gap:6px">' +
-            '<button class="pill" id="waSelAll" style="font-size:11px;padding:4px 10px">\u2713 Seleccionar todos</button>' +
-            '<button class="pill" id="waDeselAll" style="font-size:11px;padding:4px 10px">\u2717 Deseleccionar</button>' +
+        '<div class="overlay-body">' +
+          '<div style="padding:8px 16px"><input class="search-input" id="waSelSearch" placeholder="Buscar socio..." autocomplete="off"></div>' +
+          '<div style="padding:0 16px 8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">' +
+            '<div style="display:flex;gap:6px">' +
+              '<button class="pill" id="waSelAll" style="font-size:11px;padding:4px 10px">\u2713 Seleccionar todos</button>' +
+              '<button class="pill" id="waDeselAll" style="font-size:11px;padding:4px 10px">\u2717 Deseleccionar</button>' +
+            '</div>' +
+            '<div id="waSelCounter"></div>' +
           '</div>' +
-          '<div id="waSelCounter"></div>' +
+          '<div class="main" id="waSelGrid" style="padding:4px 8px"></div>' +
         '</div>' +
-        '<div class="main" id="waSelGrid" style="padding:4px 8px"></div>' +
-        '<div class="evt-bottom-bar" style="display:flex">' +
+        '<div class="overlay-foot">' +
           '<button class="btn-cancel" id="waSelCancel">Cancelar</button>' +
           '<button class="btn-wa" id="waSelNext" style="padding:8px 20px;font-size:14px" disabled>' + SVG_WA + ' Siguiente \u2192</button>' +
+        '</div>' +
         '</div>';
 
       overlay.classList.add('open');
@@ -4936,29 +4951,33 @@
       if (dests.length > max) chipsHtml += '<span class="wa-chip" style="background:#F5F5F5;color:#666">...y ' + (dests.length - max) + ' m\u00e1s</span>';
 
       content.innerHTML =
-        '<div class="sel-bar">' +
+        '<div class="overlay-shell">' +
+        '<div class="overlay-head">' +
           '<button class="ficha-back" id="waMsgBack">\u2190 Volver</button>' +
           '<span class="sel-bar-title">Escribir mensaje</span>' +
           '<span></span>' +
         '</div>' +
-        '<div style="padding:12px 16px">' +
-          '<div style="font-size:13px;font-weight:500;color:#333;margin-bottom:4px">Destinatarios: ' + dests.length + ' socios</div>' +
-          '<div class="wa-chips">' + chipsHtml + '</div>' +
-        '</div>' +
-        '<div style="padding:0 16px">' +
-          '<textarea class="notas-textarea-neutral" id="waMsgText" style="min-height:160px;font-size:14px;line-height:1.5" placeholder="Escribe aqu\u00ed tu mensaje..."></textarea>' +
-          '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">' +
-            '<span style="font-size:11px;color:#999" id="waMsgChars">0 caracteres</span>' +
+        '<div class="overlay-body" style="padding:0">' +
+          '<div style="padding:12px 16px">' +
+            '<div style="font-size:13px;font-weight:500;color:#333;margin-bottom:4px">Destinatarios: ' + dests.length + ' socios</div>' +
+            '<div class="wa-chips">' + chipsHtml + '</div>' +
           '</div>' +
-          '<div class="wa-tpl-row">' +
-            '<button class="wa-tpl-btn" data-tpl="asamblea">Asamblea</button>' +
-            '<button class="wa-tpl-btn" data-tpl="comida">Pr\u00f3xima comida</button>' +
-            '<button class="wa-tpl-btn" data-tpl="felicita">Felicitaci\u00f3n</button>' +
+          '<div style="padding:0 16px 16px">' +
+            '<textarea class="notas-textarea-neutral" id="waMsgText" style="min-height:160px;font-size:14px;line-height:1.5" placeholder="Escribe aqu\u00ed tu mensaje..."></textarea>' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">' +
+              '<span style="font-size:11px;color:#999" id="waMsgChars">0 caracteres</span>' +
+            '</div>' +
+            '<div class="wa-tpl-row">' +
+              '<button class="wa-tpl-btn" data-tpl="asamblea">Asamblea</button>' +
+              '<button class="wa-tpl-btn" data-tpl="comida">Pr\u00f3xima comida</button>' +
+              '<button class="wa-tpl-btn" data-tpl="felicita">Felicitaci\u00f3n</button>' +
+            '</div>' +
           '</div>' +
         '</div>' +
-        '<div class="evt-bottom-bar" style="display:flex">' +
+        '<div class="overlay-foot">' +
           '<button class="btn-cancel" id="waMsgCancel">Cancelar</button>' +
           '<button class="btn-wa" id="waMsgSend" style="padding:8px 16px;font-size:14px" disabled>' + SVG_WA + ' Abrir WhatsApp (' + dests.length + ')</button>' +
+        '</div>' +
         '</div>';
 
       overlay.classList.add('open');
