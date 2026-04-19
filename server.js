@@ -126,31 +126,16 @@ function inicializarDatos() {
     var evts = JSON.parse(fs.readFileSync(EVENTOS_FILE, 'utf8'));
     console.log('Eventos cargados: ' + evts.length);
 
-    // Migración: añadir fecha al nombre de eventos genéricos
-    var evtMigrados = 0;
-    for (var em = 0; em < evts.length; em++) {
-      if (evts[em].tipo === 'evento' && evts[em].fecha && !FECHA_SUFFIX_RE.test(evts[em].nombre)) {
-        // Backup antes de migrar (una vez)
-        if (evtMigrados === 0) {
-          var nowE = new Date();
-          var tsE = nowE.getFullYear() + String(nowE.getMonth()+1).padStart(2,'0') + String(nowE.getDate()).padStart(2,'0') + '-' + String(nowE.getHours()).padStart(2,'0') + String(nowE.getMinutes()).padStart(2,'0');
-          var backupEvt = path.join(DATA_DIR, 'eventos.backup.' + tsE + '.json');
-          if (!fs.existsSync(backupEvt)) {
-            fs.writeFileSync(backupEvt, JSON.stringify(evts, null, 2), 'utf8');
-            console.log('Backup eventos creado: eventos.backup.' + tsE + '.json');
-          }
-        }
-        evts[em].nombre = generarNombreEvento(evts[em].nombre, evts[em].fecha);
-        evtMigrados++;
-      }
-    }
-    if (evtMigrados > 0) {
-      fs.writeFileSync(EVENTOS_FILE, JSON.stringify(evts, null, 2), 'utf8');
-      console.log('Eventos migrados con fecha en el nombre: ' + evtMigrados);
-    }
+    // Migración de eventos DESHABILITADA tras fallo (FECHA_SUFFIX_RE no disponible aquí)
+    // Se re-habilitará cuando se mueva la regex antes de inicializarDatos()
+    // var MIGRACION_EVENTOS_HABILITADA = false;
   } catch (e) {
-    fs.writeFileSync(EVENTOS_FILE, '[]', 'utf8');
-    console.log('Eventos cargados: 0');
+    // NUNCA sobrescribir con [] — eso borró los eventos
+    console.error('Error leyendo eventos.json:', e.message);
+    if (!fs.existsSync(EVENTOS_FILE)) {
+      fs.writeFileSync(EVENTOS_FILE, '[]', 'utf8');
+    }
+    console.log('Eventos cargados: 0 (error de lectura, archivo no sobrescrito si existia)');
   }
 }
 
@@ -855,9 +840,70 @@ app.post('/api/admin/importar-telefonos', (req, res) => {
   }
 });
 
+// === ADMIN: Listar backups ===
+const CLAVE_ADMIN = 'Rb7xNpWq3mKs9YvTfJd2Lc6Ae';
+
+app.get('/api/admin/listar-backups', (req, res) => {
+  if (req.query.clave !== CLAVE_ADMIN) return res.status(403).json({ error: 'Clave incorrecta' });
+  try {
+    var files = fs.readdirSync(DATA_DIR);
+    var backupsEventos = [];
+    var backupsSocios = [];
+    files.forEach(function(f) {
+      if (f.startsWith('eventos.backup.')) {
+        try {
+          var content = JSON.parse(fs.readFileSync(path.join(DATA_DIR, f), 'utf8'));
+          var stat = fs.statSync(path.join(DATA_DIR, f));
+          backupsEventos.push({ archivo: f, bytes: stat.size, eventos_contenidos: content.length });
+        } catch (e) { backupsEventos.push({ archivo: f, error: e.message }); }
+      }
+      if (f.startsWith('socios.backup.')) {
+        try {
+          var content2 = JSON.parse(fs.readFileSync(path.join(DATA_DIR, f), 'utf8'));
+          var stat2 = fs.statSync(path.join(DATA_DIR, f));
+          backupsSocios.push({ archivo: f, bytes: stat2.size, socios_contenidos: content2.length });
+        } catch (e) { backupsSocios.push({ archivo: f, error: e.message }); }
+      }
+    });
+    backupsEventos.sort(function(a, b) { return b.archivo.localeCompare(a.archivo); });
+    backupsSocios.sort(function(a, b) { return b.archivo.localeCompare(a.archivo); });
+    // Estado actual
+    var evtActual = []; try { evtActual = JSON.parse(fs.readFileSync(EVENTOS_FILE, 'utf8')); } catch(e){}
+    res.json({ ok: true, eventos_actual: evtActual.length, backups_eventos: backupsEventos, backups_socios: backupsSocios });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// === ADMIN: Restaurar backup de eventos ===
+app.post('/api/admin/restaurar-eventos', (req, res) => {
+  if (req.query.clave !== CLAVE_ADMIN) return res.status(403).json({ error: 'Clave incorrecta' });
+  try {
+    var archivo = req.body.archivo_backup;
+    if (!archivo || !archivo.startsWith('eventos.backup.')) return res.status(400).json({ error: 'Archivo invalido' });
+    var backupPath = path.join(DATA_DIR, archivo);
+    if (!fs.existsSync(backupPath)) return res.status(404).json({ error: 'Archivo no encontrado' });
+
+    // Backup del estado actual antes de restaurar
+    var now = new Date();
+    var ts = now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '-' + String(now.getHours()).padStart(2,'0') + String(now.getMinutes()).padStart(2,'0');
+    var beforeRestore = path.join(DATA_DIR, 'eventos.before-restore.' + ts + '.json');
+    try { fs.copyFileSync(EVENTOS_FILE, beforeRestore); } catch(e) {}
+
+    // Restaurar
+    var backupContent = fs.readFileSync(backupPath, 'utf8');
+    var parsed = JSON.parse(backupContent);
+    fs.writeFileSync(EVENTOS_FILE, backupContent, 'utf8');
+    console.log('Restauracion de eventos: ' + archivo + ' -> eventos.json, ' + parsed.length + ' eventos recuperados');
+    res.json({ ok: true, restaurados: parsed.length, archivo_restaurado_desde: archivo });
+  } catch (err) {
+    console.error('Error restaurando:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`LA BOYA corriendo en puerto ${PORT}`);
   console.log(`Datos en: ${SOCIOS_FILE}`);
-  console.log('Clave import socios oficiales: ' + CLAVE_IMPORT);
-  console.log('Clave import telefonos: ' + CLAVE_IMPORT_TELEFONOS);
+  console.log('Clave admin backups/restore: ' + CLAVE_ADMIN);
 });
