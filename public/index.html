@@ -1398,13 +1398,28 @@
       color: #412402;
     }
     .btn-modificar-coste {
-      background: none;
-      border: none;
-      font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 18px;
+      background: #fff;
+      border: 1.5px solid #185FA5;
+      border-radius: 8px;
       color: #185FA5;
-      cursor: pointer;
+      font-size: 14px;
       font-family: inherit;
-      padding: 4px 0;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .btn-modificar-coste:active {
+      transform: scale(0.97);
+    }
+    @media (hover: hover) {
+      .btn-modificar-coste:hover { background: #E6F1FB; }
+    }
+    @media (max-width: 599px) {
+      .btn-modificar-coste { width: 100%; max-width: 320px; justify-content: center; }
     }
     .coste-modal-overlay {
       display: none;
@@ -3335,8 +3350,8 @@
             '<div class="evt-resumen-card"><div class="evt-resumen-num"><span style="white-space:nowrap">' + totalRecaudar.toFixed(2) + ' \u20ac</span></div><div class="evt-resumen-label">Total</div></div>' +
             '<div class="evt-resumen-card"><div class="evt-resumen-num"><span style="white-space:nowrap">' + totalCobrado.toFixed(2) + ' \u20ac</span></div><div class="evt-resumen-label">Cobrado</div></div>' +
           '</div>' +
-          '<div style="text-align:right;padding:0 16px 8px"><button class="btn-modificar-coste" id="btnModCoste">Modificar coste</button></div>' +
-          (costeBoya > 0 ? '<div style="padding:0 16px 8px;font-size:11px;color:#999">Coste asumido por la sociedad (Inv. BOYA): <strong>' + costeBoya.toFixed(2) + ' \u20ac</strong></div>' : '')
+          (costeBoya > 0 ? '<div style="padding:0 16px 8px;font-size:11px;color:#999">Coste asumido por la sociedad (Inv. BOYA): <strong>' + costeBoya.toFixed(2) + ' \u20ac</strong></div>' : '') +
+          '<div style="display:flex;justify-content:center;padding:4px 16px 12px"><button class="btn-modificar-coste" id="btnModCoste"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Modificar coste del evento</button></div>'
         :
           '<div class="evt-resumen">' +
             '<div class="evt-resumen-card"><div class="evt-resumen-num"><span style="white-space:nowrap">' + totalPersonas + '</span></div><div class="evt-resumen-label">Asistentes</div></div>' +
@@ -3831,24 +3846,7 @@
             method: 'PUT', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ asistentes: asistBody })
           }).then(function(r) { return r.json(); })
-          .then(function(updated) {
-            cerrarSel();
-            showToast('\u2713 Asistentes guardados');
-            // Popup B: si modo total_dividido y hay pagantes
-            if (updated.modo_calculo === 'total_dividido' && updated.coste_total > 0) {
-              var pg = 0;
-              for (var pa = 0; pa < updated.asistentes.length; pa++) pg += 1 + (updated.asistentes[pa].invitados || 0);
-              if (pg > 0) {
-                var calc = Math.round((updated.coste_total / pg) * 100) / 100;
-                mostrarPopupImporte(updated, calc,
-                  function() { abrirModalCoste(updated); if (onDone) onDone(updated); },
-                  function() { if (onDone) onDone(updated); }
-                );
-                return;
-              }
-            }
-            if (onDone) onDone(updated);
-          })
+          .then(function(updated) { cerrarSel(); if (onDone) onDone(updated); showToast('\u2713 Asistentes guardados'); })
           .catch(function() { showError('Error al guardar asistentes'); });
         } else {
           cerrarSel();
@@ -3948,27 +3946,6 @@
       overlay.classList.add('open');
       document.body.style.overflow = 'hidden';
       renderBoyaScreen();
-    }
-
-    // === POPUP CONFIRMACIÓN IMPORTE ===
-    function mostrarPopupImporte(evt, pppCalculado, onAjustar, onSeguir) {
-      var existing = document.getElementById('importePopupOverlay');
-      if (existing) existing.remove();
-      var div = document.createElement('div');
-      div.className = 'coste-modal-overlay open';
-      div.id = 'importePopupOverlay';
-      div.innerHTML =
-        '<div class="coste-modal">' +
-          '<div class="coste-modal-title">Importe por asistente</div>' +
-          '<div style="font-size:14px;color:#333;margin-bottom:14px">El coste de <strong>' + escapeHtml(evt.nombre) + '</strong> sale a <strong>' + pppCalculado.toFixed(2) + ' \u20ac</strong> por asistente pagante. \u00bfQuieres ajustar este importe?</div>' +
-          '<div style="display:flex;gap:8px">' +
-            '<button class="btn-cancel" id="popupNoAjustar" style="flex:1">No, seguir as\u00ed</button>' +
-            '<button class="btn-submit" id="popupSiAjustar" style="flex:1">S\u00ed, ajustar</button>' +
-          '</div>' +
-        '</div>';
-      document.body.appendChild(div);
-      document.getElementById('popupNoAjustar').addEventListener('click', function() { div.remove(); if (onSeguir) onSeguir(); });
-      document.getElementById('popupSiAjustar').addEventListener('click', function() { div.remove(); if (onAjustar) onAjustar(); });
     }
 
     // === MODAL COSTE ===
