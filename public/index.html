@@ -1240,45 +1240,56 @@
       background: #fff;
       border: 0.5px solid #E0E0E0;
       border-radius: 12px;
-      padding: 14px 16px;
-      margin-bottom: 10px;
+      padding: 12px 14px 12px 14px;
+      margin-bottom: 8px;
       position: relative;
+      overflow: hidden;
     }
+    .evt-card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      border-top-left-radius: 12px;
+      border-bottom-left-radius: 12px;
+    }
+    .evt-card.banda-comida::before { background: #0F6E56; }
+    .evt-card.banda-evento::before { background: #185FA5; }
     .evt-stats-row {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
-      gap: 6px;
-      margin-top: 8px;
+      gap: 5px;
+      margin-top: 6px;
     }
     .evt-stat {
       background: #F5F5F5;
       border-radius: 8px;
-      padding: 8px 4px;
+      padding: 6px 4px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       gap: 2px;
-      min-height: 58px;
+      min-height: 46px;
     }
     .evt-stat svg {
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
       stroke-width: 2;
       stroke-linecap: round;
       stroke-linejoin: round;
       fill: none;
     }
     .evt-stat-num {
-      font-size: 18px;
+      font-size: 15px;
       font-weight: 700;
       color: #333;
       line-height: 1;
     }
     .evt-stat-label {
-      font-size: 9px;
+      font-size: 8px;
       text-transform: uppercase;
-      letter-spacing: 0.4px;
+      letter-spacing: 0.3px;
       color: #5F5E5A;
     }
     .evt-card-top {
@@ -1314,10 +1325,10 @@
       color: #888;
     }
     .evt-name {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 500;
       color: #333;
-      margin-bottom: 4px;
+      margin-bottom: 2px;
     }
     .evt-info-row {
       display: flex;
@@ -1329,11 +1340,11 @@
       color: #999;
     }
     .evt-price {
-      font-size: 13px;
+      font-size: 12px;
       color: #666;
       font-weight: 500;
       text-align: right;
-      margin-top: 8px;
+      margin-top: 6px;
     }
     .evt-menu-btn {
       background: none;
@@ -3447,7 +3458,7 @@
         }
 
         var card = document.createElement('div');
-        card.className = 'evt-card';
+        card.className = 'evt-card ' + (e.tipo === 'comida_social' ? 'banda-comida' : 'banda-evento');
         card.innerHTML =
           '<div class="evt-card-top">' +
             '<span class="evt-badge ' + badgeClass + '">' + badgeSvg + badgeText + '</span>' +
