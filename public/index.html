@@ -3431,8 +3431,9 @@
         var nBoyaCard = (e.invitados_boya || []).length;
 
         var stats1 = '';
-        if (e.tipo === 'comida_social') stats1 += '<div class="evt-stat"><div>' + svgCook + '</div><div class="evt-stat-num">' + (e.cocineros || []).length + '</div><div class="evt-stat-label">Cocineros</div></div>';
-        stats1 += '<div class="evt-stat"><div>' + svgPeople + '</div><div class="evt-stat-num">' + e.asistentes.length + '</div><div class="evt-stat-label">Socios</div></div>';
+        var nCocCard = (e.cocineros || []).length;
+        var cocSubtext = (e.tipo === 'comida_social' && nCocCard > 0) ? '<div style="font-size:8px;color:#5F5E5A;margin-top:1px">' + nCocCard + ' cocinero' + (nCocCard > 1 ? 's' : '') + '</div>' : '';
+        stats1 += '<div class="evt-stat"><div>' + svgPeople + '</div><div class="evt-stat-num">' + e.asistentes.length + '</div><div class="evt-stat-label">Socios</div>' + cocSubtext + '</div>';
         if (totalInvExtra > 0) stats1 += '<div class="evt-stat"><div>' + svgInvPlus + '</div><div class="evt-stat-num">' + totalInvExtra + '</div><div class="evt-stat-label">' + invLabel + '</div></div>';
         if (nBoyaCard > 0 && !isGratis) stats1 += '<div class="evt-stat"><div>' + svgInvPlus + '</div><div class="evt-stat-num">' + nBoyaCard + '</div><div class="evt-stat-label">Inv. BOYA</div></div>';
 
@@ -3759,24 +3760,15 @@
       var lockHtml = finalizado ? '<span class="lock-icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></span>' : '';
       var disAttr = finalizado ? ' disabled' : '';
       var actionBtns = '';
+      var totalInvDet = 0;
+      for (var iv2 = 0; iv2 < evt.asistentes.length; iv2++) totalInvDet += (evt.asistentes[iv2].invitados || 0);
       var boyaBtn = !isEvtGratis ? '<button class="evt-action-btn" id="btnBoya"' + disAttr + ' style="border-color:#F0997B">' + lockHtml + SVG_BOYA + 'Inv. BOYA (' + nBoya + ')</button>' : '';
-      var invLabel2 = isEvtGratis ? 'Acompa\u00f1antes' : 'Invitados';
-      if (evt.tipo === 'comida_social') {
-        actionBtns =
-          '<button class="evt-action-btn" id="btnCocineros"' + disAttr + '>' + lockHtml + SVG_COOK + 'Cocineros (' + (evt.cocineros || []).length + ')</button>' +
-          '<button class="evt-action-btn" id="btnComensales"' + disAttr + '>' + lockHtml + SVG_PEOPLE + 'Comensales (' + evt.asistentes.length + ')</button>' +
-          '<button class="evt-action-btn" id="btnInvitados"' + disAttr + '>' + lockHtml + SVG_PLUS + 'Invitados</button>' +
-          boyaBtn;
-      } else if (isEvtGratis) {
-        actionBtns =
-          '<button class="evt-action-btn" id="btnComensales"' + disAttr + '>' + lockHtml + SVG_PEOPLE + 'Asistentes (' + evt.asistentes.length + ')</button>' +
-          '<button class="evt-action-btn" id="btnInvitados"' + disAttr + '>' + lockHtml + SVG_PLUS + invLabel2 + '</button>';
-      } else {
-        actionBtns =
-          '<button class="evt-action-btn" id="btnComensales"' + disAttr + '>' + lockHtml + SVG_PEOPLE + 'Asistentes (' + evt.asistentes.length + ')</button>' +
-          '<button class="evt-action-btn" id="btnInvitados"' + disAttr + '>' + lockHtml + SVG_PLUS + 'Invitados</button>' +
-          boyaBtn;
-      }
+      var invLabel2 = isEvtGratis ? 'Acomp.' : 'Invitados';
+      var comLabel = evt.tipo === 'comida_social' ? 'Comensales' : 'Asistentes';
+      actionBtns =
+        '<button class="evt-action-btn" id="btnComensales"' + disAttr + '>' + lockHtml + SVG_PEOPLE + comLabel + ' (' + evt.asistentes.length + ')</button>' +
+        '<button class="evt-action-btn" id="btnInvitados"' + disAttr + '>' + lockHtml + SVG_PLUS + invLabel2 + ' (' + totalInvDet + ')</button>' +
+        boyaBtn;
 
       // Listado asistentes (agrupados: pendientes arriba, pagados abajo)
       var asistHtml = '';
@@ -3872,6 +3864,7 @@
           '<button class="ficha-back" id="evtDetClose" style="font-size:20px;color:#999" title="Cerrar">\u00d7</button>' +
           '</div>' +
           '<div class="evt-det-menu" id="evtDetMenu">' +
+            (evt.tipo === 'comida_social' ? '<button class="evt-det-menu-item" id="evtDetCocineros">Gestionar cocineros (' + (evt.cocineros || []).length + ')</button>' : '') +
             '<button class="evt-det-menu-item" id="evtDetEditar">Editar datos</button>' +
             '<button class="evt-det-menu-item" id="evtDetEstado">' + (finalizado ? 'Reabrir evento' : 'Marcar como finalizado') + '</button>' +
             '<button class="evt-det-menu-item danger" id="evtDetEliminar">Eliminar evento</button>' +
@@ -3888,25 +3881,20 @@
         (tieneCoste ? (function() {
           var pendiente = Math.round((totalRecaudar - totalCobrado) * 100) / 100;
           var pendClass, pendNum, pendLabel;
-          if (pendiente > 0) {
-            pendClass = 'pendiente-rojo';
-            pendNum = '<span style="white-space:nowrap">' + pendiente.toFixed(2) + ' \u20ac</span>';
-            pendLabel = 'PENDIENTE';
-          } else if (pendiente === 0) {
-            pendClass = 'pendiente-verde';
-            pendNum = '\u2713 OK';
-            pendLabel = 'PENDIENTE';
-          } else {
-            pendClass = 'pendiente-azul';
-            pendNum = '<span style="white-space:nowrap">+' + Math.abs(pendiente).toFixed(2) + ' \u20ac</span>';
-            pendLabel = 'SOBRANTE';
-          }
-          return '<div class="evt-resumen">' +
+          if (pendiente > 0) { pendClass = 'pendiente-rojo'; pendNum = '<span style="white-space:nowrap">' + pendiente.toFixed(2) + ' \u20ac</span>'; pendLabel = 'PENDIENTE'; }
+          else if (pendiente === 0) { pendClass = 'pendiente-verde'; pendNum = '\u2713 OK'; pendLabel = 'PENDIENTE'; }
+          else { pendClass = 'pendiente-azul'; pendNum = '<span style="white-space:nowrap">+' + Math.abs(pendiente).toFixed(2) + ' \u20ac</span>'; pendLabel = 'SOBRANTE'; }
+          var noPaganHtml = nBoya > 0 ? '<div class="evt-resumen-card" style="background:#FAC775;border:0.5px solid #EF9F27"><div class="evt-resumen-num" style="color:#412402"><span style="white-space:nowrap">' + nBoya + '</span></div><div class="evt-resumen-label" style="color:#412402">No pagan</div></div>' : '';
+          return '<div class="evt-resumen" style="grid-template-columns:1fr 1fr 1fr">' +
             '<div class="evt-resumen-card"><div class="evt-resumen-num"><span style="white-space:nowrap">' + totalPersonas + '</span></div><div class="evt-resumen-label">Asistentes</div></div>' +
-            '<div class="evt-resumen-card"><div class="evt-resumen-num"><span style="white-space:nowrap">' + (totalPersonas > 0 ? ppp.toFixed(2) + ' \u20ac' : '\u2014') + '</span></div><div class="evt-resumen-label">Por persona</div></div>' +
+            '<div class="evt-resumen-card" style="background:#EAF3DE"><div class="evt-resumen-num" style="color:#173404"><span style="white-space:nowrap">' + pagantes + '</span></div><div class="evt-resumen-label" style="color:#173404">Pagan</div></div>' +
+            '<div class="evt-resumen-card"><div class="evt-resumen-num"><span style="white-space:nowrap">' + (pagantes > 0 ? ppp.toFixed(2) + ' \u20ac' : '\u2014') + '</span></div><div class="evt-resumen-label">Por persona</div></div>' +
+          '</div>' +
+          '<div class="evt-resumen" style="grid-template-columns:1fr 1fr 1fr' + (nBoya > 0 ? ' 1fr' : '') + '">' +
             '<div class="evt-resumen-card"><div class="evt-resumen-num"><span style="white-space:nowrap">' + totalRecaudar.toFixed(2) + ' \u20ac</span></div><div class="evt-resumen-label">Total</div></div>' +
-            '<div class="evt-resumen-card' + (totalCobrado > 0 ? ' pendiente-verde' : '') + '"><div class="evt-resumen-num"><span style="white-space:nowrap">' + totalCobrado.toFixed(2) + ' \u20ac' + (totalCobrado > 0 && totalCobrado >= totalRecaudar ? ' \u2713' : '') + '</span></div><div class="evt-resumen-label">Cobrado</div></div>' +
+            '<div class="evt-resumen-card' + (totalCobrado > 0 ? ' pendiente-verde' : '') + '"><div class="evt-resumen-num"><span style="white-space:nowrap">' + totalCobrado.toFixed(2) + ' \u20ac' + (totalCobrado >= totalRecaudar && totalCobrado > 0 ? ' \u2713' : '') + '</span></div><div class="evt-resumen-label">Cobrado</div></div>' +
             '<div class="evt-resumen-card ' + pendClass + '"><div class="evt-resumen-num">' + pendNum + '</div><div class="evt-resumen-label">' + pendLabel + '</div></div>' +
+            noPaganHtml +
           '</div>';
         })() +
           (costeBoya > 0 ? '<div style="padding:0 16px 8px;font-size:11px;color:#999">Coste asumido por la sociedad (Inv. BOYA): <strong>' + costeBoya.toFixed(2) + ' \u20ac</strong></div>' : '') +
@@ -4090,8 +4078,10 @@
       }
 
       // Cocineros button
-      var btnCock = document.getElementById('btnCocineros');
-      if (btnCock) btnCock.addEventListener('click', function() {
+      // Cocineros desde menú ⋯
+      var menuCock = document.getElementById('evtDetCocineros');
+      if (menuCock) menuCock.addEventListener('click', function() {
+        document.getElementById('evtDetMenu').classList.remove('open');
         abrirSeleccion('cocineros', evt, function(updated) { renderDetalleEvento(updated); });
       });
 
