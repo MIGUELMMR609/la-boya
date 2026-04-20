@@ -438,9 +438,15 @@ function extraerNombreBase(nombre) {
 function leerEventos() {
   try {
     var data = JSON.parse(fs.readFileSync(EVENTOS_FILE, 'utf8'));
-    // Migración silenciosa: añadir invitados_boya si no existe
+    var migrado = false;
     for (var i = 0; i < data.length; i++) {
-      if (!data[i].invitados_boya) data[i].invitados_boya = [];
+      if (!data[i].invitados_boya) { data[i].invitados_boya = []; migrado = true; }
+      if (data[i].confirmacion_token === undefined) { data[i].confirmacion_token = null; migrado = true; }
+      if (!data[i].respuestas_confirmacion) { data[i].respuestas_confirmacion = {}; migrado = true; }
+    }
+    if (migrado && data.length > 0) {
+      guardarDatosSeguro(EVENTOS_FILE, data, 'migracion-confirmacion-token');
+      console.log('Migracion confirmacion-token: ' + data.length + ' eventos actualizados');
     }
     return data;
   } catch (e) { return []; }
@@ -537,6 +543,8 @@ app.post('/api/eventos', (req, res) => {
       cocineros: [],
       asistentes: [],
       invitados_boya: [],
+      confirmacion_token: null,
+      respuestas_confirmacion: {},
       notas: req.body.notas || '',
       fecha_creacion: hoy,
       fecha_modificacion: hoy
@@ -971,6 +979,170 @@ app.get('/api/admin/health-datos', (req, res) => {
     socios: infoArchivo(SOCIOS_FILE, 'socios'),
     eventos: infoArchivo(EVENTOS_FILE, 'eventos')
   });
+});
+
+// === CONFIRMACIÓN POR ENLACE — Admin ===
+
+function generarToken() {
+  var chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  var token = '';
+  for (var i = 0; i < 12; i++) token += chars[Math.floor(Math.random() * chars.length)];
+  return token;
+}
+
+// POST /api/eventos/:id/generar-token
+app.post('/api/eventos/:id/generar-token', (req, res) => {
+  try {
+    var data = leerEventos();
+    var idx = data.findIndex(e => e.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Evento no encontrado' });
+    var token = generarToken();
+    data[idx].confirmacion_token = token;
+    data[idx].fecha_modificacion = fechaHoy();
+    guardarEventos(data, 'generar-token');
+    console.log('Token generado para evento ' + data[idx].id + ': ' + token);
+    res.json({ ok: true, token: token, url_base: '/c/' + token });
+  } catch (err) {
+    console.error('Error generando token:', err);
+    res.status(500).json({ error: 'Error al generar token' });
+  }
+});
+
+// DELETE /api/eventos/:id/token
+app.delete('/api/eventos/:id/token', (req, res) => {
+  try {
+    var data = leerEventos();
+    var idx = data.findIndex(e => e.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Evento no encontrado' });
+    data[idx].confirmacion_token = null;
+    data[idx].fecha_modificacion = fechaHoy();
+    guardarEventos(data, 'invalidar-token');
+    console.log('Token invalidado para evento ' + data[idx].id);
+    res.json(data[idx]);
+  } catch (err) {
+    console.error('Error invalidando token:', err);
+    res.status(500).json({ error: 'Error al invalidar token' });
+  }
+});
+
+// === CONFIRMACIÓN POR ENLACE — Público (sin auth) ===
+
+function buscarEventoPorToken(token) {
+  if (!token || token.length !== 12 || !/^[a-zA-Z0-9]+$/.test(token)) return null;
+  var data = leerEventos();
+  return data.find(function(e) { return e.confirmacion_token === token; }) || null;
+}
+
+function buscarSocioPorNumSocio(numSocio) {
+  var num = parseInt(numSocio, 10);
+  if (isNaN(num)) return null;
+  try {
+    var socios = JSON.parse(fs.readFileSync(SOCIOS_FILE, 'utf8'));
+    return socios.find(function(s) { return s.num_socio === num; }) || null;
+  } catch (e) { return null; }
+}
+
+// GET /api/publico/confirmacion/:token/:num_socio
+app.get('/api/publico/confirmacion/:token/:num_socio', (req, res) => {
+  try {
+    var evt = buscarEventoPorToken(req.params.token);
+    if (!evt) return res.status(404).json({ error: 'Enlace no valido o caducado' });
+    var soc = buscarSocioPorNumSocio(req.params.num_socio);
+    if (!soc) return res.status(404).json({ error: 'Socio no encontrado' });
+
+    console.log('GET confirmacion: token ' + req.params.token + ', socio ' + soc.num_socio + ', nombre ' + soc.nombre);
+
+    var dp = evt.fecha.split('-');
+    var dObj = new Date(parseInt(dp[0],10), parseInt(dp[1],10)-1, parseInt(dp[2],10));
+    var dias = ['domingo','lunes','martes','mi\u00e9rcoles','jueves','viernes','s\u00e1bado'];
+    var fechaFormateada = dias[dObj.getDay()] + ', ' + parseInt(dp[2],10) + ' de ' + MESES_ES[parseInt(dp[1],10)-1] + ' de ' + dp[0];
+
+    var respActual = (evt.respuestas_confirmacion && evt.respuestas_confirmacion[String(soc.num_socio)]) || null;
+
+    res.json({
+      evento: {
+        tipo: evt.tipo,
+        nombre: evt.nombre,
+        fecha: evt.fecha,
+        fecha_formateada: fechaFormateada,
+        precio_por_persona: evt.precio_por_persona,
+        modo_calculo: evt.modo_calculo,
+        estado: evt.estado,
+        notas: evt.notas || ''
+      },
+      socio: {
+        nombre: soc.nombre.split(' ')[0],
+        nombre_completo: soc.nombre + ' ' + soc.apellidos
+      },
+      respuesta_actual: respActual
+    });
+  } catch (err) {
+    console.error('Error GET confirmacion:', err);
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
+// POST /api/publico/confirmacion/:token/:num_socio
+app.post('/api/publico/confirmacion/:token/:num_socio', (req, res) => {
+  try {
+    var data = leerEventos();
+    var evtIdx = -1;
+    for (var i = 0; i < data.length; i++) {
+      if (data[i].confirmacion_token === req.params.token) { evtIdx = i; break; }
+    }
+    if (evtIdx === -1) return res.status(404).json({ error: 'Enlace no valido o caducado' });
+    var evt = data[evtIdx];
+
+    var soc = buscarSocioPorNumSocio(req.params.num_socio);
+    if (!soc) return res.status(404).json({ error: 'Socio no encontrado' });
+
+    if (evt.estado === 'finalizado') return res.status(403).json({ error: 'Este evento ya esta cerrado' });
+
+    var respuesta = req.body.respuesta;
+    if (!['si', 'no'].includes(respuesta)) return res.status(400).json({ error: 'Respuesta debe ser si o no' });
+
+    var invitados = respuesta === 'si' ? (parseInt(req.body.invitados, 10) || 0) : 0;
+    if (invitados < 0) invitados = 0;
+
+    // Guardar respuesta
+    if (!evt.respuestas_confirmacion) evt.respuestas_confirmacion = {};
+    evt.respuestas_confirmacion[String(soc.num_socio)] = {
+      respuesta: respuesta,
+      invitados: invitados,
+      fecha_respuesta: new Date().toISOString()
+    };
+
+    // Sincronizar con asistentes
+    var socId = soc.id;
+    var asistIdx = evt.asistentes.findIndex(function(a) { return a.socio_id === socId; });
+
+    if (respuesta === 'si') {
+      if (asistIdx === -1) {
+        evt.asistentes.push({ socio_id: socId, invitados: invitados, pagado: false });
+      } else {
+        evt.asistentes[asistIdx].invitados = invitados;
+      }
+    } else {
+      if (asistIdx !== -1) {
+        // No quitar si es cocinero
+        if ((evt.cocineros || []).indexOf(socId) === -1) {
+          evt.asistentes.splice(asistIdx, 1);
+        }
+      }
+    }
+
+    evt.fecha_modificacion = fechaHoy();
+    data[evtIdx] = evt;
+    guardarEventos(data, 'confirmacion-publica-socio-' + soc.num_socio);
+
+    var nombrePila = soc.nombre.split(' ')[0];
+    console.log('POST confirmacion: token ' + req.params.token + ', socio ' + soc.num_socio + ' (' + nombrePila + ') respondio: ' + respuesta + ', invitados: ' + invitados);
+
+    res.json({ ok: true, mensaje: 'Gracias ' + nombrePila + ', tu respuesta ha sido registrada.' });
+  } catch (err) {
+    console.error('Error POST confirmacion:', err);
+    res.status(500).json({ error: 'Error interno' });
+  }
 });
 
 app.listen(PORT, () => {
