@@ -184,6 +184,14 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Página pública de confirmación
+app.get('/c/:token/:num_socio', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'confirmacion.html'));
+});
+app.get('/c/:token', (req, res) => {
+  res.status(400).send('<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LA BOYA</title></head><body style="font-family:system-ui;text-align:center;padding:40px 20px;color:#333"><h2>Enlace incompleto</h2><p>Falta el codigo del socio en el enlace. Pidele a la directiva un nuevo enlace.</p></body></html>');
+});
+
 // API: lista de socios
 app.get('/api/socios', (req, res) => {
   try {

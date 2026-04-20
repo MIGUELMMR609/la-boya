@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Confirmar asistencia - LA BOYA</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='32' fill='%230C447C'/><text x='32' y='40' text-anchor='middle' font-family='system-ui,sans-serif' font-size='26' font-weight='700' fill='white'>LB</text></svg>">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#F5F5F5;min-height:100vh;padding:16px}
+    .card{background:#fff;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,0.08);max-width:480px;margin:16px auto;padding:24px;text-align:center}
+    .logo{font-size:28px;font-weight:700;color:#0C447C;margin-bottom:2px}
+    .logo-sub{font-size:12px;color:#5F5E5A;margin-bottom:12px}
+    .sep{height:0;border:none;border-top:0.5px solid #E0E0E0;margin:16px 0}
+    .badge{display:inline-block;font-size:13px;font-weight:700;text-transform:uppercase;padding:4px 14px;border-radius:999px;letter-spacing:0.8px;margin-bottom:12px}
+    .badge-comida{background:#9FE1CB;color:#04342C}
+    .badge-evento{background:#B5D4F4;color:#042C53}
+    .badge-gratis{background:#AFA9EC;color:#26215C}
+    .evt-name{font-size:22px;font-weight:700;color:#2C2C2A;margin-bottom:6px;line-height:1.3}
+    .evt-fecha{font-size:16px;color:#5F5E5A;margin-bottom:8px}
+    .evt-precio{font-size:18px;font-weight:500;color:#2C2C2A;margin-bottom:4px}
+    .evt-gratis-msg{font-size:14px;color:#534AB7;margin-bottom:4px}
+    .saludo{font-size:22px;font-weight:600;color:#2C2C2A;margin-bottom:4px}
+    .pregunta{font-size:18px;color:#5F5E5A;margin-bottom:0}
+    .btn-si{width:100%;min-height:64px;background:#1D9E75;color:#fff;border:none;border-radius:12px;font-size:19px;font-weight:600;cursor:pointer;margin-top:24px;padding:14px 16px;box-shadow:0 2px 6px rgba(29,158,117,0.25);transition:transform 0.1s}
+    .btn-si:active{transform:scale(0.97)}
+    .btn-si .sub{display:block;font-size:13px;font-weight:400;margin-top:2px;opacity:0.85}
+    .btn-no{width:100%;min-height:64px;background:#fff;color:#E24B4A;border:2px solid #E24B4A;border-radius:12px;font-size:19px;font-weight:600;cursor:pointer;margin-top:12px;padding:14px 16px;transition:transform 0.1s}
+    .btn-no:active{transform:scale(0.97)}
+    .btn-no .sub{display:block;font-size:13px;font-weight:400;margin-top:2px}
+    .btn-active{opacity:1;position:relative}
+    .btn-active::after{content:'Tu respuesta';position:absolute;top:-10px;right:12px;background:#0C447C;color:#fff;font-size:10px;padding:2px 8px;border-radius:999px;font-weight:500}
+    .btn-inactive{opacity:0.5}
+    button:disabled{opacity:0.4;cursor:not-allowed}
+    .inv-section{margin-top:20px;display:none}
+    .inv-section.show{display:block}
+    .inv-q{font-size:16px;color:#2C2C2A;font-weight:500;margin-bottom:12px}
+    .inv-row{display:flex;align-items:center;justify-content:center;gap:16px}
+    .inv-btn{width:56px;height:56px;border-radius:50%;background:#F5F5F5;border:1px solid #E0E0E0;font-size:24px;font-weight:600;color:#333;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s}
+    .inv-btn:active{background:#E0E0E0}
+    .inv-btn:disabled{opacity:0.35;cursor:not-allowed}
+    .inv-num{font-size:32px;font-weight:700;color:#2C2C2A;min-width:48px;text-align:center}
+    .inv-hint{font-size:13px;color:#5F5E5A;margin-top:8px}
+    .msg-ok{background:#EAF3DE;color:#173404;padding:10px 14px;border-radius:10px;font-size:14px;font-weight:500;margin-bottom:12px;transition:opacity 0.3s}
+    .msg-ok.hidden{opacity:0}
+    .msg-err{background:#FCEBEB;color:#791F1F;padding:10px 14px;border-radius:10px;font-size:14px;font-weight:500;margin-bottom:12px}
+    .banner-fin{background:#FAEEDA;color:#412402;padding:10px 14px;border-radius:10px;font-size:14px;font-weight:500;margin-bottom:12px}
+    .footer{font-size:12px;color:#999;text-align:center;margin-top:24px;padding-bottom:env(safe-area-inset-bottom)}
+    .loading{text-align:center;padding:60px 20px;color:#999;font-size:16px}
+    .loading-spinner{width:32px;height:32px;border:3px solid #E0E0E0;border-top-color:#0C447C;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .err-page{text-align:center;padding:40px 20px}
+    .err-page h2{font-size:20px;color:#333;margin-bottom:8px}
+    .err-page p{font-size:15px;color:#666;margin-bottom:16px;line-height:1.5}
+    .btn-retry{background:#0C447C;color:#fff;border:none;border-radius:10px;padding:12px 24px;font-size:16px;font-weight:500;cursor:pointer}
+    .evt-notas{font-size:13px;color:#5F5E5A;margin-top:4px;font-style:italic}
+  </style>
+</head>
+<body>
+  <div id="loading" class="card"><div class="loading"><div class="loading-spinner"></div>Cargando...</div></div>
+  <div id="content" style="display:none"></div>
+  <div id="error" style="display:none"></div>
+
+  <script>
+    var MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    var parts = window.location.pathname.split('/');
+    var token = parts[2] || '';
+    var numSocio = parts[3] || '';
+    var evento = null, socio = null;
+    var estado = { respuesta: null, invitados: 0 };
+
+    function cargar() {
+      fetch('/api/publico/confirmacion/' + token + '/' + numSocio)
+        .then(function(r) {
+          if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || 'Error ' + r.status); });
+          return r.json();
+        })
+        .then(function(data) {
+          evento = data.evento;
+          socio = data.socio;
+          if (data.respuesta_actual) {
+            estado.respuesta = data.respuesta_actual.respuesta;
+            estado.invitados = data.respuesta_actual.invitados || 0;
+          }
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('content').style.display = 'block';
+          render();
+        })
+        .catch(function(err) {
+          document.getElementById('loading').style.display = 'none';
+          var el = document.getElementById('error');
+          el.style.display = 'block';
+          var msg = err.message || '';
+          if (msg.indexOf('no valido') !== -1 || msg.indexOf('caducado') !== -1) {
+            el.innerHTML = '<div class="card err-page"><h2>Enlace no valido</h2><p>Este enlace no funciona o ha caducado. Por favor, pidele a la directiva de LA BOYA un nuevo enlace.</p></div>';
+          } else if (msg.indexOf('Socio') !== -1) {
+            el.innerHTML = '<div class="card err-page"><h2>Socio no encontrado</h2><p>El codigo del socio no es correcto. Pidele a la directiva un nuevo enlace personalizado.</p></div>';
+          } else {
+            el.innerHTML = '<div class="card err-page"><h2>Sin conexion</h2><p>No se pudo conectar con LA BOYA. Comprueba tu conexion a internet y recarga.</p><button class="btn-retry" onclick="location.reload()">Reintentar</button></div>';
+          }
+        });
+    }
+
+    function render() {
+      var isGratis = evento.tipo === 'evento_gratis';
+      var badgeClass = evento.tipo === 'comida_social' ? 'badge-comida' : (isGratis ? 'badge-gratis' : 'badge-evento');
+      var badgeText = evento.tipo === 'comida_social' ? 'COMIDA SOCIAL' : (isGratis ? 'GRATIS' : 'EVENTO');
+      var invWord = isGratis ? 'acompa\u00f1antes' : 'invitados';
+      var invWordS = isGratis ? 'acompa\u00f1ante' : 'invitado';
+      var goText = evento.tipo === 'comida_social' ? 'voy a la comida' : (isGratis ? 'voy a asistir' : 'voy al evento');
+
+      var precioHtml = '';
+      if (isGratis) {
+        precioHtml = '<div class="evt-gratis-msg">La sociedad invita. No tienes que pagar nada.</div>';
+      } else if (evento.precio_por_persona != null && evento.precio_por_persona > 0) {
+        precioHtml = '<div class="evt-precio">Precio: ' + evento.precio_por_persona + ' \u20ac/persona</div>';
+      } else if (evento.modo_calculo === 'total_dividido') {
+        precioHtml = '<div style="font-size:14px;color:#999;font-style:italic">El precio se establecer\u00e1 al final del evento</div>';
+      }
+
+      var notasHtml = evento.notas ? '<div class="evt-notas">' + esc(evento.notas.length > 100 ? evento.notas.substring(0, 100) + '...' : evento.notas) + '</div>' : '';
+
+      var finHtml = evento.estado === 'finalizado' ? '<div class="banner-fin">Este evento ya est\u00e1 cerrado. Contacta con la directiva.</div>' : '';
+      var dis = evento.estado === 'finalizado' ? ' disabled' : '';
+
+      var siClass = estado.respuesta === 'si' ? ' btn-active' : (estado.respuesta === 'no' ? ' btn-inactive' : '');
+      var noClass = estado.respuesta === 'no' ? ' btn-active' : (estado.respuesta === 'si' ? ' btn-inactive' : '');
+
+      var html =
+        '<div class="card">' +
+          '<div class="logo">LA BOYA</div>' +
+          '<div class="logo-sub">Sociedad Recreativa</div>' +
+          '<hr class="sep">' +
+          '<div class="badge ' + badgeClass + '">' + badgeText + '</div>' +
+          '<div class="evt-name">' + esc(evento.nombre) + '</div>' +
+          '<div class="evt-fecha">' + esc(evento.fecha_formateada) + '</div>' +
+          precioHtml +
+          notasHtml +
+          '<hr class="sep">' +
+          finHtml +
+          '<div id="msgOk" class="msg-ok hidden" style="display:none"></div>' +
+          '<div class="saludo">Hola ' + esc(socio.nombre) + ',</div>' +
+          '<div class="pregunta">\u00bfPuedes asistir?</div>' +
+          '<button class="btn-si' + siClass + '" id="btnSi"' + dis + '>\u2713  S\u00cd, CONFIRMO<span class="sub">' + goText + '</span></button>' +
+          '<button class="btn-no' + noClass + '" id="btnNo"' + dis + '>\u2717  NO PUEDO IR<span class="sub">esta vez</span></button>' +
+          '<div class="inv-section' + (estado.respuesta === 'si' ? ' show' : '') + '" id="invSection">' +
+            '<hr class="sep">' +
+            '<div class="inv-q">\u00bfTraes ' + invWord + '?</div>' +
+            '<div class="inv-row">' +
+              '<button class="inv-btn" id="invMinus" aria-label="Menos"' + (estado.invitados <= 0 ? ' disabled' : '') + '>\u2212</button>' +
+              '<div class="inv-num" id="invNum" role="spinbutton" aria-valuenow="' + estado.invitados + '">' + estado.invitados + '</div>' +
+              '<button class="inv-btn" id="invPlus" aria-label="Mas">+</button>' +
+            '</div>' +
+            '<div class="inv-hint" id="invHint">' + hintText(estado.invitados, invWordS, invWord) + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="footer">Si tienes dudas, contacta con la directiva de LA BOYA.</div>';
+
+      document.getElementById('content').innerHTML = html;
+
+      // Handlers
+      document.getElementById('btnSi').addEventListener('click', function() { enviar('si'); });
+      document.getElementById('btnNo').addEventListener('click', function() { enviar('no'); });
+      document.getElementById('invPlus').addEventListener('click', function() { cambiarInv(1); });
+      document.getElementById('invMinus').addEventListener('click', function() { cambiarInv(-1); });
+    }
+
+    function hintText(n, singular, plural) {
+      if (n === 0) return 'Solo t\u00fa';
+      return n + ' ' + (n === 1 ? singular : plural) + ' m\u00e1s ' + (n === 1 ? 'viene' : 'vienen') + ' contigo';
+    }
+
+    function esc(t) {
+      var d = document.createElement('div'); d.textContent = t; return d.innerHTML;
+    }
+
+    function enviar(resp) {
+      var prev = { respuesta: estado.respuesta, invitados: estado.invitados };
+      estado.respuesta = resp;
+      if (resp === 'no') estado.invitados = 0;
+      render();
+
+      fetch('/api/publico/confirmacion/' + token + '/' + numSocio, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ respuesta: resp, invitados: estado.invitados })
+      })
+      .then(function(r) { if (!r.ok) throw new Error('Error'); return r.json(); })
+      .then(function(data) {
+        var msgEl = document.getElementById('msgOk');
+        if (msgEl) {
+          msgEl.style.display = 'block';
+          msgEl.textContent = '\u2713 ' + (data.mensaje || 'Respuesta registrada');
+          msgEl.classList.remove('hidden');
+          setTimeout(function() { msgEl.classList.add('hidden'); setTimeout(function() { msgEl.style.display = 'none'; }, 300); }, 3000);
+        }
+      })
+      .catch(function() {
+        estado = prev;
+        render();
+        alert('No se pudo guardar tu respuesta. Intentalo de nuevo.');
+      });
+    }
+
+    function cambiarInv(delta) {
+      var nuevo = Math.max(0, estado.invitados + delta);
+      if (nuevo === estado.invitados) return;
+      estado.invitados = nuevo;
+
+      document.getElementById('invNum').textContent = nuevo;
+      document.getElementById('invNum').setAttribute('aria-valuenow', nuevo);
+      document.getElementById('invMinus').disabled = nuevo <= 0;
+      var isGratis = evento.tipo === 'evento_gratis';
+      document.getElementById('invHint').textContent = hintText(nuevo, isGratis ? 'acompa\u00f1ante' : 'invitado', isGratis ? 'acompa\u00f1antes' : 'invitados');
+
+      fetch('/api/publico/confirmacion/' + token + '/' + numSocio, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ respuesta: 'si', invitados: nuevo })
+      }).catch(function() {
+        estado.invitados = nuevo - delta;
+        render();
+      });
+    }
+
+    cargar();
+  </script>
+</body>
+</html>
