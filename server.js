@@ -482,8 +482,8 @@ app.post('/api/eventos', (req, res) => {
     var tipo = req.body.tipo;
     var fecha = req.body.fecha;
 
-    if (!tipo || !['comida_social', 'evento'].includes(tipo)) {
-      return res.status(400).json({ error: 'Tipo debe ser comida_social o evento' });
+    if (!tipo || !['comida_social', 'evento', 'evento_gratis'].includes(tipo)) {
+      return res.status(400).json({ error: 'Tipo debe ser comida_social, evento o evento_gratis' });
     }
     if (!fecha || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
       return res.status(400).json({ error: 'Fecha requerida en formato YYYY-MM-DD' });
@@ -498,6 +498,12 @@ app.post('/api/eventos', (req, res) => {
       nombre = nombre || generarNombreComida(fecha);
       modoCalculo = 'precio_fijo';
       if (precioPorPersona == null || isNaN(precioPorPersona)) precioPorPersona = 25;
+      costeTotal = null;
+    } else if (tipo === 'evento_gratis') {
+      if (!nombre) return res.status(400).json({ error: 'Nombre requerido para eventos gratis' });
+      nombre = generarNombreEvento(nombre, fecha);
+      modoCalculo = 'gratis';
+      precioPorPersona = 0;
       costeTotal = null;
     } else {
       if (!nombre) return res.status(400).json({ error: 'Nombre requerido para eventos' });
@@ -576,7 +582,7 @@ app.put('/api/eventos/:id', (req, res) => {
         evt.nombre = generarNombreEvento(extraerNombreBase(evt.nombre), evt.fecha);
       }
     }
-    if (req.body.nombre !== undefined && evt.tipo === 'evento') {
+    if (req.body.nombre !== undefined && (evt.tipo === 'evento' || evt.tipo === 'evento_gratis')) {
       evt.nombre = generarNombreEvento(req.body.nombre.trim(), evt.fecha);
     }
     if (req.body.estado !== undefined) evt.estado = req.body.estado;
@@ -728,6 +734,7 @@ app.post('/api/eventos/:id/invitados-boya', (req, res) => {
     var data = leerEventos();
     var idx = data.findIndex(e => e.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: 'Evento no encontrado' });
+    if (data[idx].tipo === 'evento_gratis') return res.status(400).json({ error: 'Este tipo de evento no permite invitados BOYA' });
     var nombre = (req.body.nombre || '').trim();
     if (!nombre) return res.status(400).json({ error: 'Nombre requerido' });
     var inv = { id: 'inv_' + Math.random().toString(36).substr(2, 9), nombre: nombre };
