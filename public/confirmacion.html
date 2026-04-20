@@ -3,7 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Confirmar asistencia - LA BOYA</title>
+  <title>LA BOYA - Confirmar asistencia</title>
+  <meta name="description" content="Confirma tu asistencia al proximo evento de la Sociedad Recreativa LA BOYA.">
+  <meta property="og:title" content="LA BOYA - Confirmar asistencia">
+  <meta property="og:description" content="Pulsa para confirmar tu asistencia.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="LA BOYA">
+  <meta property="og:locale" content="es_ES">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='32' fill='%230C447C'/><text x='32' y='40' text-anchor='middle' font-family='system-ui,sans-serif' font-size='26' font-weight='700' fill='white'>LB</text></svg>">
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
@@ -82,6 +88,7 @@
             estado.respuesta = data.respuesta_actual.respuesta;
             estado.invitados = data.respuesta_actual.invitados || 0;
           }
+          document.title = 'LA BOYA \u00b7 ' + evento.nombre;
           document.getElementById('loading').style.display = 'none';
           document.getElementById('content').style.display = 'block';
           render();

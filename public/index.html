@@ -3917,6 +3917,24 @@
         (evt.asistentes.some(function(a) { var sc = findSocio(a.socio_id); return sc && sc.telefono; })
           ? '<div style="padding:0 16px 8px"><button class="btn-wa btn-wa-big" id="btnAvisarWa">' + SVG_WA + ' Avisar a asistentes</button></div>'
           : '') +
+        (evt.estado === 'abierto' ? '<div style="padding:0 16px 8px"><button class="btn-wa btn-wa-big" id="btnEnviarConf">' + SVG_WA + ' Enviar confirmaciones</button></div>' : '') +
+        '<hr class="ficha-sep">' +
+        (function() {
+          var rc = evt.respuestas_confirmacion || {};
+          var keys = Object.keys(rc);
+          var nSi = 0; var nNo = 0;
+          for (var rk = 0; rk < keys.length; rk++) { if (rc[keys[rk]].respuesta === 'si') nSi++; else nNo++; }
+          var nPend = socios.length - nSi - nNo;
+          if (keys.length === 0 && !evt.confirmacion_token) return '';
+          return '<div style="padding:0 16px 12px">' +
+            '<div style="font-size:11px;text-transform:uppercase;color:#999;letter-spacing:0.5px;margin-bottom:6px">Respuestas de socios</div>' +
+            '<div class="evt-resumen" style="grid-template-columns:1fr 1fr 1fr">' +
+              '<div class="evt-resumen-card" style="background:#EAF3DE"><div class="evt-resumen-num" style="color:#173404">' + nSi + '</div><div class="evt-resumen-label" style="color:#173404">Confirman</div></div>' +
+              '<div class="evt-resumen-card" style="background:#FCEBEB"><div class="evt-resumen-num" style="color:#791F1F">' + nNo + '</div><div class="evt-resumen-label" style="color:#791F1F">No vienen</div></div>' +
+              '<div class="evt-resumen-card"><div class="evt-resumen-num">' + nPend + '</div><div class="evt-resumen-label">Pendientes</div></div>' +
+            '</div>' +
+          '</div>';
+        })() +
         '<hr class="ficha-sep">' +
         asistHtml +
         '</div>' +
@@ -4069,6 +4087,26 @@
       }
 
       // Avisar a asistentes masivo
+      // Enviar confirmaciones
+      var btnConf = document.getElementById('btnEnviarConf');
+      if (btnConf) {
+        btnConf.addEventListener('click', function() {
+          if (!verificarClaveAdmin()) return;
+          if (!evt.confirmacion_token) {
+            if (!confirm('Primero hay que generar un enlace \u00fanico. \u00bfGenerarlo ahora?')) return;
+            fetch('/api/eventos/' + evt.id + '/generar-token', { method: 'POST' })
+              .then(function(r) { return r.json(); })
+              .then(function(res) {
+                evt.confirmacion_token = res.token;
+                abrirEnvioConfirmaciones(evt);
+              })
+              .catch(function() { showError('Error al generar token'); });
+          } else {
+            abrirEnvioConfirmaciones(evt);
+          }
+        });
+      }
+
       var btnAvisar = document.getElementById('btnAvisarWa');
       if (btnAvisar) {
         btnAvisar.addEventListener('click', function() {
@@ -5221,7 +5259,155 @@
       });
     }
 
-    document.addEventListener('DOMContentLoaded', init);
+    // === ENVÍO MASIVO DE CONFIRMACIONES ===
+    function abrirEnvioConfirmaciones(evt) {
+      var overlay = document.getElementById('waSelOverlay');
+      var content = document.getElementById('waSelContent');
+      var token = evt.confirmacion_token;
+      var selected = [];
+      var rc = evt.respuestas_confirmacion || {};
+
+      // Plantilla según tipo
+      var dp = evt.fecha.split('-');
+      var dObj = new Date(parseInt(dp[0],10), parseInt(dp[1],10)-1, parseInt(dp[2],10));
+      var diaSem = DIAS_SEMANA[dObj.getDay()];
+      var dia = parseInt(dp[2],10); var mes = MESES_LARGO[parseInt(dp[1],10)-1]; var anio = dp[0];
+      var nombreBase = evt.nombre.replace(/\s*-\s*\d{1,2}\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\s+\d{4}$/i, '');
+      var precioTxt = evt.precio_por_persona ? evt.precio_por_persona : '';
+
+      var plantilla = '';
+      if (evt.tipo === 'comida_social') {
+        plantilla = 'Estimado {NOMBRE},\n\nEl pr\u00f3ximo ' + diaSem + ' ' + dia + ' de ' + mes + ' de ' + anio + ' vamos a celebrar una Comida Social en LA BOYA. Nos encantar\u00eda que pudieras asistir. Te recuerdo que el precio es de ' + precioTxt + ' \u20ac, que deber\u00e1s ingresar en la sede de LA BOYA antes del d\u00eda de la comida.\n\nSi puedes asistir, te ruego que pulses el enlace de abajo y confirmes tu asistencia.\n\n{ENLACE}';
+      } else if (evt.tipo === 'evento_gratis') {
+        plantilla = 'Estimado {NOMBRE},\n\nEl pr\u00f3ximo ' + diaSem + ' ' + dia + ' de ' + mes + ' de ' + anio + ' la Sociedad LA BOYA os invita a ' + nombreBase + ', sufragado por los fondos de la sociedad (no tendr\u00e1s que pagar nada).\n\nNos encantar\u00eda que pudieras asistir. Tu confirmaci\u00f3n nos ayuda a hacer la previsi\u00f3n de compras.\n\nSi puedes asistir, te ruego que pulses el enlace de abajo y confirmes tu asistencia.\n\n{ENLACE}';
+      } else {
+        plantilla = 'Estimado {NOMBRE},\n\nEl pr\u00f3ximo ' + diaSem + ' ' + dia + ' de ' + mes + ' de ' + anio + ' vamos a celebrar ' + nombreBase + ' en LA BOYA y nos encantar\u00eda que pudieras asistir. Te recuerdo que el precio se establecer\u00e1 al final del evento y se repartir\u00e1 entre los comensales.\n\nSi puedes asistir, te ruego que pulses el enlace de abajo y confirmes tu asistencia.\n\n{ENLACE}';
+      }
+
+      // Default: select those who haven't responded
+      var sociosOrd = socios.slice().sort(function(a, b) { return (a.num_socio || 0) - (b.num_socio || 0); });
+      for (var s = 0; s < sociosOrd.length; s++) {
+        if (sociosOrd[s].telefono && !rc[String(sociosOrd[s].num_socio)]) selected.push(sociosOrd[s].id);
+      }
+
+      function renderConfList() {
+        var searchEl = document.getElementById('confSearch');
+        var query = searchEl ? norm(searchEl.value.trim()) : '';
+        var filtered = sociosOrd.filter(function(s) { if (!query) return true; return norm(s.nombre + ' ' + s.apellidos).indexOf(query) !== -1; });
+
+        var gridHtml = '';
+        for (var i = 0; i < filtered.length; i++) {
+          var s = filtered[i];
+          var hasTel = !!s.telefono;
+          var isSel = selected.indexOf(s.id) !== -1;
+          var resp = rc[String(s.num_socio)];
+          var bgC = s.avatar_color || '#85B7EB'; var txtC = TEXT_COLORS[bgC] || '#333';
+          var ini = getInitials(s.nombre, s.apellidos);
+          var avHtml = s.foto_url ? '<img src="' + cloudinaryThumb(s.foto_url, 120) + '" alt="" loading="lazy">' : '<span style="color:' + txtC + '">' + ini + '</span>';
+          var checkHtml = isSel ? '<div class="sel-check">' + SVG_CHECK + '</div>' : '';
+          var respBadge = '';
+          if (resp) {
+            respBadge = resp.respuesta === 'si'
+              ? '<div style="font-size:9px;background:#EAF3DE;color:#173404;padding:1px 6px;border-radius:4px;display:inline-block;margin-top:2px">\u2713 Confirm\u00f3' + (resp.invitados > 0 ? ' +' + resp.invitados : '') + '</div>'
+              : '<div style="font-size:9px;background:#FCEBEB;color:#791F1F;padding:1px 6px;border-radius:4px;display:inline-block;margin-top:2px">\u2717 Declin\u00f3</div>';
+          }
+          var noTelBadge = !hasTel ? '<div class="wa-no-tel-badge">Sin tel\u00e9fono</div>' : '';
+          gridHtml += '<div class="card' + (!hasTel ? ' wa-no-tel' : '') + '" data-conf-sid="' + s.id + '" style="padding:8px;gap:6px;flex-direction:row;cursor:' + (hasTel ? 'pointer' : 'not-allowed') + '">' +
+            '<div class="avatar-wrap" style="position:relative"><div class="avatar" style="background:' + (s.foto_url ? 'transparent' : bgC) + ';width:44px;height:44px;font-size:14px">' + avHtml + '</div>' + checkHtml + '</div>' +
+            '<div class="card-info"><div class="card-name" style="font-size:12px">' + escapeHtml(s.nombre) + '</div><div class="card-surname" style="font-size:10px">' + escapeHtml(s.apellidos) + '</div>' + respBadge + noTelBadge + '</div></div>';
+        }
+
+        var el = document.getElementById('confGrid');
+        if (el) el.innerHTML = '<div class="grid cols-2" style="gap:5px">' + gridHtml + '</div>';
+        var cEl = document.getElementById('confCounter');
+        if (cEl) cEl.innerHTML = '<span style="font-size:13px;font-weight:500;color:#185FA5">' + selected.length + ' seleccionados</span>';
+        var sendBtn = document.getElementById('confSend');
+        if (sendBtn) { sendBtn.disabled = selected.length === 0; sendBtn.style.opacity = selected.length === 0 ? '0.5' : '1'; }
+
+        var cards = el ? el.querySelectorAll('.card:not(.wa-no-tel)') : [];
+        for (var c = 0; c < cards.length; c++) {
+          cards[c].addEventListener('click', function() {
+            var sid = this.getAttribute('data-conf-sid');
+            var idx = selected.indexOf(sid); if (idx === -1) selected.push(sid); else selected.splice(idx, 1);
+            renderConfList();
+          });
+        }
+      }
+
+      content.innerHTML =
+        '<div class="overlay-shell">' +
+        '<div class="overlay-head"><button class="ficha-back" id="confBack">\u2190 Volver</button><span class="sel-bar-title">Enviar confirmaciones</span><span></span></div>' +
+        '<div class="overlay-body">' +
+          '<div style="background:#E6F1FB;border:0.5px solid #B5D4F4;border-radius:8px;padding:10px 14px;margin:8px 16px;font-size:12px;color:#0C447C">Cada socio recibir\u00e1 un enlace personalizado con el que podr\u00e1 confirmar su asistencia.</div>' +
+          '<div style="padding:8px 16px"><label class="form-label">Mensaje (puedes editarlo)</label><textarea class="notas-textarea-neutral" id="confMsg" style="min-height:140px;font-size:13px">' + escapeHtml(plantilla) + '</textarea></div>' +
+          '<div style="padding:4px 16px 8px"><input class="search-input" id="confSearch" placeholder="Buscar socio..." autocomplete="off"></div>' +
+          '<div style="padding:0 16px 6px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px">' +
+            '<div style="display:flex;gap:4px">' +
+              '<button class="pill" id="confSelPend" style="font-size:10px;padding:3px 8px">Pendientes</button>' +
+              '<button class="pill" id="confSelAll" style="font-size:10px;padding:3px 8px">Todos</button>' +
+              '<button class="pill" id="confDesel" style="font-size:10px;padding:3px 8px">Ninguno</button>' +
+            '</div>' +
+            '<div id="confCounter"></div>' +
+          '</div>' +
+          '<div id="confGrid" style="padding:0 8px"></div>' +
+        '</div>' +
+        '<div class="overlay-foot">' +
+          '<button class="btn-cancel" id="confCancel">Cancelar</button>' +
+          '<button class="btn-wa" id="confSend" style="padding:8px 16px;font-size:14px" disabled>' + SVG_WA + ' Abrir WhatsApp</button>' +
+        '</div>' +
+        '</div>';
+
+      overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      renderConfList();
+
+      document.getElementById('confSearch').addEventListener('input', renderConfList);
+      document.getElementById('confSelPend').addEventListener('click', function() {
+        selected = [];
+        for (var s = 0; s < sociosOrd.length; s++) { if (sociosOrd[s].telefono && !rc[String(sociosOrd[s].num_socio)]) selected.push(sociosOrd[s].id); }
+        renderConfList();
+      });
+      document.getElementById('confSelAll').addEventListener('click', function() {
+        selected = socios.filter(function(s) { return !!s.telefono; }).map(function(s) { return s.id; });
+        renderConfList();
+      });
+      document.getElementById('confDesel').addEventListener('click', function() { selected = []; renderConfList(); });
+
+      function cerrarConf() { overlay.classList.remove('open'); setTimeout(function() { document.body.style.overflow = ''; }, 300); }
+      document.getElementById('confBack').addEventListener('click', cerrarConf);
+      document.getElementById('confCancel').addEventListener('click', cerrarConf);
+
+      document.getElementById('confSend').addEventListener('click', function() {
+        var msg = document.getElementById('confMsg').value;
+        var dests = selected.map(function(id) { return findSocio(id); }).filter(function(s) { return s && s.telefono; });
+        if (dests.length === 0) return;
+        if (!confirm('Se abrir\u00e1n ' + dests.length + ' pesta\u00f1as de WhatsApp. \u00bfContinuar?')) return;
+        var count = 0;
+        for (var d = 0; d < dests.length; d++) {
+          var soc = dests[d];
+          var personal = msg.replace(/\{NOMBRE\}/g, soc.nombre.split(' ')[0])
+            .replace(/\{ENLACE\}/g, window.location.origin + '/c/' + token + '/' + soc.num_socio);
+          (function(tel, m, delay) {
+            setTimeout(function() { abrirWhatsApp(tel, m); }, delay);
+          })(soc.telefono, personal, count * 500);
+          count++;
+        }
+        cerrarConf();
+        console.log('Confirmaciones enviadas: ' + count + ' para evento ' + evt.id);
+        showToast('\u2713 ' + count + ' conversaciones abiertas en WhatsApp');
+      });
+    }
+
+    // PROTECCIÓN TEMPORAL: clave para acceder a la app admin.
+    // Planificado sustituir por login real en servidor (JWT + usuario/password).
+    document.addEventListener('DOMContentLoaded', function() {
+      var clave = prompt('Introduce la clave de administrador para acceder a LA BOYA:');
+      if (clave !== '101') {
+        document.body.innerHTML = '<div style="text-align:center;padding:60px 20px;font-family:system-ui"><h2 style="color:#333">Acceso denegado</h2><p style="color:#666;margin-top:8px">Recarga e int\u00e9ntalo de nuevo.</p></div>';
+        return;
+      }
+      init();
+    });
   </script>
 
 </body>
