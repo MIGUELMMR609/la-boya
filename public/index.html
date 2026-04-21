@@ -2299,6 +2299,11 @@
   </div>
 
   <script>
+    // === CONFIGURACIÓN BETA ===
+    // Solo estos socios pueden recibir confirmaciones. Para abrir a todos: poner null.
+    // Socios BETA: Miguel Montoro Rodriguez (74) + Jose Ramon Gonzalez Garcia (30)
+    var BETA_SOCIOS_PERMITIDOS = [74, 30];
+
     // === PROTECCIÓN DATOS — CLAVE ADMIN ===
     /*
      * PROTECCIÓN RGPD BÁSICA
@@ -5284,10 +5289,14 @@
         plantilla = 'Estimado {NOMBRE},\n\nEl pr\u00f3ximo ' + diaSem + ' ' + dia + ' de ' + mes + ' de ' + anio + ' vamos a celebrar ' + nombreBase + ' en LA BOYA y nos encantar\u00eda que pudieras asistir. Te recuerdo que el precio se establecer\u00e1 al final del evento y se repartir\u00e1 entre los comensales.\n\nSi puedes asistir, te ruego que pulses el enlace de abajo y confirmes tu asistencia.\n\n{ENLACE}';
       }
 
-      // Default: select those who haven't responded
+      // Beta check helper
+      var betaActivo = BETA_SOCIOS_PERMITIDOS && BETA_SOCIOS_PERMITIDOS.length > 0;
+      function esBeta(numSocio) { return !betaActivo || BETA_SOCIOS_PERMITIDOS.indexOf(numSocio) !== -1; }
+
+      // Default: select beta pendientes
       var sociosOrd = socios.slice().sort(function(a, b) { return (a.num_socio || 0) - (b.num_socio || 0); });
       for (var s = 0; s < sociosOrd.length; s++) {
-        if (sociosOrd[s].telefono && !rc[String(sociosOrd[s].num_socio)]) selected.push(sociosOrd[s].id);
+        if (sociosOrd[s].telefono && esBeta(sociosOrd[s].num_socio) && !rc[String(sociosOrd[s].num_socio)]) selected.push(sociosOrd[s].id);
       }
 
       function renderConfList() {
@@ -5312,15 +5321,20 @@
               : '<div style="font-size:9px;background:#FCEBEB;color:#791F1F;padding:1px 6px;border-radius:4px;display:inline-block;margin-top:2px">\u2717 Declin\u00f3</div>';
           }
           var noTelBadge = !hasTel ? '<div class="wa-no-tel-badge">Sin tel\u00e9fono</div>' : '';
-          gridHtml += '<div class="card' + (!hasTel ? ' wa-no-tel' : '') + '" data-conf-sid="' + s.id + '" style="padding:8px;gap:6px;flex-direction:row;cursor:' + (hasTel ? 'pointer' : 'not-allowed') + '">' +
+          var betaBlocked = betaActivo && !esBeta(s.num_socio);
+          var disabled = !hasTel || betaBlocked;
+          var disClass = disabled ? ' wa-no-tel' : '';
+          var betaBadge = betaBlocked ? '<div style="font-size:9px;background:#E0E0E0;color:#5F5E5A;padding:1px 6px;border-radius:4px;display:inline-block;margin-top:2px">Beta cerrada</div>' : '';
+          gridHtml += '<div class="card' + disClass + '" data-conf-sid="' + s.id + '" style="padding:8px;gap:6px;flex-direction:row;cursor:' + (disabled ? 'not-allowed' : 'pointer') + '">' +
             '<div class="avatar-wrap" style="position:relative"><div class="avatar" style="background:' + (s.foto_url ? 'transparent' : bgC) + ';width:44px;height:44px;font-size:14px">' + avHtml + '</div>' + checkHtml + '</div>' +
-            '<div class="card-info"><div class="card-name" style="font-size:12px">' + escapeHtml(s.nombre) + '</div><div class="card-surname" style="font-size:10px">' + escapeHtml(s.apellidos) + '</div>' + respBadge + noTelBadge + '</div></div>';
+            '<div class="card-info"><div class="card-name" style="font-size:12px">' + escapeHtml(s.nombre) + '</div><div class="card-surname" style="font-size:10px">' + escapeHtml(s.apellidos) + '</div>' + respBadge + noTelBadge + betaBadge + '</div></div>';
         }
 
         var el = document.getElementById('confGrid');
         if (el) el.innerHTML = '<div class="grid cols-2" style="gap:5px">' + gridHtml + '</div>';
         var cEl = document.getElementById('confCounter');
-        if (cEl) cEl.innerHTML = '<span style="font-size:13px;font-weight:500;color:#185FA5">' + selected.length + ' seleccionados</span>';
+        var betaNote = betaActivo ? ' (' + BETA_SOCIOS_PERMITIDOS.length + ' en beta)' : '';
+        if (cEl) cEl.innerHTML = '<span style="font-size:13px;font-weight:500;color:#185FA5">' + selected.length + ' seleccionados' + betaNote + '</span>';
         var sendBtn = document.getElementById('confSend');
         if (sendBtn) { sendBtn.disabled = selected.length === 0; sendBtn.style.opacity = selected.length === 0 ? '0.5' : '1'; }
 
@@ -5338,6 +5352,7 @@
         '<div class="overlay-shell">' +
         '<div class="overlay-head"><button class="ficha-back" id="confBack">\u2190 Volver</button><span class="sel-bar-title">Enviar confirmaciones</span><span></span></div>' +
         '<div class="overlay-body">' +
+          (betaActivo ? '<div style="background:#FAC775;border:1px solid #EF9F27;border-radius:8px;padding:10px 14px;margin:8px 16px;font-size:12px;color:#412402">FASE BETA \u2014 Solo los socios autorizados pueden recibir confirmaciones. El resto est\u00e1 temporalmente bloqueado.</div>' : '') +
           '<div style="background:#E6F1FB;border:0.5px solid #B5D4F4;border-radius:8px;padding:10px 14px;margin:8px 16px;font-size:12px;color:#0C447C">Cada socio recibir\u00e1 un enlace personalizado con el que podr\u00e1 confirmar su asistencia.</div>' +
           '<div style="padding:8px 16px"><label class="form-label">Mensaje (puedes editarlo)</label><textarea class="notas-textarea-neutral" id="confMsg" style="min-height:140px;font-size:13px">' + escapeHtml(plantilla) + '</textarea></div>' +
           '<div style="padding:4px 16px 8px"><input class="search-input" id="confSearch" placeholder="Buscar socio..." autocomplete="off"></div>' +
@@ -5364,11 +5379,11 @@
       document.getElementById('confSearch').addEventListener('input', renderConfList);
       document.getElementById('confSelPend').addEventListener('click', function() {
         selected = [];
-        for (var s = 0; s < sociosOrd.length; s++) { if (sociosOrd[s].telefono && !rc[String(sociosOrd[s].num_socio)]) selected.push(sociosOrd[s].id); }
+        for (var s = 0; s < sociosOrd.length; s++) { if (sociosOrd[s].telefono && esBeta(sociosOrd[s].num_socio) && !rc[String(sociosOrd[s].num_socio)]) selected.push(sociosOrd[s].id); }
         renderConfList();
       });
       document.getElementById('confSelAll').addEventListener('click', function() {
-        selected = socios.filter(function(s) { return !!s.telefono; }).map(function(s) { return s.id; });
+        selected = socios.filter(function(s) { return !!s.telefono && esBeta(s.num_socio); }).map(function(s) { return s.id; });
         renderConfList();
       });
       document.getElementById('confDesel').addEventListener('click', function() { selected = []; renderConfList(); });
@@ -5379,7 +5394,7 @@
 
       document.getElementById('confSend').addEventListener('click', function() {
         var msg = document.getElementById('confMsg').value;
-        var dests = selected.map(function(id) { return findSocio(id); }).filter(function(s) { return s && s.telefono; });
+        var dests = selected.map(function(id) { return findSocio(id); }).filter(function(s) { return s && s.telefono && esBeta(s.num_socio); });
         if (dests.length === 0) return;
         if (!confirm('Se abrir\u00e1n ' + dests.length + ' pesta\u00f1as de WhatsApp. \u00bfContinuar?')) return;
         var count = 0;
