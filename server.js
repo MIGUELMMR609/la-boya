@@ -3,6 +3,8 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
+var TelegramBot = null;
+try { TelegramBot = require('node-telegram-bot-api'); } catch(e) { console.log('node-telegram-bot-api no disponible'); }
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -144,6 +146,17 @@ function inicializarDatos() {
   if (migrados > 0) {
     guardarDatosSeguro(SOCIOS_FILE, contenido, 'migracion-telefono');
     console.log('Migracion: campo telefono a\u00f1adido a ' + migrados + ' socios');
+  }
+
+  // Migración: canal_preferido y telegram_chat_id
+  var migCanal = 0;
+  for (var mc = 0; mc < contenido.length; mc++) {
+    if (contenido[mc].canal_preferido === undefined) { contenido[mc].canal_preferido = 'whatsapp'; migCanal++; }
+    if (contenido[mc].telegram_chat_id === undefined) { contenido[mc].telegram_chat_id = null; migCanal++; }
+  }
+  if (migCanal > 0) {
+    guardarDatosSeguro(SOCIOS_FILE, contenido, 'migracion-canal');
+    console.log('Migracion canal_preferido/telegram: ' + migCanal + ' campos actualizados');
   }
 
   // Verificar fotos preservadas
@@ -420,6 +433,12 @@ app.delete('/api/socios/:id', async (req, res) => {
     res.status(500).json({ error: 'Error al eliminar socio' });
   }
 });
+
+// Helper leer socios
+function leerSocios() {
+  try { return JSON.parse(fs.readFileSync(SOCIOS_FILE, 'utf8')); }
+  catch(e) { return []; }
+}
 
 // === EVENTOS ===
 const MESES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -1087,7 +1106,8 @@ app.get('/api/publico/confirmacion/:token/:num_socio', (req, res) => {
       },
       socio: {
         nombre: soc.nombre.split(' ')[0],
-        nombre_completo: soc.nombre + ' ' + soc.apellidos
+        nombre_completo: soc.nombre + ' ' + soc.apellidos,
+        telegram_vinculado: !!soc.telegram_chat_id
       },
       respuesta_actual: respActual
     });
@@ -1157,6 +1177,129 @@ app.post('/api/publico/confirmacion/:token/:num_socio', (req, res) => {
   } catch (err) {
     console.error('Error POST confirmacion:', err);
     res.status(500).json({ error: 'Error interno' });
+  }
+});
+
+// === CANAL PREFERIDO ===
+app.put('/api/socios/:id/canal', (req, res) => {
+  try {
+    var canal = req.body.canal_preferido;
+    if (!['whatsapp', 'telegram', 'ambos', null].includes(canal)) return res.status(400).json({ error: 'Canal invalido' });
+    var data = leerSocios();
+    var idx = data.findIndex(function(s) { return s.id === req.params.id; });
+    if (idx === -1) return res.status(404).json({ error: 'Socio no encontrado' });
+    data[idx].canal_preferido = canal;
+    data[idx].fecha_modificacion = fechaHoy();
+    guardarDatosSeguro(SOCIOS_FILE, data, 'canal-preferido');
+    res.json(data[idx]);
+  } catch (err) { res.status(500).json({ error: 'Error' }); }
+});
+
+// === TELEGRAM BOT ===
+var bot = null;
+if (TelegramBot && process.env.TELEGRAM_BOT_TOKEN) {
+  bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true });
+  console.log('Bot Telegram inicializado');
+
+  bot.onText(/\/start(?:\s+(\d+))?/, function(msg, match) {
+    var chatId = msg.chat.id;
+    var numSocio = match[1] ? parseInt(match[1]) : null;
+    if (numSocio) {
+      var data = leerSocios();
+      var soc = data.find(function(s) { return s.num_socio === numSocio; });
+      if (soc) {
+        soc.telegram_chat_id = chatId;
+        if (!soc.canal_preferido || soc.canal_preferido === 'whatsapp') soc.canal_preferido = 'ambos';
+        guardarDatosSeguro(SOCIOS_FILE, data, 'telegram-vinculacion');
+        bot.sendMessage(chatId, 'Hola ' + soc.nombre.split(' ')[0] + '! Ya estas vinculado a LA BOYA.\n\nDesde ahora recibiras las confirmaciones de eventos aqui.\nTu numero de socio: ' + numSocio);
+        console.log('Telegram vinculado: socio ' + numSocio + ' -> chat_id ' + chatId);
+      } else {
+        bot.sendMessage(chatId, 'No he encontrado el socio con numero ' + numSocio + '. Vuelve a la web de LA BOYA y prueba de nuevo.');
+      }
+    } else {
+      bot.sendMessage(chatId, 'Hola, soy el bot de LA BOYA.\n\nPara vincular tu cuenta, pulsa el boton "Activar Telegram" en la web de confirmacion de asistencia.');
+    }
+  });
+
+  bot.on('callback_query', function(query) {
+    var chatId = query.message.chat.id;
+    var messageId = query.message.message_id;
+    var matchCb = query.data.match(/^confirm_(.+)_(\d+)_(si|no)$/);
+    if (!matchCb) return;
+    var eventoId = matchCb[1]; var numSocio = matchCb[2]; var respuesta = matchCb[3];
+    try {
+      var eventos = leerEventos();
+      var evento = eventos.find(function(e) { return e.id === eventoId; });
+      if (!evento) { bot.answerCallbackQuery(query.id, { text: 'Evento no encontrado', show_alert: true }); return; }
+      if (evento.estado === 'finalizado') { bot.answerCallbackQuery(query.id, { text: 'Evento ya cerrado', show_alert: true }); return; }
+
+      if (!evento.respuestas_confirmacion) evento.respuestas_confirmacion = {};
+      var prevInv = (evento.respuestas_confirmacion[numSocio] && evento.respuestas_confirmacion[numSocio].invitados) || 0;
+      evento.respuestas_confirmacion[numSocio] = { respuesta: respuesta, invitados: respuesta === 'si' ? prevInv : 0, fecha_respuesta: new Date().toISOString() };
+
+      var socData = leerSocios();
+      var soc = socData.find(function(s) { return s.num_socio === parseInt(numSocio); });
+      var socId = soc ? soc.id : numSocio;
+
+      if (respuesta === 'si') {
+        if (!evento.asistentes.some(function(a) { return a.socio_id === socId; })) {
+          evento.asistentes.push({ socio_id: socId, invitados: prevInv, pagado: false });
+        }
+      } else {
+        var cocIdx = (evento.cocineros || []).indexOf(socId);
+        if (cocIdx === -1) evento.asistentes = evento.asistentes.filter(function(a) { return a.socio_id !== socId; });
+      }
+
+      evento.fecha_modificacion = fechaHoy();
+      guardarDatosSeguro(EVENTOS_FILE, eventos, 'telegram-confirm-' + numSocio);
+
+      var nombre = soc ? soc.nombre.split(' ')[0] : 'amigo';
+      var msgConf = respuesta === 'si' ? 'Gracias ' + nombre + ', tu asistencia esta confirmada.' : 'Gracias ' + nombre + ', hemos registrado que no puedes ir.';
+      bot.editMessageText(query.message.text + '\n\n' + msgConf, { chat_id: chatId, message_id: messageId }).catch(function() {});
+      bot.answerCallbackQuery(query.id, { text: msgConf });
+      console.log('Telegram callback: evento ' + eventoId + ', socio ' + numSocio + ' -> ' + respuesta);
+    } catch (err) {
+      console.error('Error callback Telegram:', err);
+      bot.answerCallbackQuery(query.id, { text: 'Error, intentalo de nuevo', show_alert: true });
+    }
+  });
+
+  bot.on('polling_error', function(err) { console.error('Telegram polling error:', err.code); });
+} else {
+  console.log('TELEGRAM_BOT_TOKEN no definido. Telegram deshabilitado.');
+}
+
+// POST /api/eventos/:id/enviar-telegram
+app.post('/api/eventos/:id/enviar-telegram', function(req, res) {
+  if (!bot) return res.status(503).json({ error: 'Telegram no configurado' });
+  try {
+    var data = leerEventos();
+    var evt = data.find(function(e) { return e.id === req.params.id; });
+    if (!evt) return res.status(404).json({ error: 'Evento no encontrado' });
+    var destinatarios = req.body.socios || [];
+    var plantilla = req.body.mensaje_plantilla || '';
+    var enviados = 0; var fallidos = 0; var detalles = [];
+
+    function enviarUno(i) {
+      if (i >= destinatarios.length) {
+        console.log('Telegram enviados: ' + enviados + ', fallidos: ' + fallidos + ' para evento ' + evt.id);
+        return res.json({ ok: true, enviados: enviados, fallidos: fallidos, detalles: detalles });
+      }
+      var d = destinatarios[i];
+      if (!d.chat_id) { fallidos++; detalles.push({ num_socio: d.num_socio, error: 'sin chat_id' }); enviarUno(i + 1); return; }
+      var msg = plantilla.replace(/\{NOMBRE\}/g, d.nombre_pila || 'Socio');
+      var keyboard = { inline_keyboard: [
+        [{ text: '\u2713 SI CONFIRMO', callback_data: 'confirm_' + evt.id + '_' + d.num_socio + '_si' }],
+        [{ text: '\u2717 NO PUEDO IR', callback_data: 'confirm_' + evt.id + '_' + d.num_socio + '_no' }]
+      ]};
+      bot.sendMessage(d.chat_id, msg, { reply_markup: keyboard })
+        .then(function() { enviados++; detalles.push({ num_socio: d.num_socio, ok: true }); enviarUno(i + 1); })
+        .catch(function(err) { fallidos++; detalles.push({ num_socio: d.num_socio, error: err.message }); enviarUno(i + 1); });
+    }
+    enviarUno(0);
+  } catch (err) {
+    console.error('Error enviar Telegram:', err);
+    res.status(500).json({ error: 'Error al enviar' });
   }
 });
 

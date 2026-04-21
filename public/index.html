@@ -5325,9 +5325,14 @@
           var disabled = !hasTel || betaBlocked;
           var disClass = disabled ? ' wa-no-tel' : '';
           var betaBadge = betaBlocked ? '<div style="font-size:9px;background:#E0E0E0;color:#5F5E5A;padding:1px 6px;border-radius:4px;display:inline-block;margin-top:2px">Beta cerrada</div>' : '';
+          var canalIcon = '';
+          var canal = s.canal_preferido || 'whatsapp';
+          if (canal === 'telegram') canalIcon = '<span style="font-size:10px;color:#0088CC" title="Telegram">TG</span> ';
+          else if (canal === 'ambos') canalIcon = '<span style="font-size:10px;color:#25D366" title="WhatsApp">WA</span><span style="font-size:10px;color:#0088CC" title="Telegram">+TG</span> ';
+          else canalIcon = '<span style="font-size:10px;color:#25D366" title="WhatsApp">WA</span> ';
           gridHtml += '<div class="card' + disClass + '" data-conf-sid="' + s.id + '" style="padding:8px;gap:6px;flex-direction:row;cursor:' + (disabled ? 'not-allowed' : 'pointer') + '">' +
             '<div class="avatar-wrap" style="position:relative"><div class="avatar" style="background:' + (s.foto_url ? 'transparent' : bgC) + ';width:44px;height:44px;font-size:14px">' + avHtml + '</div>' + checkHtml + '</div>' +
-            '<div class="card-info"><div class="card-name" style="font-size:12px">' + escapeHtml(s.nombre) + '</div><div class="card-surname" style="font-size:10px">' + escapeHtml(s.apellidos) + '</div>' + respBadge + noTelBadge + betaBadge + '</div></div>';
+            '<div class="card-info"><div class="card-name" style="font-size:12px">' + canalIcon + escapeHtml(s.nombre) + '</div><div class="card-surname" style="font-size:10px">' + escapeHtml(s.apellidos) + '</div>' + respBadge + noTelBadge + betaBadge + '</div></div>';
         }
 
         var el = document.getElementById('confGrid');
@@ -5394,22 +5399,48 @@
 
       document.getElementById('confSend').addEventListener('click', function() {
         var msg = document.getElementById('confMsg').value;
-        var dests = selected.map(function(id) { return findSocio(id); }).filter(function(s) { return s && s.telefono && esBeta(s.num_socio); });
+        var dests = selected.map(function(id) { return findSocio(id); }).filter(function(s) { return s && esBeta(s.num_socio); });
         if (dests.length === 0) return;
-        if (!confirm('Se abrir\u00e1n ' + dests.length + ' pesta\u00f1as de WhatsApp. \u00bfContinuar?')) return;
-        var count = 0;
-        for (var d = 0; d < dests.length; d++) {
-          var soc = dests[d];
+
+        // Split by channel
+        var waDests = []; var tgDests = [];
+        for (var dd = 0; dd < dests.length; dd++) {
+          var canal = dests[dd].canal_preferido || 'whatsapp';
+          if ((canal === 'telegram' || canal === 'ambos') && dests[dd].telegram_chat_id) tgDests.push(dests[dd]);
+          if ((canal === 'whatsapp' || canal === 'ambos' || !dests[dd].telegram_chat_id) && dests[dd].telefono) waDests.push(dests[dd]);
+        }
+
+        if (!confirm('Se enviar\u00e1n ' + (tgDests.length > 0 ? tgDests.length + ' por Telegram y ' : '') + waDests.length + ' por WhatsApp. \u00bfContinuar?')) return;
+
+        // Telegram batch
+        if (tgDests.length > 0) {
+          var tgBody = { socios: tgDests.map(function(s) {
+            return { num_socio: s.num_socio, nombre_pila: s.nombre.split(' ')[0], chat_id: s.telegram_chat_id };
+          }), mensaje_plantilla: msg.replace(/\{ENLACE\}[^\n]*/g, '').trim() };
+          fetch('/api/eventos/' + evt.id + '/enviar-telegram', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(tgBody)
+          }).then(function(r) { return r.json(); }).then(function(res) {
+            console.log('Telegram enviados: ' + res.enviados + ', fallidos: ' + res.fallidos);
+          }).catch(function(err) { console.error('Error Telegram:', err); });
+        }
+
+        // WhatsApp
+        var waCount = 0;
+        for (var wd = 0; wd < waDests.length; wd++) {
+          var soc = waDests[wd];
           var personal = msg.replace(/\{NOMBRE\}/g, soc.nombre.split(' ')[0])
             .replace(/\{ENLACE\}/g, window.location.origin + '/c/' + token + '/' + soc.num_socio);
           (function(tel, m, delay) {
             setTimeout(function() { abrirWhatsApp(tel, m); }, delay);
-          })(soc.telefono, personal, count * 500);
-          count++;
+          })(soc.telefono, personal, waCount * 500);
+          waCount++;
         }
+
         cerrarConf();
-        console.log('Confirmaciones enviadas: ' + count + ' para evento ' + evt.id);
-        showToast('\u2713 ' + count + ' conversaciones abiertas en WhatsApp');
+        var toastMsg = '';
+        if (tgDests.length > 0) toastMsg += tgDests.length + ' enviados por Telegram. ';
+        if (waCount > 0) toastMsg += waCount + ' WhatsApp abiertos.';
+        showToast('\u2713 ' + toastMsg);
       });
     }
 
