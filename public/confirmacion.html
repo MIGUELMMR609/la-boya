@@ -139,7 +139,7 @@
           '<div class="logo-sub">Sociedad Recreativa</div>' +
           '<hr class="sep">' +
           '<div class="badge ' + badgeClass + '">' + badgeText + '</div>' +
-          '<div class="evt-name">' + esc(evento.nombre) + '</div>' +
+          '<div class="evt-name" style="text-transform:uppercase;letter-spacing:0.5px">' + esc(evento.nombre) + '</div>' +
           '<div class="evt-fecha">' + esc(evento.fecha_formateada) + '</div>' +
           precioHtml +
           notasHtml +
@@ -150,16 +150,24 @@
           '<div class="pregunta">\u00bfPuedes asistir?</div>' +
           '<button class="btn-si' + siClass + '" id="btnSi"' + dis + '>\u2713  S\u00cd, CONFIRMO<span class="sub">' + goText + '</span></button>' +
           '<button class="btn-no' + noClass + '" id="btnNo"' + dis + '>\u2717  NO PUEDO IR<span class="sub">esta vez</span></button>' +
-          '<div class="inv-section' + (estado.respuesta === 'si' ? ' show' : '') + '" id="invSection">' +
-            '<hr class="sep">' +
-            '<div class="inv-q">\u00bfTraes ' + invWord + '?</div>' +
-            '<div class="inv-row">' +
-              '<button class="inv-btn" id="invMinus" aria-label="Menos"' + (estado.invitados <= 0 ? ' disabled' : '') + '>\u2212</button>' +
-              '<div class="inv-num" id="invNum" role="spinbutton" aria-valuenow="' + estado.invitados + '">' + estado.invitados + '</div>' +
-              '<button class="inv-btn" id="invPlus" aria-label="Mas">+</button>' +
-            '</div>' +
-            '<div class="inv-hint" id="invHint">' + hintText(estado.invitados, invWordS, invWord) + '</div>' +
-          '</div>' +
+          (evento.tipo !== 'comida_social' ?
+            '<div class="inv-section' + (estado.respuesta === 'si' ? ' show' : '') + '" id="invSection">' +
+              '<hr class="sep">' +
+              '<div class="inv-q">\u00bfTraes ' + invWord + '?</div>' +
+              '<div class="inv-row">' +
+                '<button class="inv-btn" id="invMinus" aria-label="Menos"' + (estado.invitados <= 0 ? ' disabled' : '') + '>\u2212</button>' +
+                '<div class="inv-num" id="invNum" role="spinbutton" aria-valuenow="' + estado.invitados + '">' + estado.invitados + '</div>' +
+                '<button class="inv-btn" id="invPlus" aria-label="Mas">+</button>' +
+              '</div>' +
+              '<div class="inv-hint" id="invHint">' + hintText(estado.invitados, invWordS, invWord) + '</div>' +
+            '</div>'
+          : '') +
+          (evento.tipo === 'comida_social' && evento.aforo_maximo ?
+            '<div style="background:#FAEEDA;border:1px solid #EF9F27;border-radius:10px;padding:12px 16px;margin-top:16px;font-size:14px;color:#412402;line-height:1.5">' +
+              '\u26a0\ufe0f EL AFORO MAXIMO ES DE ' + evento.aforo_maximo + ' COMENSALES. Si puedes asistir, confirmalo lo antes posible.' +
+              '<div style="font-size:13px;color:#666;margin-top:6px">\u2139\ufe0f Si un socio quiere llevar un invitado, contactar con la Presidencia.</div>' +
+            '</div>'
+          : '') +
         '</div>' +
         (socio.telegram_vinculado
           ? '<div style="background:#EAF3DE;color:#173404;border-radius:10px;padding:12px 16px;margin:20px auto;max-width:480px;text-align:center;font-size:14px;font-weight:500">\u2713 Ya tienes Telegram vinculado</div>'
@@ -207,9 +215,9 @@
         var msgEl = document.getElementById('msgOk');
         if (msgEl) {
           msgEl.style.display = 'block';
-          msgEl.textContent = '\u2713 ' + (data.mensaje || 'Respuesta registrada');
+          msgEl.textContent = '\u2713 Tu respuesta ha quedado registrada, muchas gracias.';
           msgEl.classList.remove('hidden');
-          setTimeout(function() { msgEl.classList.add('hidden'); setTimeout(function() { msgEl.style.display = 'none'; }, 300); }, 3000);
+          setTimeout(function() { msgEl.classList.add('hidden'); setTimeout(function() { msgEl.style.display = 'none'; }, 300); }, 4000);
         }
       })
       .catch(function() {

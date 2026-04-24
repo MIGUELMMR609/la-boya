@@ -3622,6 +3622,11 @@
                 '<input class="form-input" id="evtPrecio" type="number" value="25" min="0" step="0.5">' +
                 '<span class="input-unit">\u20ac</span>' +
               '</div>' +
+            '</div>' +
+            '<div class="form-field">' +
+              '<label class="form-label">Aforo m\u00e1ximo de comensales</label>' +
+              '<input class="form-input" id="evtAforo" type="number" value="20" min="1">' +
+              '<div style="font-size:10px;color:#999;margin-top:3px">Aforo tope que se comunicar\u00e1 a los socios en el mensaje de confirmaci\u00f3n.</div>' +
             '</div>';
         } else if (tipoSel === 'evento_gratis') {
           cont.innerHTML =
@@ -3663,6 +3668,7 @@
           var precio = parseFloat((document.getElementById('evtPrecio') || {}).value);
           body.precio_por_persona = isNaN(precio) ? 25 : precio;
           body.modo_calculo = 'precio_fijo';
+          body.aforo_maximo = parseInt((document.getElementById('evtAforo') || {}).value, 10) || 20;
         } else {
           var nombre = (document.getElementById('evtNombre') || {}).value;
           if (!nombre || !nombre.trim()) { banner.textContent = 'El nombre del evento es obligatorio'; banner.style.display = 'block'; return; }
@@ -3919,6 +3925,7 @@
         )) +
         '<hr class="ficha-sep">' +
         '<div class="evt-action-btns">' + actionBtns + '</div>' +
+        (evt.tipo === 'comida_social' ? '<div style="padding:0 16px 4px;font-size:11px;color:#999">\u2139\ufe0f En comidas sociales, solo el admin puede a\u00f1adir acompa\u00f1antes. Los socios deben contactar con la Presidencia.</div>' : '') +
         (evt.asistentes.some(function(a) { var sc = findSocio(a.socio_id); return sc && sc.telefono; })
           ? '<div style="padding:0 16px 8px"><button class="btn-wa btn-wa-big" id="btnAvisarWa">' + SVG_WA + ' Avisar a asistentes</button></div>'
           : '') +
@@ -4175,6 +4182,10 @@
               '<input class="form-input" id="evtPrecio" type="number" value="' + (evt.precio_por_persona || 25) + '" min="0" step="0.5">' +
               '<span class="input-unit">\u20ac</span>' +
             '</div>' +
+          '</div>' +
+          '<div class="form-field">' +
+            '<label class="form-label">Aforo m\u00e1ximo</label>' +
+            '<input class="form-input" id="evtAforo" type="number" value="' + (evt.aforo_maximo || 20) + '" min="1">' +
           '</div>';
       } else {
         camposDin =
@@ -4251,6 +4262,7 @@
         if (evt.tipo === 'comida_social') {
           body.precio_por_persona = parseFloat((document.getElementById('evtPrecio') || {}).value) || 25;
           body.modo_calculo = 'precio_fijo';
+          body.aforo_maximo = parseInt((document.getElementById('evtAforo') || {}).value, 10) || 20;
         } else {
           body.nombre = (document.getElementById('evtNombre') || {}).value;
           if (!body.nombre || !body.nombre.trim()) { banner.textContent = 'Nombre obligatorio'; banner.style.display = 'block'; return; }
@@ -5282,7 +5294,8 @@
 
       var plantilla = '';
       if (evt.tipo === 'comida_social') {
-        plantilla = 'Estimado {NOMBRE},\n\nEl pr\u00f3ximo ' + diaSem + ' ' + dia + ' de ' + mes + ' de ' + anio + ' vamos a celebrar una Comida Social en LA BOYA. Nos encantar\u00eda que pudieras asistir. Te recuerdo que el precio es de ' + precioTxt + ' \u20ac, que deber\u00e1s ingresar en la sede de LA BOYA antes del d\u00eda de la comida.\n\nSi puedes asistir, te ruego que pulses el enlace de abajo y confirmes tu asistencia.\n\n{ENLACE}';
+        var aforoTxt = evt.aforo_maximo || 20;
+        plantilla = 'Estimado {NOMBRE},\n\nEl pr\u00f3ximo ' + diaSem + ' ' + dia + ' de ' + mes + ' de ' + anio + ' vamos a celebrar una Comida Social en LA BOYA. Nos encantar\u00eda que pudieras asistir. Te recuerdo que el precio es de ' + precioTxt + ' \u20ac, que deber\u00e1s ingresar en la sede de LA BOYA antes del d\u00eda de la comida.\n\nSi puedes asistir, te ruego que pulses el enlace de abajo y confirmes tu asistencia.\n\n\u26a0\ufe0f EL AFORO MAXIMO ES DE ' + aforoTxt + ' COMENSALES. Si puedes asistir, confirmalo lo antes posible.\n\n\u2139\ufe0f Si un socio quiere llevar un invitado, contactar con la Presidencia.\n\n{ENLACE}';
       } else if (evt.tipo === 'evento_gratis') {
         plantilla = 'Estimado {NOMBRE},\n\nEl pr\u00f3ximo ' + diaSem + ' ' + dia + ' de ' + mes + ' de ' + anio + ' la Sociedad LA BOYA os invita a ' + nombreBase + ', sufragado por los fondos de la sociedad (no tendr\u00e1s que pagar nada).\n\nNos encantar\u00eda que pudieras asistir. Tu confirmaci\u00f3n nos ayuda a hacer la previsi\u00f3n de compras.\n\nSi puedes asistir, te ruego que pulses el enlace de abajo y confirmes tu asistencia.\n\n{ENLACE}';
       } else {

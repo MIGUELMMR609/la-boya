@@ -470,6 +470,10 @@ function leerEventos() {
       if (!data[i].invitados_boya) { data[i].invitados_boya = []; migrado = true; }
       if (data[i].confirmacion_token === undefined) { data[i].confirmacion_token = null; migrado = true; }
       if (!data[i].respuestas_confirmacion) { data[i].respuestas_confirmacion = {}; migrado = true; }
+      if (data[i].aforo_maximo === undefined) {
+        data[i].aforo_maximo = data[i].tipo === 'comida_social' ? 20 : null;
+        migrado = true;
+      }
     }
     if (migrado && data.length > 0) {
       guardarDatosSeguro(EVENTOS_FILE, data, 'migracion-confirmacion-token');
@@ -576,6 +580,7 @@ app.post('/api/eventos', (req, res) => {
       cocineros: [],
       asistentes: [],
       invitados_boya: [],
+      aforo_maximo: tipo === 'comida_social' ? (parseInt(req.body.aforo_maximo, 10) || 20) : null,
       confirmacion_token: null,
       respuestas_confirmacion: {},
       notas: req.body.notas || '',
@@ -617,6 +622,7 @@ app.put('/api/eventos/:id', (req, res) => {
     if (req.body.coste_total !== undefined) evt.coste_total = req.body.coste_total != null ? parseFloat(req.body.coste_total) : null;
     if (req.body.modo_calculo !== undefined) evt.modo_calculo = req.body.modo_calculo;
     if (req.body.notas !== undefined) evt.notas = req.body.notas;
+    if (req.body.aforo_maximo !== undefined && evt.tipo === 'comida_social') evt.aforo_maximo = parseInt(req.body.aforo_maximo, 10) || 20;
     if (req.body.cocineros !== undefined) evt.cocineros = req.body.cocineros;
     if (req.body.asistentes !== undefined) evt.asistentes = req.body.asistentes;
 
@@ -1102,6 +1108,7 @@ app.get('/api/publico/confirmacion/:token/:num_socio', (req, res) => {
         precio_por_persona: evt.precio_por_persona,
         modo_calculo: evt.modo_calculo,
         estado: evt.estado,
+        aforo_maximo: evt.aforo_maximo || null,
         notas: evt.notas || ''
       },
       socio: {
@@ -1229,19 +1236,26 @@ if (TelegramBot && process.env.TELEGRAM_BOT_TOKEN) {
   }
 
   // Helper: construir mensaje editado + botones
-  function tgMensajeEstado(textoOrig, eventoId, numSocio, respuesta, nInv) {
+  function tgMensajeEstado(textoOrig, eventoId, numSocio, respuesta, nInv, tipoEvento) {
     var sep = '\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n';
-    var invWord = nInv === 1 ? 'acompa\u00f1ante' : 'acompa\u00f1antes';
+    var esComida = tipoEvento === 'comida_social';
     if (respuesta === 'si') {
-      var texto = textoOrig + sep + '\u2705 *ASISTENCIA CONFIRMADA*\n\ud83d\udc65 Vienes con *' + nInv + '* ' + invWord;
-      var kb = [
-        [
-          { text: '\u2796', callback_data: 'inv_' + eventoId + '_' + numSocio + '_menos' },
-          { text: nInv + ' acomp.', callback_data: 'inv_' + eventoId + '_' + numSocio + '_noop' },
-          { text: '\u2795', callback_data: 'inv_' + eventoId + '_' + numSocio + '_mas' }
-        ],
-        [{ text: '\u274c Ya no puedo ir', callback_data: 'confirm_' + eventoId + '_' + numSocio + '_no' }]
-      ];
+      var texto = textoOrig + sep + '\u2705 *ASISTENCIA CONFIRMADA*';
+      var kb;
+      if (esComida) {
+        kb = [[{ text: '\u274c Ya no puedo ir', callback_data: 'confirm_' + eventoId + '_' + numSocio + '_no' }]];
+      } else {
+        var invWord = nInv === 1 ? 'acompa\u00f1ante' : 'acompa\u00f1antes';
+        texto += '\n\ud83d\udc65 Vienes con *' + nInv + '* ' + invWord;
+        kb = [
+          [
+            { text: '\u2796', callback_data: 'inv_' + eventoId + '_' + numSocio + '_menos' },
+            { text: nInv + ' acomp.', callback_data: 'inv_' + eventoId + '_' + numSocio + '_noop' },
+            { text: '\u2795', callback_data: 'inv_' + eventoId + '_' + numSocio + '_mas' }
+          ],
+          [{ text: '\u274c Ya no puedo ir', callback_data: 'confirm_' + eventoId + '_' + numSocio + '_no' }]
+        ];
+      }
       return { text: texto, kb: kb };
     } else {
       var texto2 = textoOrig + sep + '\u274c *NO ASISTIRAS*\nHemos registrado que no puedes venir.';
@@ -1286,26 +1300,30 @@ if (TelegramBot && process.env.TELEGRAM_BOT_TOKEN) {
       }
 
       if (accion === 'si' || accion === 'no') {
-        // Confirm/decline
-        var invCount = accion === 'si' ? prev.invitados : 0;
+        var invCount = accion === 'si' ? (evento.tipo === 'comida_social' ? 0 : prev.invitados) : 0;
         evento.respuestas_confirmacion[numSocio] = { respuesta: accion, invitados: invCount, fecha_respuesta: new Date().toISOString() };
 
         if (accion === 'si') {
           if (!evento.asistentes.some(function(a) { return a.socio_id === socId; })) {
             evento.asistentes.push({ socio_id: socId, invitados: invCount, pagado: false });
+          } else if (evento.tipo === 'comida_social') {
+            var aIdx = evento.asistentes.find(function(a) { return a.socio_id === socId; });
+            if (aIdx) aIdx.invitados = 0;
           }
-          answerText = 'Asistencia confirmada';
         } else {
           if ((evento.cocineros || []).indexOf(socId) === -1) {
             evento.asistentes = evento.asistentes.filter(function(a) { return a.socio_id !== socId; });
           }
-          answerText = 'Registrado: no puedes ir';
         }
-
-        var estado = tgMensajeEstado(textoOrig, eventoId, numSocio, accion, invCount);
+        answerText = 'Tu respuesta ha quedado registrada, muchas gracias.';
+        var estado = tgMensajeEstado(textoOrig, eventoId, numSocio, accion, invCount, evento.tipo);
         bot.editMessageText(estado.text, { chat_id: chatId, message_id: messageId, parse_mode: 'Markdown', reply_markup: { inline_keyboard: estado.kb } }).catch(function() {});
       } else {
         // mas / menos
+        if (evento.tipo === 'comida_social') {
+          bot.answerCallbackQuery(query.id, { text: 'En las comidas sociales no se permiten acompa\u00f1antes. Contacta con la Presidencia.', show_alert: true });
+          return;
+        }
         var currentInv = prev.invitados || 0;
         if (accion === 'mas') {
           currentInv++;
@@ -1315,12 +1333,10 @@ if (TelegramBot && process.env.TELEGRAM_BOT_TOKEN) {
           currentInv--;
           answerText = 'Ahora vienes con ' + currentInv + ' acompa\u00f1ante' + (currentInv !== 1 ? 's' : '');
         }
-
         evento.respuestas_confirmacion[numSocio] = { respuesta: 'si', invitados: currentInv, fecha_respuesta: new Date().toISOString() };
         var asist = evento.asistentes.find(function(a) { return a.socio_id === socId; });
         if (asist) asist.invitados = currentInv;
-
-        var estado2 = tgMensajeEstado(textoOrig, eventoId, numSocio, 'si', currentInv);
+        var estado2 = tgMensajeEstado(textoOrig, eventoId, numSocio, 'si', currentInv, evento.tipo);
         bot.editMessageText(estado2.text, { chat_id: chatId, message_id: messageId, parse_mode: 'Markdown', reply_markup: { inline_keyboard: estado2.kb } }).catch(function() {});
       }
 
@@ -1358,11 +1374,18 @@ app.post('/api/eventos/:id/enviar-telegram', function(req, res) {
       var d = destinatarios[i];
       if (!d.chat_id) { fallidos++; detalles.push({ num_socio: d.num_socio, error: 'sin chat_id' }); enviarUno(i + 1); return; }
       var msg = plantilla.replace(/\{NOMBRE\}/g, d.nombre_pila || 'Socio');
+      // Encabezamiento destacado
+      var emoji = evt.tipo === 'comida_social' ? '\ud83c\udf74' : (evt.tipo === 'evento_gratis' ? '\ud83c\udf81' : '\ud83d\udcc5');
+      msg = emoji + ' *' + evt.nombre.toUpperCase() + '*\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n' + msg;
+      // Bloque aforo para comidas sociales
+      if (evt.tipo === 'comida_social' && evt.aforo_maximo) {
+        msg += '\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u26a0\ufe0f *EL AFORO MAXIMO ES DE ' + evt.aforo_maximo + ' COMENSALES.*\n*Si puedes asistir, confirmalo lo antes posible.*\n\n\u2139\ufe0f Si un socio quiere llevar un invitado, contactar con la Presidencia.';
+      }
       var keyboard = { inline_keyboard: [
         [{ text: '\u2713 SI CONFIRMO', callback_data: 'confirm_' + evt.id + '_' + d.num_socio + '_si' }],
         [{ text: '\u2717 NO PUEDO IR', callback_data: 'confirm_' + evt.id + '_' + d.num_socio + '_no' }]
       ]};
-      bot.sendMessage(d.chat_id, msg, { reply_markup: keyboard })
+      bot.sendMessage(d.chat_id, msg, { parse_mode: 'Markdown', reply_markup: keyboard })
         .then(function() { enviados++; detalles.push({ num_socio: d.num_socio, ok: true }); enviarUno(i + 1); })
         .catch(function(err) { fallidos++; detalles.push({ num_socio: d.num_socio, error: err.message }); enviarUno(i + 1); });
     }
