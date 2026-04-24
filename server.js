@@ -1221,12 +1221,52 @@ if (TelegramBot && process.env.TELEGRAM_BOT_TOKEN) {
     }
   });
 
+  // Helper: extraer texto original sin bloque de estado
+  function tgTextoOriginal(texto) {
+    var sep = '\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501';
+    var idx = texto.indexOf(sep);
+    return idx > 0 ? texto.substring(0, idx).trim() : texto.trim();
+  }
+
+  // Helper: construir mensaje editado + botones
+  function tgMensajeEstado(textoOrig, eventoId, numSocio, respuesta, nInv) {
+    var sep = '\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n';
+    var invWord = nInv === 1 ? 'acompa\u00f1ante' : 'acompa\u00f1antes';
+    if (respuesta === 'si') {
+      var texto = textoOrig + sep + '\u2705 *ASISTENCIA CONFIRMADA*\n\ud83d\udc65 Vienes con *' + nInv + '* ' + invWord;
+      var kb = [
+        [
+          { text: '\u2796', callback_data: 'inv_' + eventoId + '_' + numSocio + '_menos' },
+          { text: nInv + ' acomp.', callback_data: 'inv_' + eventoId + '_' + numSocio + '_noop' },
+          { text: '\u2795', callback_data: 'inv_' + eventoId + '_' + numSocio + '_mas' }
+        ],
+        [{ text: '\u274c Ya no puedo ir', callback_data: 'confirm_' + eventoId + '_' + numSocio + '_no' }]
+      ];
+      return { text: texto, kb: kb };
+    } else {
+      var texto2 = textoOrig + sep + '\u274c *NO ASISTIRAS*\nHemos registrado que no puedes venir.';
+      var kb2 = [
+        [{ text: '\u2705 Si que puedo ir', callback_data: 'confirm_' + eventoId + '_' + numSocio + '_si' }]
+      ];
+      return { text: texto2, kb: kb2 };
+    }
+  }
+
   bot.on('callback_query', function(query) {
     var chatId = query.message.chat.id;
     var messageId = query.message.message_id;
-    var matchCb = query.data.match(/^confirm_(.+)_(\d+)_(si|no)$/);
-    if (!matchCb) return;
-    var eventoId = matchCb[1]; var numSocio = matchCb[2]; var respuesta = matchCb[3];
+    var textoOrig = tgTextoOriginal(query.message.text);
+
+    // Match confirm or inv
+    var matchConf = query.data.match(/^confirm_(.+)_(\d+)_(si|no)$/);
+    var matchInv = query.data.match(/^inv_(.+)_(\d+)_(mas|menos|noop)$/);
+
+    if (!matchConf && !matchInv) return;
+
+    var eventoId = matchConf ? matchConf[1] : matchInv[1];
+    var numSocio = matchConf ? matchConf[2] : matchInv[2];
+    var accion = matchConf ? matchConf[3] : matchInv[3];
+
     try {
       var eventos = leerEventos();
       var evento = eventos.find(function(e) { return e.id === eventoId; });
@@ -1234,30 +1274,60 @@ if (TelegramBot && process.env.TELEGRAM_BOT_TOKEN) {
       if (evento.estado === 'finalizado') { bot.answerCallbackQuery(query.id, { text: 'Evento ya cerrado', show_alert: true }); return; }
 
       if (!evento.respuestas_confirmacion) evento.respuestas_confirmacion = {};
-      var prevInv = (evento.respuestas_confirmacion[numSocio] && evento.respuestas_confirmacion[numSocio].invitados) || 0;
-      evento.respuestas_confirmacion[numSocio] = { respuesta: respuesta, invitados: respuesta === 'si' ? prevInv : 0, fecha_respuesta: new Date().toISOString() };
-
       var socData = leerSocios();
       var soc = socData.find(function(s) { return s.num_socio === parseInt(numSocio); });
       var socId = soc ? soc.id : numSocio;
+      var nombre = soc ? soc.nombre.split(' ')[0] : 'amigo';
+      var prev = evento.respuestas_confirmacion[numSocio] || { respuesta: null, invitados: 0 };
+      var answerText = '';
 
-      if (respuesta === 'si') {
-        if (!evento.asistentes.some(function(a) { return a.socio_id === socId; })) {
-          evento.asistentes.push({ socio_id: socId, invitados: prevInv, pagado: false });
+      if (accion === 'noop') {
+        bot.answerCallbackQuery(query.id); return;
+      }
+
+      if (accion === 'si' || accion === 'no') {
+        // Confirm/decline
+        var invCount = accion === 'si' ? prev.invitados : 0;
+        evento.respuestas_confirmacion[numSocio] = { respuesta: accion, invitados: invCount, fecha_respuesta: new Date().toISOString() };
+
+        if (accion === 'si') {
+          if (!evento.asistentes.some(function(a) { return a.socio_id === socId; })) {
+            evento.asistentes.push({ socio_id: socId, invitados: invCount, pagado: false });
+          }
+          answerText = 'Asistencia confirmada';
+        } else {
+          if ((evento.cocineros || []).indexOf(socId) === -1) {
+            evento.asistentes = evento.asistentes.filter(function(a) { return a.socio_id !== socId; });
+          }
+          answerText = 'Registrado: no puedes ir';
         }
+
+        var estado = tgMensajeEstado(textoOrig, eventoId, numSocio, accion, invCount);
+        bot.editMessageText(estado.text, { chat_id: chatId, message_id: messageId, parse_mode: 'Markdown', reply_markup: { inline_keyboard: estado.kb } }).catch(function() {});
       } else {
-        var cocIdx = (evento.cocineros || []).indexOf(socId);
-        if (cocIdx === -1) evento.asistentes = evento.asistentes.filter(function(a) { return a.socio_id !== socId; });
+        // mas / menos
+        var currentInv = prev.invitados || 0;
+        if (accion === 'mas') {
+          currentInv++;
+          answerText = 'Ahora vienes con ' + currentInv + ' acompa\u00f1ante' + (currentInv !== 1 ? 's' : '');
+        } else {
+          if (currentInv <= 0) { bot.answerCallbackQuery(query.id, { text: 'Ya no tienes acompa\u00f1antes apuntados' }); return; }
+          currentInv--;
+          answerText = 'Ahora vienes con ' + currentInv + ' acompa\u00f1ante' + (currentInv !== 1 ? 's' : '');
+        }
+
+        evento.respuestas_confirmacion[numSocio] = { respuesta: 'si', invitados: currentInv, fecha_respuesta: new Date().toISOString() };
+        var asist = evento.asistentes.find(function(a) { return a.socio_id === socId; });
+        if (asist) asist.invitados = currentInv;
+
+        var estado2 = tgMensajeEstado(textoOrig, eventoId, numSocio, 'si', currentInv);
+        bot.editMessageText(estado2.text, { chat_id: chatId, message_id: messageId, parse_mode: 'Markdown', reply_markup: { inline_keyboard: estado2.kb } }).catch(function() {});
       }
 
       evento.fecha_modificacion = fechaHoy();
-      guardarDatosSeguro(EVENTOS_FILE, eventos, 'telegram-confirm-' + numSocio);
-
-      var nombre = soc ? soc.nombre.split(' ')[0] : 'amigo';
-      var msgConf = respuesta === 'si' ? 'Gracias ' + nombre + ', tu asistencia esta confirmada.' : 'Gracias ' + nombre + ', hemos registrado que no puedes ir.';
-      bot.editMessageText(query.message.text + '\n\n' + msgConf, { chat_id: chatId, message_id: messageId }).catch(function() {});
-      bot.answerCallbackQuery(query.id, { text: msgConf });
-      console.log('Telegram callback: evento ' + eventoId + ', socio ' + numSocio + ' -> ' + respuesta);
+      guardarDatosSeguro(EVENTOS_FILE, eventos, 'telegram-' + accion + '-' + numSocio);
+      bot.answerCallbackQuery(query.id, { text: answerText });
+      console.log('Telegram callback: evento ' + eventoId + ', socio ' + numSocio + ' -> ' + accion);
     } catch (err) {
       console.error('Error callback Telegram:', err);
       bot.answerCallbackQuery(query.id, { text: 'Error, intentalo de nuevo', show_alert: true });
