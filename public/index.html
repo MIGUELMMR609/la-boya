@@ -3573,7 +3573,7 @@
               '<button class="evt-menu-btn" data-evt-id="' + e.id + '">\u22ef</button>' +
             '</div>' +
           '</div>' +
-          '<div class="evt-name">' + escapeHtml(e.nombre) + '</div>' +
+          '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px"><div class="evt-name" style="margin-bottom:0">' + escapeHtml(e.nombre) + '</div>' +
           (function() {
             if (!e.aforo_maximo || e.aforo_maximo <= 0) return '';
             var oc = 0;
@@ -3581,11 +3581,12 @@
             if (!isGratis) oc += (e.invitados_boya || []).length;
             var rest = e.aforo_maximo - oc;
             var pillBg, pillCol, pillBor, pillTxt;
-            if (rest <= 0) { pillBg = '#F7C1C1'; pillCol = '#791F1F'; pillBor = '#F09595'; pillTxt = 'AFORO COMPLETO'; }
-            else if (rest === 1) { pillBg = '#FAC775'; pillCol = '#412402'; pillBor = '#EF9F27'; pillTxt = oc + '/' + e.aforo_maximo + ' \u00b7 QUEDA 1 plaza'; }
-            else { pillBg = '#C0DD97'; pillCol = '#173404'; pillBor = '#97C459'; pillTxt = oc + '/' + e.aforo_maximo + ' \u00b7 QUEDAN ' + rest + ' plazas'; }
-            return '<div style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:0.3px;margin-top:4px;margin-bottom:2px;background:' + pillBg + ';color:' + pillCol + ';border:1px solid ' + pillBor + '">' + pillTxt + '</div>';
-          })() +
+            if (rest < 0) { pillBg = '#F7C1C1'; pillCol = '#791F1F'; pillBor = '#F09595'; pillTxt = oc + '/' + e.aforo_maximo + ' SUPERADO'; }
+            else if (rest === 0) { pillBg = '#F7C1C1'; pillCol = '#791F1F'; pillBor = '#F09595'; pillTxt = oc + '/' + e.aforo_maximo + ' COMPLETO'; }
+            else if (rest === 1) { pillBg = '#FAC775'; pillCol = '#412402'; pillBor = '#EF9F27'; pillTxt = oc + '/' + e.aforo_maximo + ' \u00b7 1 plaza'; }
+            else { pillBg = '#C0DD97'; pillCol = '#173404'; pillBor = '#97C459'; pillTxt = oc + '/' + e.aforo_maximo + ' \u00b7 ' + rest + ' plazas'; }
+            return '<span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:0.3px;background:' + pillBg + ';color:' + pillCol + ';border:1px solid ' + pillBor + ';white-space:nowrap">' + pillTxt + '</span>';
+          })() + '</div>' +
           '<div class="evt-stats-row">' + stats1 + '</div>' +
           (stats2 ? '<div class="evt-stats-row">' + stats2 + '</div>' : '') +
           (function() {
@@ -3992,16 +3993,17 @@
         bannerHtml +
         '<div class="evt-det-header">' +
           '<span class="evt-badge ' + badgeClass + '">' + badgeText + '</span>' +
-          '<div class="evt-det-name">' + escapeHtml(evt.nombre) + '</div>' +
+          '<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px"><div class="evt-det-name" style="margin-bottom:0">' + escapeHtml(evt.nombre) + '</div>' +
           (function() {
             if (!evt.aforo_maximo || evt.aforo_maximo <= 0) return '';
             var rest = evt.aforo_maximo - totalPersonas;
             var pillBg, pillCol, pillBor, pillTxt;
-            if (rest <= 0) { pillBg = '#F7C1C1'; pillCol = '#791F1F'; pillBor = '#F09595'; pillTxt = totalPersonas + '/' + evt.aforo_maximo + ' \u00b7 AFORO COMPLETO'; }
-            else if (rest === 1) { pillBg = '#FAC775'; pillCol = '#412402'; pillBor = '#EF9F27'; pillTxt = totalPersonas + '/' + evt.aforo_maximo + ' \u00b7 QUEDA 1 plaza'; }
-            else { pillBg = '#C0DD97'; pillCol = '#173404'; pillBor = '#97C459'; pillTxt = totalPersonas + '/' + evt.aforo_maximo + ' \u00b7 QUEDAN ' + rest + ' plazas'; }
-            return '<div style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600;letter-spacing:0.3px;margin-top:6px;background:' + pillBg + ';color:' + pillCol + ';border:1px solid ' + pillBor + '">' + pillTxt + '</div>';
-          })() +
+            if (rest < 0) { pillBg = '#F7C1C1'; pillCol = '#791F1F'; pillBor = '#F09595'; pillTxt = totalPersonas + '/' + evt.aforo_maximo + ' SUPERADO'; }
+            else if (rest === 0) { pillBg = '#F7C1C1'; pillCol = '#791F1F'; pillBor = '#F09595'; pillTxt = totalPersonas + '/' + evt.aforo_maximo + ' COMPLETO'; }
+            else if (rest === 1) { pillBg = '#FAC775'; pillCol = '#412402'; pillBor = '#EF9F27'; pillTxt = totalPersonas + '/' + evt.aforo_maximo + ' \u00b7 1 plaza'; }
+            else { pillBg = '#C0DD97'; pillCol = '#173404'; pillBor = '#97C459'; pillTxt = totalPersonas + '/' + evt.aforo_maximo + ' \u00b7 ' + rest + ' plazas'; }
+            return '<span style="display:inline-flex;align-items:center;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600;letter-spacing:0.3px;background:' + pillBg + ';color:' + pillCol + ';border:1px solid ' + pillBor + ';white-space:nowrap">' + pillTxt + '</span>';
+          })() + '</div>' +
           notasHtml +
         '</div>' +
         '<hr class="ficha-sep">' +
@@ -4025,23 +4027,24 @@
           '</div>';
         })() +
           (costeBoya > 0 ? '<div style="padding:0 16px 8px;font-size:11px;color:#999">Coste asumido por la sociedad (Inv. BOYA): <strong>' + costeBoya.toFixed(2) + ' \u20ac</strong></div>' : '') +
-          '<div style="display:flex;justify-content:center;padding:4px 16px 12px"><button class="btn-modificar-coste" id="btnModCoste"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Modificar coste del evento</button></div>'
+          '<div style="display:flex;justify-content:center;flex-wrap:wrap;gap:8px;padding:4px 16px 12px"><button class="btn-modificar-coste" id="btnModCoste"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Modificar coste</button><button class="btn-modificar-coste" id="btnModAforo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Modificar aforo</button></div>'
         : (isEvtGratis ?
           '<div class="evt-resumen">' +
             '<div class="evt-resumen-card"><div class="evt-resumen-num"><span style="white-space:nowrap">' + evt.asistentes.length + '</span></div><div class="evt-resumen-label">Socios</div></div>' +
             (pagantes - evt.asistentes.length > 0 ? '<div class="evt-resumen-card"><div class="evt-resumen-num"><span style="white-space:nowrap">' + (pagantes - evt.asistentes.length) + '</span></div><div class="evt-resumen-label">Acomp.</div></div>' : '') +
           '</div>' +
           (totalPersonas > 0 ? '<div style="width:100%;background:#7F77DD;color:#fff;border:none;border-radius:8px;padding:8px 12px;margin:8px 16px 0;display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;font-weight:700;box-shadow:0 1px 3px rgba(127,119,221,0.25)">' + totalPersonas + ' persona' + (totalPersonas !== 1 ? 's' : '') + ' confirmada' + (totalPersonas !== 1 ? 's' : '') + '</div>' : '') +
-          '<div style="padding:8px 16px;font-size:12px;color:#7F77DD;font-weight:500;text-align:center">Cortes\u00eda LA BOYA</div>'
+          '<div style="padding:8px 16px;font-size:12px;color:#7F77DD;font-weight:500;text-align:center">Cortes\u00eda LA BOYA</div>' +
+          '<div style="display:flex;justify-content:center;padding:4px 16px 8px"><button class="btn-modificar-coste" id="btnModAforo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Modificar aforo</button></div>'
         :
           '<div class="evt-resumen">' +
             '<div class="evt-resumen-card"><div class="evt-resumen-num"><span style="white-space:nowrap">' + totalPersonas + '</span></div><div class="evt-resumen-label">Asistentes</div></div>' +
           '</div>' +
-          '<div class="coste-card" id="btnAsignarCoste"><div class="coste-card-text">Asignar coste</div></div>'
+          '<div class="coste-card" id="btnAsignarCoste"><div class="coste-card-text">Asignar coste</div></div>' +
+          '<div style="display:flex;justify-content:center;padding:4px 16px 12px"><button class="btn-modificar-coste" id="btnModAforo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Modificar aforo</button></div>'
         )) +
         '<hr class="ficha-sep">' +
         '<div class="evt-action-btns">' + actionBtns + '</div>' +
-        (evt.tipo === 'comida_social' ? '<div style="padding:0 16px 4px;font-size:11px;color:#999">\u2139\ufe0f En comidas sociales, solo el admin puede a\u00f1adir acompa\u00f1antes. Los socios deben contactar con la Presidencia.</div>' : '') +
         (evt.asistentes.some(function(a) { var sc = findSocio(a.socio_id); return sc && sc.telefono; })
           ? '<div style="padding:0 16px 8px"><button class="btn-wa btn-wa-big" id="btnAvisarWa">' + SVG_WA + ' Avisar a asistentes</button></div>'
           : '') +
@@ -4138,6 +4141,21 @@
       var btnMod = document.getElementById('btnModCoste');
       if (btnAsignar) btnAsignar.addEventListener('click', function() { abrirModalCoste(evt); });
       if (btnMod) btnMod.addEventListener('click', function() { abrirModalCoste(evt); });
+      var btnAforo = document.getElementById('btnModAforo');
+      if (btnAforo) btnAforo.addEventListener('click', function() {
+        var aforoActual = evt.aforo_maximo || 0;
+        var nuevo = prompt('Aforo actual: ' + aforoActual + ' personas\nOcupado: ' + totalPersonas + '\n\nNuevo aforo (0 = sin l\u00edmite):', aforoActual);
+        if (nuevo === null) return;
+        var nuevoNum = parseInt(nuevo, 10);
+        if (isNaN(nuevoNum) || nuevoNum < 0) { showToast('Valor inv\u00e1lido'); return; }
+        if (nuevoNum > 0 && nuevoNum < totalPersonas) {
+          if (!confirm('\u26a0\ufe0f El nuevo aforo (' + nuevoNum + ') es menor que las personas confirmadas (' + totalPersonas + '). El recuadro mostrar\u00e1 "Aforo superado". \u00bfContinuar?')) return;
+        }
+        fetch('/api/eventos/' + evt.id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ aforo_maximo: nuevoNum }) })
+          .then(function(r) { return r.json(); })
+          .then(function(updated) { renderDetalleEvento(updated); showToast('\u2713 Aforo actualizado'); })
+          .catch(function() { showError('Error al modificar aforo'); });
+      });
 
       // Toast si intentan pulsar botón finalizado
       var finToastShown = false;
@@ -5408,7 +5426,7 @@
       var plantilla = '';
       if (evt.tipo === 'comida_social') {
         var aforoTxt = evt.aforo_maximo || 20;
-        plantilla = 'Estimado {NOMBRE},\n\nEl pr\u00f3ximo ' + diaSem + ' ' + dia + ' de ' + mes + ' de ' + anio + ' vamos a celebrar una Comida Social en LA BOYA. Nos encantar\u00eda que pudieras asistir. Te recuerdo que el precio es de ' + precioTxt + ' \u20ac, que deber\u00e1s ingresar en la sede de LA BOYA antes del d\u00eda de la comida.\n\nSi puedes asistir, te ruego que pulses el enlace de abajo y confirmes tu asistencia.\n\n\u26a0\ufe0f EL AFORO MAXIMO ES DE ' + aforoTxt + ' COMENSALES. Si puedes asistir, confirmalo lo antes posible.\n\n\u2139\ufe0f Si un socio quiere llevar un invitado, contactar con la Presidencia.\n\n{ENLACE}';
+        plantilla = 'Estimado {NOMBRE},\n\nEl pr\u00f3ximo ' + diaSem + ' ' + dia + ' de ' + mes + ' de ' + anio + ' vamos a celebrar una Comida Social en LA BOYA. Nos encantar\u00eda que pudieras asistir. Te recuerdo que el precio es de ' + precioTxt + ' \u20ac, que deber\u00e1s ingresar en la sede de LA BOYA antes del d\u00eda de la comida.\n\nSi puedes asistir, te ruego que pulses el enlace de abajo y confirmes tu asistencia.\n\n\u26a0\ufe0f EL AFORO MAXIMO ES DE ' + aforoTxt + ' COMENSALES. Si puedes asistir, confirmalo lo antes posible.\n\n{ENLACE}';
       } else if (evt.tipo === 'evento_gratis') {
         plantilla = 'Estimado {NOMBRE},\n\nEl pr\u00f3ximo ' + diaSem + ' ' + dia + ' de ' + mes + ' de ' + anio + ' la Sociedad LA BOYA os invita a ' + nombreBase + ', sufragado por los fondos de la sociedad (no tendr\u00e1s que pagar nada).\n\nNos encantar\u00eda que pudieras asistir. Tu confirmaci\u00f3n nos ayuda a hacer la previsi\u00f3n de compras.\n\nSi puedes asistir, te ruego que pulses el enlace de abajo y confirmes tu asistencia.\n\n{ENLACE}';
       } else {

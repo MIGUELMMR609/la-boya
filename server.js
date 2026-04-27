@@ -1349,7 +1349,7 @@ if (TelegramBot && process.env.TELEGRAM_BOT_TOKEN) {
       } else {
         // mas / menos
         if (evento.tipo === 'comida_social') {
-          bot.answerCallbackQuery(query.id, { text: 'En las comidas sociales no se permiten acompa\u00f1antes. Contacta con la Presidencia.', show_alert: true });
+          bot.answerCallbackQuery(query.id, { text: 'En las comidas sociales no se permiten acompa\u00f1antes desde aqu\u00ed.', show_alert: true });
           return;
         }
         var currentInv = prev.invitados || 0;
@@ -1416,7 +1416,7 @@ app.post('/api/eventos/:id/enviar-telegram', function(req, res) {
       msg = emoji + ' *' + evt.nombre.toUpperCase() + '*\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n' + msg;
       // Bloque aforo para comidas sociales
       if (evt.tipo === 'comida_social' && evt.aforo_maximo) {
-        msg += '\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u26a0\ufe0f *EL AFORO MAXIMO ES DE ' + evt.aforo_maximo + ' COMENSALES.*\n*Si puedes asistir, confirmalo lo antes posible.*\n\n\u2139\ufe0f Si un socio quiere llevar un invitado, contactar con la Presidencia.';
+        msg += '\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u26a0\ufe0f *EL AFORO MAXIMO ES DE ' + evt.aforo_maximo + ' COMENSALES.*\n*Si puedes asistir, confirmalo lo antes posible.*';
       }
       var keyboard = { inline_keyboard: [
         [{ text: '\u2713 SI CONFIRMO', callback_data: 'confirm_' + evt.id + '_' + d.num_socio + '_si' }],
