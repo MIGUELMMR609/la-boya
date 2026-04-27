@@ -705,6 +705,15 @@ app.put('/api/eventos/:id/asistentes', (req, res) => {
         pagado: prev ? prev.pagado : false
       });
     }
+    // Aforo check
+    if (evt.aforo_maximo > 0) {
+      var ocNuevo = 0;
+      for (var on2 = 0; on2 < resultado.length; on2++) ocNuevo += 1 + (resultado[on2].invitados || 0);
+      ocNuevo += (evt.invitados_boya || []).length;
+      if (ocNuevo > evt.aforo_maximo) {
+        return res.status(403).json({ ok: false, error: 'AFORO_COMPLETO', mensaje: 'Esta operacion supera el aforo.', ocupado: ocNuevo, aforo: evt.aforo_maximo });
+      }
+    }
     evt.asistentes = resultado;
     evt.fecha_modificacion = fechaHoy();
     data[idx] = evt;
@@ -768,6 +777,13 @@ app.post('/api/eventos/:id/invitados-boya', (req, res) => {
     var idx = data.findIndex(e => e.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: 'Evento no encontrado' });
     if (data[idx].tipo === 'evento_gratis') return res.status(400).json({ error: 'Este tipo de evento no permite invitados BOYA' });
+    // Aforo check
+    if (data[idx].aforo_maximo > 0) {
+      var ocB = 0;
+      for (var ob = 0; ob < data[idx].asistentes.length; ob++) ocB += 1 + (data[idx].asistentes[ob].invitados || 0);
+      ocB += (data[idx].invitados_boya || []).length;
+      if (ocB + 1 > data[idx].aforo_maximo) return res.status(403).json({ ok: false, error: 'AFORO_COMPLETO', mensaje: 'Aforo completo.', ocupado: ocB, aforo: data[idx].aforo_maximo });
+    }
     var nombre = (req.body.nombre || '').trim();
     if (!nombre) return res.status(400).json({ error: 'Nombre requerido' });
     var inv = { id: 'inv_' + Math.random().toString(36).substr(2, 9), nombre: nombre };

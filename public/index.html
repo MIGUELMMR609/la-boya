@@ -2723,6 +2723,33 @@
       if (errorTimer) clearTimeout(errorTimer);
       errorTimer = setTimeout(function() { banner.classList.remove('visible'); }, 5000);
     }
+    // Aforo helpers
+    function calcOcupado(evt) {
+      var oc = 0;
+      for (var i = 0; i < evt.asistentes.length; i++) oc += 1 + (evt.asistentes[i].invitados || 0);
+      oc += (evt.invitados_boya || []).length;
+      return oc;
+    }
+    function aforoCompleto(evt) {
+      return evt.aforo_maximo > 0 && calcOcupado(evt) >= evt.aforo_maximo;
+    }
+    function mostrarPopupAforoCompleto(ocupado, aforo) {
+      var ex = document.getElementById('aforoPopup');
+      if (ex) ex.remove();
+      var div = document.createElement('div');
+      div.id = 'aforoPopup';
+      div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px';
+      div.innerHTML = '<div style="background:#fff;border-radius:16px;padding:24px;max-width:380px;width:100%;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.2)">' +
+        '<div style="font-size:48px;margin-bottom:12px">\ud83d\udeab</div>' +
+        '<div style="font-size:22px;font-weight:700;color:#791F1F;margin-bottom:12px">AFORO COMPLETO</div>' +
+        '<div style="font-size:15px;color:#2C2C2A;line-height:1.5;margin-bottom:16px">El evento tiene un aforo de ' + aforo + ' personas y ya est\u00e1 completo (' + ocupado + '/' + aforo + ').<br><br>Para a\u00f1adir m\u00e1s, primero ampl\u00eda el aforo desde "Modificar aforo".</div>' +
+        '<button id="aforoPopupOk" style="background:#0C447C;color:#fff;border:none;padding:12px 32px;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer">Entendido</button>' +
+      '</div>';
+      document.body.appendChild(div);
+      document.getElementById('aforoPopupOk').addEventListener('click', function() { div.remove(); });
+      div.addEventListener('click', function(e) { if (e.target === div) div.remove(); });
+    }
+
     function friendlyError(err) {
       if (!err) return 'Algo ha ido mal. Int\u00e9ntalo de nuevo.';
       var msg = err.message || String(err);
@@ -3873,6 +3900,10 @@
       var costeBoya = nBoya * ppp;
 
       var bannerHtml = finalizado ? '<div class="evt-det-banner">\u2713 Evento finalizado</div>' : '';
+      if (!finalizado && evt.aforo_maximo > 0 && totalPersonas >= evt.aforo_maximo) {
+        var superado = totalPersonas > evt.aforo_maximo;
+        bannerHtml += '<div style="background:#FCEBEB;border:1px solid #F09595;border-radius:10px;padding:12px 14px;margin:0 16px 8px;font-size:13px;font-weight:600;color:#791F1F">\u26a0\ufe0f AFORO ' + (superado ? 'SUPERADO (' + totalPersonas + '/' + evt.aforo_maximo + ' \u2192 ' + (totalPersonas - evt.aforo_maximo) + ' de m\u00e1s)' : 'COMPLETO (' + totalPersonas + '/' + evt.aforo_maximo + ')') + '</div>';
+      }
       var notasHtml = evt.notas ? '<div class="evt-det-notas">' + escapeHtml(evt.notas.length > 80 ? evt.notas.substring(0, 80) + '...' : evt.notas) + '</div>' : '';
 
       // Botones de acción
@@ -4461,12 +4492,27 @@
         hintHtml = '<div class="sel-hint">' + hint + '</div>';
       }
 
+      // Aforo check
+      function getOcLocal() {
+        var oc = selAsist.length;
+        for (var oi = 0; oi < selAsist.length; oi++) oc += (invMap[selAsist[oi]] || 0);
+        oc += (evt.invitados_boya || []).length;
+        return oc;
+      }
+      function isAforoFull() { return evt.aforo_maximo > 0 && getOcLocal() >= evt.aforo_maximo; }
+
+      var aforoBanner = '';
+      if (evt.aforo_maximo > 0 && (modo === 'comensales' || modo === 'invitados')) {
+        aforoBanner = '<div id="selAforoBanner" style="display:none;background:#FCEBEB;border:1px solid #F09595;border-radius:8px;padding:10px 14px;margin:8px 16px;font-size:13px;font-weight:600;color:#791F1F"></div>';
+      }
+
       var html =
         '<div class="sel-bar">' +
           '<button class="ficha-back" id="selBack">\u2190 Volver</button>' +
           '<span class="sel-bar-title">' + titulo + '</span>' +
           '<button class="btn-hecho" id="selDone">Hecho</button>' +
         '</div>' +
+        aforoBanner +
         hintHtml +
         searchHtml +
         '<div class="main" id="selGrid" style="padding:8px"></div>';
@@ -4476,6 +4522,15 @@
       document.body.style.overflow = 'hidden';
 
       function renderSelGrid() {
+        // Update aforo banner
+        var ab = document.getElementById('selAforoBanner');
+        if (ab) {
+          if (isAforoFull()) {
+            var ocL = getOcLocal();
+            ab.style.display = 'block';
+            ab.textContent = '\u26a0\ufe0f AFORO ' + (ocL > evt.aforo_maximo ? 'SUPERADO' : 'COMPLETO') + ' (' + ocL + '/' + evt.aforo_maximo + ')';
+          } else { ab.style.display = 'none'; }
+        }
         var grid = document.getElementById('selGrid');
         var query = '';
         var searchEl = document.getElementById('selSearch');
@@ -4533,6 +4588,7 @@
           } else if (modo === 'comensales') {
             var isSel2 = selAsist.indexOf(s.id) !== -1;
             var isCookLocked = selCook.indexOf(s.id) !== -1;
+            var aforoBlock = !isSel2 && isAforoFull();
             if (isSel2) overlayHtml = '<div class="sel-check">' + SVG_CHECK + '</div>';
             if (isCookLocked) overlayHtml += '<div class="evt-asist-cook-badge" style="top:-2px;left:-2px"><svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M6 21v-1a6 6 0 0112 0v1"/></svg></div>';
           } else {
@@ -4540,10 +4596,15 @@
             overlayHtml = '<div class="inv-badge' + (invN === 0 ? ' zero' : '') + '">' + (invN === 0 ? '0' : '+' + invN) + '</div>';
           }
 
+          // Aforo block for non-selected in comensales
+          var aforoBlocked = false;
+          if (modo === 'comensales' && selAsist.indexOf(s.id) === -1 && isAforoFull()) aforoBlocked = true;
+
           var card = document.createElement('div');
           card.className = 'card';
-          card.style.cssText = 'padding:10px;gap:8px;flex-direction:row;cursor:pointer';
+          card.style.cssText = 'padding:10px;gap:8px;flex-direction:row;' + (aforoBlocked ? 'opacity:0.4;cursor:not-allowed;' : 'cursor:pointer;');
           card.setAttribute('data-sid', s.id);
+          if (aforoBlocked) card.setAttribute('data-aforo-blocked', '1');
           card.innerHTML =
             '<div class="avatar-wrap" style="position:relative">' +
               '<div class="avatar" style="background:' + (s.foto_url ? 'transparent' : bgC) + ';width:56px;height:56px;font-size:18px">' + avatarHtml + '</div>' +
@@ -4574,8 +4635,10 @@
                   return;
                 }
                 var idx = selAsist.indexOf(sid);
-                if (idx === -1) selAsist.push(sid);
-                else selAsist.splice(idx, 1);
+                if (idx === -1) {
+                  if (isAforoFull()) { mostrarPopupAforoCompleto(getOcLocal(), evt.aforo_maximo); return; }
+                  selAsist.push(sid);
+                } else { selAsist.splice(idx, 1); }
                 renderSelGrid();
               });
             } else {
@@ -4597,6 +4660,7 @@
                   }
                 } else {
                   clearTimeout(timer);
+                  if (isAforoFull()) { timer = null; mostrarPopupAforoCompleto(getOcLocal(), evt.aforo_maximo); return; }
                   invMap[sid] = (invMap[sid] || 0) + 1;
                   if (firstInvTap) { firstInvTap = false; showToast('Mant\u00e9n pulsado si quieres restar'); }
                 }
@@ -4696,6 +4760,7 @@
           '<div id="boyaListContainer">' + renderBoyaList() + '</div>';
 
         document.getElementById('boyaAdd').addEventListener('click', function() {
+          if (aforoCompleto(evt)) { mostrarPopupAforoCompleto(calcOcupado(evt), evt.aforo_maximo); return; }
           var nombre = prompt('Nombre del invitado:');
           if (!nombre || !nombre.trim()) return;
           fetch('/api/eventos/' + evt.id + '/invitados-boya', {
