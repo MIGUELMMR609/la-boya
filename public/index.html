@@ -1652,6 +1652,35 @@
       cursor: pointer;
     }
 
+    /* === CANAL CARDS === */
+    .canal-card {
+      padding: 14px 6px;
+      border-radius: 10px;
+      border: 2px solid;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.18s ease;
+      user-select: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .canal-whatsapp { border-color: #25D366; color: #128C7E; }
+    .canal-telegram { border-color: #0088CC; color: #006699; }
+    .canal-ambos { border-color: #7F77DD; color: #534AB7; }
+    .canal-ninguno { border-color: #999; color: #5F5E5A; }
+    .canal-whatsapp.canal-sel { background: #25D366; color: #fff; box-shadow: 0 2px 8px rgba(37,211,102,0.3); }
+    .canal-telegram.canal-sel { background: #0088CC; color: #fff; box-shadow: 0 2px 8px rgba(0,136,204,0.3); }
+    .canal-ambos.canal-sel { background: #7F77DD; color: #fff; box-shadow: 0 2px 8px rgba(127,119,221,0.3); }
+    .canal-ninguno.canal-sel { background: #5F5E5A; color: #fff; box-shadow: 0 2px 8px rgba(95,94,90,0.3); }
+    .canal-dis { background: #F5F5F5; border-color: #DDD; color: #A0A0A0; cursor: not-allowed; opacity: 0.6; box-shadow: none !important; }
+    .canal-dis > *:first-child { filter: grayscale(1); }
+    .canal-card:not(.canal-sel):not(.canal-dis):hover { background: #FAFAFA; transform: translateY(-1px); }
+    @media (max-width: 480px) {
+      #canalGrid { grid-template-columns: repeat(2, 1fr) !important; }
+    }
+
     /* === COSTE MODAL === */
     .coste-card {
       background: #FAEEDA;
@@ -2823,23 +2852,26 @@
           var canal = s.canal_preferido || 'whatsapp';
           var hasTel = !!s.telefono;
           var hasTg = !!s.telegram_chat_id;
-          var opts = [
-            { val: 'whatsapp', label: 'WhatsApp', color: '#25D366', dis: !hasTel, hint: !hasTel ? 'Sin tel\u00e9fono' : '' },
-            { val: 'telegram', label: 'Telegram', color: '#0088CC', dis: !hasTg, hint: !hasTg ? 'No vinculado' : '' },
-            { val: 'ambos', label: 'Ambos', color: '#333', dis: !hasTel || !hasTg, hint: (!hasTel || !hasTg) ? 'Faltan datos' : '' },
-            { val: 'ninguno', label: 'Ninguno', color: '#999', dis: false, hint: '' }
+          var cards = [
+            { val: 'whatsapp', icon: '\ud83d\udcf1', label: 'WhatsApp', dis: !hasTel },
+            { val: 'telegram', icon: '\u2708\ufe0f', label: 'Telegram', dis: !hasTg },
+            { val: 'ambos', icon: '\u26a1', label: 'Ambos', dis: !hasTel || !hasTg },
+            { val: 'ninguno', icon: '\ud83d\udd15', label: 'Ninguno', dis: false }
           ];
-          var h = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:0 16px;margin-bottom:8px">';
-          for (var ci = 0; ci < opts.length; ci++) {
-            var o = opts[ci]; var sel = canal === o.val;
-            var bg = sel ? (o.val === 'ninguno' ? '#F5F5F5' : o.color + '18') : '#fff';
-            var bor = sel ? o.color : '#E0E0E0';
-            var op = o.dis ? 'opacity:0.4;pointer-events:none;' : 'cursor:pointer;';
-            h += '<div class="canal-opt" data-canal="' + o.val + '" style="padding:8px 6px;border:1.5px solid ' + bor + ';border-radius:8px;text-align:center;font-size:12px;font-weight:' + (sel ? '600' : '400') + ';color:' + (sel ? o.color : '#666') + ';' + op + '">' + o.label;
-            if (o.hint) h += '<div style="font-size:9px;color:#999;margin-top:2px">' + o.hint + '</div>';
+          var h = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:0 16px;margin-bottom:6px" id="canalGrid">';
+          for (var ci = 0; ci < cards.length; ci++) {
+            var c = cards[ci]; var sel = canal === c.val;
+            var cls = 'canal-card canal-' + c.val + (sel ? ' canal-sel' : '') + (c.dis ? ' canal-dis' : '');
+            h += '<div class="' + cls + '" data-canal="' + c.val + '" tabindex="0" role="radio" aria-checked="' + sel + '"' + (c.dis ? ' aria-disabled="true"' : '') + '>';
+            h += '<div style="font-size:24px;line-height:1">' + c.icon + '</div>';
+            h += '<div style="font-size:12px;font-weight:600;letter-spacing:0.2px">' + c.label + '</div>';
             h += '</div>';
           }
-          return h + '</div>';
+          h += '</div>';
+          // Hints
+          if (!hasTg) h += '<div style="padding:0 16px;font-size:10px;color:#999;margin-bottom:4px">\u2139\ufe0f Telegram: el socio debe pulsar "Activar Telegram" en su enlace de confirmaci\u00f3n.</div>';
+          if (!hasTel) h += '<div style="padding:0 16px;font-size:10px;color:#999;margin-bottom:4px">\u2139\ufe0f WhatsApp: el socio necesita tener tel\u00e9fono registrado.</div>';
+          return h;
         })() +
         '<hr class="ficha-sep">' +
         '<div class="ficha-section-title">ASIDUIDAD</div>' +
@@ -2916,27 +2948,34 @@
         if (tog) tog.textContent = 'Ver';
       }
 
-      // Canal preferido
-      var canalOpts = content.querySelectorAll('.canal-opt');
-      for (var co = 0; co < canalOpts.length; co++) {
-        canalOpts[co].addEventListener('click', function() {
+      // Canal preferido — tarjetas
+      var canalCards = content.querySelectorAll('.canal-card');
+      for (var co = 0; co < canalCards.length; co++) {
+        canalCards[co].addEventListener('click', function() {
+          if (this.classList.contains('canal-dis') || this.classList.contains('canal-sel')) return;
           var nuevoCanal = this.getAttribute('data-canal');
+          var prevCanal = s.canal_preferido || 'whatsapp';
+          // Optimistic
+          var all = content.querySelectorAll('.canal-card');
+          for (var x = 0; x < all.length; x++) { all[x].classList.remove('canal-sel'); all[x].setAttribute('aria-checked', 'false'); }
+          this.classList.add('canal-sel'); this.setAttribute('aria-checked', 'true');
           fetch('/api/socios/' + s.id + '/canal', {
             method: 'PUT', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ canal_preferido: nuevoCanal })
           }).then(function(r) { if (!r.ok) throw new Error('Error'); return r.json(); })
-          .then(function(updated) {
-            s.canal_preferido = updated.canal_preferido;
-            showToast('\u2713 Canal actualizado');
-            // Re-render canal section visually
-            var allOpts = content.querySelectorAll('.canal-opt');
-            for (var x = 0; x < allOpts.length; x++) {
-              var isS = allOpts[x].getAttribute('data-canal') === nuevoCanal;
-              allOpts[x].style.fontWeight = isS ? '600' : '400';
-              allOpts[x].style.borderColor = isS ? (nuevoCanal === 'whatsapp' ? '#25D366' : nuevoCanal === 'telegram' ? '#0088CC' : nuevoCanal === 'ninguno' ? '#999' : '#333') : '#E0E0E0';
-            }
-          })
-          .catch(function() { showError('Error al cambiar canal'); });
+          .then(function(updated) { s.canal_preferido = updated.canal_preferido; showToast('\u2713 Canal actualizado'); })
+          .catch(function() {
+            // Revert
+            var all2 = content.querySelectorAll('.canal-card');
+            for (var y = 0; y < all2.length; y++) { all2[y].classList.remove('canal-sel'); all2[y].setAttribute('aria-checked', 'false'); }
+            var prev = content.querySelector('.canal-card[data-canal="' + prevCanal + '"]');
+            if (prev) { prev.classList.add('canal-sel'); prev.setAttribute('aria-checked', 'true'); }
+            showError('Error al cambiar canal');
+          });
+        });
+        // Keyboard support
+        canalCards[co].addEventListener('keydown', function(e) {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.click(); }
         });
       }
 
