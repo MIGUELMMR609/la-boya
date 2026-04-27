@@ -2379,9 +2379,14 @@
       var query = norm(document.getElementById('searchInput').value.trim());
       var result = socios.slice();
 
-      // Filtro búsqueda
+      // Filtro búsqueda (nombre, apellidos, o nº socio)
       if (query) {
+        var rawQuery = document.getElementById('searchInput').value.trim();
         result = result.filter(function(s) {
+          if (/^\d+$/.test(rawQuery)) {
+            var numStr = String(s.num_socio);
+            if (numStr === rawQuery || numStr.indexOf(rawQuery) === 0) return true;
+          }
           var full = norm(s.nombre + ' ' + s.apellidos);
           return full.indexOf(query) !== -1;
         });
@@ -2813,6 +2818,30 @@
           }
         })() +
         '<hr class="ficha-sep">' +
+        '<div class="ficha-section-title">CANAL DE COMUNICACI\u00d3N</div>' +
+        (function() {
+          var canal = s.canal_preferido || 'whatsapp';
+          var hasTel = !!s.telefono;
+          var hasTg = !!s.telegram_chat_id;
+          var opts = [
+            { val: 'whatsapp', label: 'WhatsApp', color: '#25D366', dis: !hasTel, hint: !hasTel ? 'Sin tel\u00e9fono' : '' },
+            { val: 'telegram', label: 'Telegram', color: '#0088CC', dis: !hasTg, hint: !hasTg ? 'No vinculado' : '' },
+            { val: 'ambos', label: 'Ambos', color: '#333', dis: !hasTel || !hasTg, hint: (!hasTel || !hasTg) ? 'Faltan datos' : '' },
+            { val: 'ninguno', label: 'Ninguno', color: '#999', dis: false, hint: '' }
+          ];
+          var h = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:0 16px;margin-bottom:8px">';
+          for (var ci = 0; ci < opts.length; ci++) {
+            var o = opts[ci]; var sel = canal === o.val;
+            var bg = sel ? (o.val === 'ninguno' ? '#F5F5F5' : o.color + '18') : '#fff';
+            var bor = sel ? o.color : '#E0E0E0';
+            var op = o.dis ? 'opacity:0.4;pointer-events:none;' : 'cursor:pointer;';
+            h += '<div class="canal-opt" data-canal="' + o.val + '" style="padding:8px 6px;border:1.5px solid ' + bor + ';border-radius:8px;text-align:center;font-size:12px;font-weight:' + (sel ? '600' : '400') + ';color:' + (sel ? o.color : '#666') + ';' + op + '">' + o.label;
+            if (o.hint) h += '<div style="font-size:9px;color:#999;margin-top:2px">' + o.hint + '</div>';
+            h += '</div>';
+          }
+          return h + '</div>';
+        })() +
+        '<hr class="ficha-sep">' +
         '<div class="ficha-section-title">ASIDUIDAD</div>' +
         '<div class="asiduidad-buttons" id="asiduidadBtns">' +
           '<button class="asiduidad-btn' + (s.asiduidad === 1 ? ' sel-1' : '') + '" data-val="1">Va mucho</button>' +
@@ -2885,6 +2914,30 @@
         if (badge) badge.remove();
         var tog = document.getElementById('telToggle');
         if (tog) tog.textContent = 'Ver';
+      }
+
+      // Canal preferido
+      var canalOpts = content.querySelectorAll('.canal-opt');
+      for (var co = 0; co < canalOpts.length; co++) {
+        canalOpts[co].addEventListener('click', function() {
+          var nuevoCanal = this.getAttribute('data-canal');
+          fetch('/api/socios/' + s.id + '/canal', {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ canal_preferido: nuevoCanal })
+          }).then(function(r) { if (!r.ok) throw new Error('Error'); return r.json(); })
+          .then(function(updated) {
+            s.canal_preferido = updated.canal_preferido;
+            showToast('\u2713 Canal actualizado');
+            // Re-render canal section visually
+            var allOpts = content.querySelectorAll('.canal-opt');
+            for (var x = 0; x < allOpts.length; x++) {
+              var isS = allOpts[x].getAttribute('data-canal') === nuevoCanal;
+              allOpts[x].style.fontWeight = isS ? '600' : '400';
+              allOpts[x].style.borderColor = isS ? (nuevoCanal === 'whatsapp' ? '#25D366' : nuevoCanal === 'telegram' ? '#0088CC' : nuevoCanal === 'ninguno' ? '#999' : '#333') : '#E0E0E0';
+            }
+          })
+          .catch(function() { showError('Error al cambiar canal'); });
+        });
       }
 
       // WhatsApp socio
@@ -5335,14 +5388,17 @@
           }
           var noTelBadge = !hasTel ? '<div class="wa-no-tel-badge">Sin tel\u00e9fono</div>' : '';
           var betaBlocked = betaActivo && !esBeta(s.num_socio);
-          var disabled = !hasTel || betaBlocked;
+          var esNinguno = canal === 'ninguno';
+          var disabled = (!hasTel && canal !== 'telegram') || betaBlocked || esNinguno;
           var disClass = disabled ? ' wa-no-tel' : '';
           var betaBadge = betaBlocked ? '<div style="font-size:9px;background:#E0E0E0;color:#5F5E5A;padding:1px 6px;border-radius:4px;display:inline-block;margin-top:2px">Beta cerrada</div>' : '';
+          if (esNinguno && !betaBlocked) betaBadge = '<div style="font-size:9px;background:#E0E0E0;color:#5F5E5A;padding:1px 6px;border-radius:4px;display:inline-block;margin-top:2px">No recibe</div>';
           var canalIcon = '';
           var canal = s.canal_preferido || 'whatsapp';
-          if (canal === 'telegram') canalIcon = '<span style="font-size:10px;color:#0088CC" title="Telegram">TG</span> ';
-          else if (canal === 'ambos') canalIcon = '<span style="font-size:10px;color:#25D366" title="WhatsApp">WA</span><span style="font-size:10px;color:#0088CC" title="Telegram">+TG</span> ';
-          else canalIcon = '<span style="font-size:10px;color:#25D366" title="WhatsApp">WA</span> ';
+          if (canal === 'ninguno') { canalIcon = '<span style="font-size:9px;color:#999" title="No recibe">\ud83d\udd15</span> '; }
+          else if (canal === 'telegram') { canalIcon = '<span style="font-size:10px;color:' + (s.telegram_chat_id ? '#0088CC' : '#CCC') + '" title="Telegram">TG</span> '; }
+          else if (canal === 'ambos') { canalIcon = '<span style="font-size:10px;color:' + (s.telefono ? '#25D366' : '#CCC') + '">WA</span><span style="font-size:10px;color:' + (s.telegram_chat_id ? '#0088CC' : '#CCC') + '">+TG</span> '; }
+          else { canalIcon = '<span style="font-size:10px;color:' + (s.telefono ? '#25D366' : '#CCC') + '" title="WhatsApp">WA</span> '; }
           gridHtml += '<div class="card' + disClass + '" data-conf-sid="' + s.id + '" style="padding:8px;gap:6px;flex-direction:row;cursor:' + (disabled ? 'not-allowed' : 'pointer') + '">' +
             '<div class="avatar-wrap" style="position:relative"><div class="avatar" style="background:' + (s.foto_url ? 'transparent' : bgC) + ';width:44px;height:44px;font-size:14px">' + avHtml + '</div>' + checkHtml + '</div>' +
             '<div class="card-info"><div class="card-name" style="font-size:12px">' + canalIcon + escapeHtml(s.nombre) + '</div><div class="card-surname" style="font-size:10px">' + escapeHtml(s.apellidos) + '</div>' + respBadge + noTelBadge + betaBadge + '</div></div>';

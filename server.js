@@ -1191,7 +1191,7 @@ app.post('/api/publico/confirmacion/:token/:num_socio', (req, res) => {
 app.put('/api/socios/:id/canal', (req, res) => {
   try {
     var canal = req.body.canal_preferido;
-    if (!['whatsapp', 'telegram', 'ambos', null].includes(canal)) return res.status(400).json({ error: 'Canal invalido' });
+    if (!['whatsapp', 'telegram', 'ambos', 'ninguno', null].includes(canal)) return res.status(400).json({ error: 'Canal invalido' });
     var data = leerSocios();
     var idx = data.findIndex(function(s) { return s.id === req.params.id; });
     if (idx === -1) return res.status(404).json({ error: 'Socio no encontrado' });
