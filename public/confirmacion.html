@@ -75,6 +75,21 @@
     var evento = null, socio = null;
     var estado = { respuesta: null, invitados: 0 };
 
+    function mostrarAforoCompleto() {
+      var tipoTxt = evento.tipo === 'comida_social' ? 'comida social' : (evento.tipo === 'evento_gratis' ? 'celebraci\u00f3n' : 'evento');
+      var ov = document.createElement('div');
+      ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px';
+      ov.innerHTML = '<div style="background:#fff;border-radius:20px;padding:32px 24px;max-width:360px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);border-top:6px solid #E24B4A">' +
+        '<div style="font-size:64px;margin-bottom:16px">\ud83d\udeab</div>' +
+        '<h2 style="font-size:26px;font-weight:800;color:#791F1F;letter-spacing:1px;margin:0 0 16px">AFORO COMPLETO</h2>' +
+        '<p style="font-size:17px;color:#2C2C2A;margin:8px 0;line-height:1.5">Lo sentimos ' + esc(socio.nombre) + ',</p>' +
+        '<p style="font-size:17px;color:#2C2C2A;margin:8px 0;line-height:1.5">ya no quedan plazas para esta ' + tipoTxt + '.</p>' +
+        '<button id="aforoVolverBtn" style="background:#0C447C;color:#fff;border:none;padding:14px 32px;border-radius:12px;font-size:16px;font-weight:600;margin-top:24px;cursor:pointer">Volver</button>' +
+      '</div>';
+      document.body.appendChild(ov);
+      document.getElementById('aforoVolverBtn').addEventListener('click', function() { ov.remove(); });
+    }
+
     function cargar() {
       fetch('/api/publico/confirmacion/' + token + '/' + numSocio)
         .then(function(r) {
@@ -212,7 +227,13 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ respuesta: resp, invitados: estado.invitados })
       })
-      .then(function(r) { if (!r.ok) throw new Error('Error'); return r.json(); })
+      .then(function(r) {
+        if (!r.ok) return r.json().then(function(d) {
+          if (d.error === 'AFORO_COMPLETO') { mostrarAforoCompleto(); throw new Error('AFORO'); }
+          throw new Error(d.error || 'Error');
+        });
+        return r.json();
+      })
       .then(function(data) {
         var msgEl = document.getElementById('msgOk');
         if (msgEl) {
@@ -222,7 +243,8 @@
           setTimeout(function() { msgEl.classList.add('hidden'); setTimeout(function() { msgEl.style.display = 'none'; }, 300); }, 4000);
         }
       })
-      .catch(function() {
+      .catch(function(err) {
+        if (err.message === 'AFORO') { estado = prev; render(); return; }
         estado = prev;
         render();
         alert('No se pudo guardar tu respuesta. Intentalo de nuevo.');

@@ -3574,6 +3574,18 @@
             '</div>' +
           '</div>' +
           '<div class="evt-name">' + escapeHtml(e.nombre) + '</div>' +
+          (function() {
+            if (!e.aforo_maximo || e.aforo_maximo <= 0) return '';
+            var oc = 0;
+            for (var occ = 0; occ < e.asistentes.length; occ++) oc += 1 + (e.asistentes[occ].invitados || 0);
+            if (!isGratis) oc += (e.invitados_boya || []).length;
+            var rest = e.aforo_maximo - oc;
+            var pillBg, pillCol, pillBor, pillTxt;
+            if (rest <= 0) { pillBg = '#F7C1C1'; pillCol = '#791F1F'; pillBor = '#F09595'; pillTxt = 'AFORO COMPLETO'; }
+            else if (rest === 1) { pillBg = '#FAC775'; pillCol = '#412402'; pillBor = '#EF9F27'; pillTxt = oc + '/' + e.aforo_maximo + ' \u00b7 QUEDA 1 plaza'; }
+            else { pillBg = '#C0DD97'; pillCol = '#173404'; pillBor = '#97C459'; pillTxt = oc + '/' + e.aforo_maximo + ' \u00b7 QUEDAN ' + rest + ' plazas'; }
+            return '<div style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:0.3px;margin-top:4px;margin-bottom:2px;background:' + pillBg + ';color:' + pillCol + ';border:1px solid ' + pillBor + '">' + pillTxt + '</div>';
+          })() +
           '<div class="evt-stats-row">' + stats1 + '</div>' +
           (stats2 ? '<div class="evt-stats-row">' + stats2 + '</div>' : '') +
           (function() {
@@ -3677,6 +3689,11 @@
           '</div>' +
           '<div id="evtCamposDinamicos"></div>' +
           '<div class="form-field">' +
+            '<label class="form-label">Aforo m\u00e1ximo del evento</label>' +
+            '<input class="form-input" id="evtAforoComun" type="number" value="0" min="0">' +
+            '<div style="font-size:10px;color:#999;margin-top:3px">N\u00ba m\u00e1ximo de personas. 0 = sin l\u00edmite.</div>' +
+          '</div>' +
+          '<div class="form-field">' +
             '<label class="form-label">Notas (opcional)</label>' +
             '<textarea class="notas-textarea-neutral" id="evtNotas"></textarea>' +
           '</div>' +
@@ -3714,11 +3731,6 @@
                 '<input class="form-input" id="evtPrecio" type="number" value="25" min="0" step="0.5">' +
                 '<span class="input-unit">\u20ac</span>' +
               '</div>' +
-            '</div>' +
-            '<div class="form-field">' +
-              '<label class="form-label">Aforo m\u00e1ximo de comensales</label>' +
-              '<input class="form-input" id="evtAforo" type="number" value="20" min="1">' +
-              '<div style="font-size:10px;color:#999;margin-top:3px">Aforo tope que se comunicar\u00e1 a los socios en el mensaje de confirmaci\u00f3n.</div>' +
             '</div>';
         } else if (tipoSel === 'evento_gratis') {
           cont.innerHTML =
@@ -3756,11 +3768,14 @@
 
         var body = { tipo: tipoSel, fecha: fecha, notas: document.getElementById('evtNotas').value };
 
+        body.aforo_maximo = parseInt((document.getElementById('evtAforoComun') || {}).value, 10) || 0;
+        if (body.aforo_maximo === 0) {
+          if (!confirm('\u26a0\ufe0f ATENCI\u00d3N\n\nNo has asignado un aforo m\u00e1ximo. Los socios podr\u00e1n confirmar sin l\u00edmite.\n\n\u00bfContinuar sin l\u00edmite?')) return;
+        }
         if (tipoSel === 'comida_social') {
           var precio = parseFloat((document.getElementById('evtPrecio') || {}).value);
           body.precio_por_persona = isNaN(precio) ? 25 : precio;
           body.modo_calculo = 'precio_fijo';
-          body.aforo_maximo = parseInt((document.getElementById('evtAforo') || {}).value, 10) || 20;
         } else {
           var nombre = (document.getElementById('evtNombre') || {}).value;
           if (!nombre || !nombre.trim()) { banner.textContent = 'El nombre del evento es obligatorio'; banner.style.display = 'block'; return; }
@@ -3978,6 +3993,15 @@
         '<div class="evt-det-header">' +
           '<span class="evt-badge ' + badgeClass + '">' + badgeText + '</span>' +
           '<div class="evt-det-name">' + escapeHtml(evt.nombre) + '</div>' +
+          (function() {
+            if (!evt.aforo_maximo || evt.aforo_maximo <= 0) return '';
+            var rest = evt.aforo_maximo - totalPersonas;
+            var pillBg, pillCol, pillBor, pillTxt;
+            if (rest <= 0) { pillBg = '#F7C1C1'; pillCol = '#791F1F'; pillBor = '#F09595'; pillTxt = totalPersonas + '/' + evt.aforo_maximo + ' \u00b7 AFORO COMPLETO'; }
+            else if (rest === 1) { pillBg = '#FAC775'; pillCol = '#412402'; pillBor = '#EF9F27'; pillTxt = totalPersonas + '/' + evt.aforo_maximo + ' \u00b7 QUEDA 1 plaza'; }
+            else { pillBg = '#C0DD97'; pillCol = '#173404'; pillBor = '#97C459'; pillTxt = totalPersonas + '/' + evt.aforo_maximo + ' \u00b7 QUEDAN ' + rest + ' plazas'; }
+            return '<div style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600;letter-spacing:0.3px;margin-top:6px;background:' + pillBg + ';color:' + pillCol + ';border:1px solid ' + pillBor + '">' + pillTxt + '</div>';
+          })() +
           notasHtml +
         '</div>' +
         '<hr class="ficha-sep">' +
@@ -4274,10 +4298,6 @@
               '<input class="form-input" id="evtPrecio" type="number" value="' + (evt.precio_por_persona || 25) + '" min="0" step="0.5">' +
               '<span class="input-unit">\u20ac</span>' +
             '</div>' +
-          '</div>' +
-          '<div class="form-field">' +
-            '<label class="form-label">Aforo m\u00e1ximo</label>' +
-            '<input class="form-input" id="evtAforo" type="number" value="' + (evt.aforo_maximo || 20) + '" min="1">' +
           '</div>';
       } else {
         camposDin =
@@ -4304,6 +4324,7 @@
           '<div class="form-field"><label class="form-label">Tipo</label><div style="font-size:14px;color:#666;padding:6px 0">' + (evt.tipo === 'comida_social' ? 'Comida social' : 'Evento') + '</div></div>' +
           '<div class="form-field"><label class="form-label">Fecha *</label><input class="form-input" id="evtFecha" type="date" value="' + evt.fecha + '"></div>' +
           '<div id="evtCamposDinamicos">' + camposDin + '</div>' +
+          '<div class="form-field"><label class="form-label">Aforo m\u00e1ximo</label><input class="form-input" id="evtAforoEdit" type="number" value="' + (evt.aforo_maximo || 0) + '" min="0"><div style="font-size:10px;color:#999;margin-top:2px">0 = sin l\u00edmite.</div></div>' +
           '<div class="form-field"><label class="form-label">Notas</label><textarea class="notas-textarea-neutral" id="evtNotas">' + escapeHtml(evt.notas || '') + '</textarea></div>' +
         '</div>' +
         '<div class="form-actions">' +
@@ -4354,7 +4375,6 @@
         if (evt.tipo === 'comida_social') {
           body.precio_por_persona = parseFloat((document.getElementById('evtPrecio') || {}).value) || 25;
           body.modo_calculo = 'precio_fijo';
-          body.aforo_maximo = parseInt((document.getElementById('evtAforo') || {}).value, 10) || 20;
         } else {
           body.nombre = (document.getElementById('evtNombre') || {}).value;
           if (!body.nombre || !body.nombre.trim()) { banner.textContent = 'Nombre obligatorio'; banner.style.display = 'block'; return; }
@@ -4367,6 +4387,7 @@
             if (!body.coste_total || body.coste_total <= 0) { banner.textContent = 'Total inv\u00e1lido'; banner.style.display = 'block'; return; }
           }
         }
+        body.aforo_maximo = parseInt((document.getElementById('evtAforoEdit') || {}).value, 10) || 0;
         btn.disabled = true;
         fetch('/api/eventos/' + evt.id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
           .then(function(r) { if (!r.ok) throw new Error('Error'); return r.json(); })

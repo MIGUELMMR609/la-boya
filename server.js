@@ -470,8 +470,8 @@ function leerEventos() {
       if (!data[i].invitados_boya) { data[i].invitados_boya = []; migrado = true; }
       if (data[i].confirmacion_token === undefined) { data[i].confirmacion_token = null; migrado = true; }
       if (!data[i].respuestas_confirmacion) { data[i].respuestas_confirmacion = {}; migrado = true; }
-      if (data[i].aforo_maximo === undefined) {
-        data[i].aforo_maximo = data[i].tipo === 'comida_social' ? 20 : null;
+      if (data[i].aforo_maximo === undefined || data[i].aforo_maximo === null) {
+        data[i].aforo_maximo = data[i].tipo === 'comida_social' ? 20 : 0;
         migrado = true;
       }
     }
@@ -580,7 +580,7 @@ app.post('/api/eventos', (req, res) => {
       cocineros: [],
       asistentes: [],
       invitados_boya: [],
-      aforo_maximo: tipo === 'comida_social' ? (parseInt(req.body.aforo_maximo, 10) || 20) : null,
+      aforo_maximo: parseInt(req.body.aforo_maximo, 10) || 0,
       confirmacion_token: null,
       respuestas_confirmacion: {},
       notas: req.body.notas || '',
@@ -622,7 +622,7 @@ app.put('/api/eventos/:id', (req, res) => {
     if (req.body.coste_total !== undefined) evt.coste_total = req.body.coste_total != null ? parseFloat(req.body.coste_total) : null;
     if (req.body.modo_calculo !== undefined) evt.modo_calculo = req.body.modo_calculo;
     if (req.body.notas !== undefined) evt.notas = req.body.notas;
-    if (req.body.aforo_maximo !== undefined && evt.tipo === 'comida_social') evt.aforo_maximo = parseInt(req.body.aforo_maximo, 10) || 20;
+    if (req.body.aforo_maximo !== undefined) evt.aforo_maximo = parseInt(req.body.aforo_maximo, 10) || 0;
     if (req.body.cocineros !== undefined) evt.cocineros = req.body.cocineros;
     if (req.body.asistentes !== undefined) evt.asistentes = req.body.asistentes;
 
@@ -1146,6 +1146,19 @@ app.post('/api/publico/confirmacion/:token/:num_socio', (req, res) => {
     var invitados = respuesta === 'si' ? (parseInt(req.body.invitados, 10) || 0) : 0;
     if (invitados < 0) invitados = 0;
 
+    // Check aforo
+    if (respuesta === 'si' && evt.aforo_maximo > 0) {
+      var ocupado = 0;
+      for (var oa = 0; oa < evt.asistentes.length; oa++) {
+        if (evt.asistentes[oa].socio_id !== socId) ocupado += 1 + (evt.asistentes[oa].invitados || 0);
+      }
+      ocupado += (evt.invitados_boya || []).length;
+      var plazas = 1 + invitados;
+      if (ocupado + plazas > evt.aforo_maximo) {
+        return res.status(403).json({ ok: false, error: 'AFORO_COMPLETO', mensaje: 'Lo sentimos, ya no quedan plazas para este evento.', ocupado: ocupado, aforo: evt.aforo_maximo, plazas_pedidas: plazas });
+      }
+    }
+
     // Guardar respuesta
     if (!evt.respuestas_confirmacion) evt.respuestas_confirmacion = {};
     evt.respuestas_confirmacion[String(soc.num_socio)] = {
@@ -1301,6 +1314,21 @@ if (TelegramBot && process.env.TELEGRAM_BOT_TOKEN) {
 
       if (accion === 'si' || accion === 'no') {
         var invCount = accion === 'si' ? (evento.tipo === 'comida_social' ? 0 : prev.invitados) : 0;
+
+        // Aforo check
+        if (accion === 'si' && evento.aforo_maximo > 0) {
+          var ocTg = 0;
+          for (var oat = 0; oat < evento.asistentes.length; oat++) {
+            if (evento.asistentes[oat].socio_id !== socId) ocTg += 1 + (evento.asistentes[oat].invitados || 0);
+          }
+          ocTg += (evento.invitados_boya || []).length;
+          if (ocTg + 1 + invCount > evento.aforo_maximo) {
+            var tipoTxt = evento.tipo === 'comida_social' ? 'comida social' : (evento.tipo === 'evento_gratis' ? 'celebraci\u00f3n' : 'evento');
+            bot.answerCallbackQuery(query.id, { text: '\ud83d\udeab AFORO COMPLETO\n\nLo sentimos ' + nombre + ', ya no quedan plazas para esta ' + tipoTxt + '.', show_alert: true });
+            return;
+          }
+        }
+
         evento.respuestas_confirmacion[numSocio] = { respuesta: accion, invitados: invCount, fecha_respuesta: new Date().toISOString() };
 
         if (accion === 'si') {
@@ -1326,6 +1354,15 @@ if (TelegramBot && process.env.TELEGRAM_BOT_TOKEN) {
         }
         var currentInv = prev.invitados || 0;
         if (accion === 'mas') {
+          // Aforo check for +1
+          if (evento.aforo_maximo > 0) {
+            var ocPlus = 0;
+            for (var op2 = 0; op2 < evento.asistentes.length; op2++) ocPlus += 1 + (evento.asistentes[op2].invitados || 0);
+            ocPlus += (evento.invitados_boya || []).length;
+            if (ocPlus + 1 > evento.aforo_maximo) {
+              bot.answerCallbackQuery(query.id, { text: '\ud83d\udeab AFORO COMPLETO. No se pueden a\u00f1adir m\u00e1s acompa\u00f1antes.', show_alert: true }); return;
+            }
+          }
           currentInv++;
           answerText = 'Ahora vienes con ' + currentInv + ' acompa\u00f1ante' + (currentInv !== 1 ? 's' : '');
         } else {
