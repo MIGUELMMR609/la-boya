@@ -186,8 +186,10 @@
       // Handlers
       document.getElementById('btnSi').addEventListener('click', function() { enviar('si'); });
       document.getElementById('btnNo').addEventListener('click', function() { enviar('no'); });
-      document.getElementById('invPlus').addEventListener('click', function() { cambiarInv(1); });
-      document.getElementById('invMinus').addEventListener('click', function() { cambiarInv(-1); });
+      var elPlus = document.getElementById('invPlus');
+      var elMinus = document.getElementById('invMinus');
+      if (elPlus) elPlus.addEventListener('click', function() { cambiarInv(1); });
+      if (elMinus) elMinus.addEventListener('click', function() { cambiarInv(-1); });
     }
 
     function hintText(n, singular, plural) {
@@ -232,11 +234,13 @@
       if (nuevo === estado.invitados) return;
       estado.invitados = nuevo;
 
-      document.getElementById('invNum').textContent = nuevo;
-      document.getElementById('invNum').setAttribute('aria-valuenow', nuevo);
-      document.getElementById('invMinus').disabled = nuevo <= 0;
+      var numEl = document.getElementById('invNum');
+      var minEl = document.getElementById('invMinus');
+      var hintEl = document.getElementById('invHint');
+      if (numEl) { numEl.textContent = nuevo; numEl.setAttribute('aria-valuenow', nuevo); }
+      if (minEl) minEl.disabled = nuevo <= 0;
       var isGratis = evento.tipo === 'evento_gratis';
-      document.getElementById('invHint').textContent = hintText(nuevo, isGratis ? 'acompa\u00f1ante' : 'invitado', isGratis ? 'acompa\u00f1antes' : 'invitados');
+      if (hintEl) hintEl.textContent = hintText(nuevo, isGratis ? 'acompa\u00f1ante' : 'invitado', isGratis ? 'acompa\u00f1antes' : 'invitados');
 
       fetch('/api/publico/confirmacion/' + token + '/' + numSocio, {
         method: 'POST',
