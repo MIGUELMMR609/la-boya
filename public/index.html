@@ -4575,7 +4575,7 @@
       function isAforoFull() { return evt.aforo_maximo > 0 && getOcLocal() >= evt.aforo_maximo; }
 
       var aforoBanner = '';
-      if (evt.aforo_maximo > 0 && (modo === 'comensales' || modo === 'invitados')) {
+      if (evt.aforo_maximo > 0 && (modo === 'comensales' || modo === 'invitados' || modo === 'cocineros')) {
         aforoBanner = '<div id="selAforoBanner" style="display:none;background:#FCEBEB;border:1px solid #F09595;border-radius:8px;padding:10px 14px;margin:8px 16px;font-size:13px;font-weight:600;color:#791F1F"></div>';
       }
 
@@ -4672,6 +4672,7 @@
           // Aforo block for non-selected in comensales
           var aforoBlocked = false;
           if (modo === 'comensales' && selAsist.indexOf(s.id) === -1 && isAforoFull()) aforoBlocked = true;
+          if (modo === 'cocineros' && selCook.indexOf(s.id) === -1 && selAsist.indexOf(s.id) === -1 && isAforoFull()) aforoBlocked = true;
 
           var card = document.createElement('div');
           card.className = 'card';
@@ -4697,8 +4698,14 @@
             if (modo === 'cocineros') {
               card.addEventListener('click', function() {
                 var idx = selCook.indexOf(sid);
-                if (idx === -1) selCook.push(sid);
-                else selCook.splice(idx, 1);
+                if (idx === -1) {
+                  // Adding: check if this would be a new asistente and aforo is full
+                  if (selAsist.indexOf(sid) === -1 && isAforoFull()) {
+                    mostrarPopupAforoCompleto(getOcLocal(), evt.aforo_maximo);
+                    return;
+                  }
+                  selCook.push(sid);
+                } else { selCook.splice(idx, 1); }
                 renderSelGrid();
               });
             } else if (modo === 'comensales') {
@@ -4773,9 +4780,12 @@
           fetch('/api/eventos/' + evt.id + '/cocineros', {
             method: 'PUT', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ cocineros: selCook })
-          }).then(function(r) { return r.json(); })
+          }).then(function(r) {
+            if (r.status === 403) return r.json().then(function(d) { mostrarPopupAforoCompleto(d.ocupado || 0, d.aforo || 0); throw new Error('AFORO'); });
+            return r.json();
+          })
           .then(function(updated) { cerrarSel(); if (onDone) onDone(updated); showToast('\u2713 Cocineros guardados'); })
-          .catch(function() { showError('Error al guardar cocineros'); });
+          .catch(function(err) { if (err.message !== 'AFORO') showError('Error al guardar cocineros'); });
         } else if (modo === 'comensales') {
           var asistBody = selAsist.map(function(sid) { return { socio_id: sid }; });
           fetch('/api/eventos/' + evt.id + '/asistentes', {

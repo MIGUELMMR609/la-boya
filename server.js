@@ -671,29 +671,54 @@ app.put('/api/eventos/:id/cocineros', (req, res) => {
     var cocinerosNuevos = req.body.cocineros || [];
     var cocinerosAntes = evt.cocineros || [];
     var rc = evt.respuestas_confirmacion || {};
+    var sociosData = leerSocios();
 
-    // Cocineros removidos: quitar de asistentes si no confirmaron independientemente
-    var removidosDeAsist = 0; var mantenidos = 0;
-    for (var cr = 0; cr < cocinerosAntes.length; cr++) {
-      if (cocinerosNuevos.indexOf(cocinerosAntes[cr]) === -1) {
-        // Este cocinero fue removido
-        // Buscar su num_socio para verificar respuestas_confirmacion
-        var socRem = leerSocios().find(function(s) { return s.id === cocinerosAntes[cr]; });
-        var numSocioStr = socRem ? String(socRem.num_socio) : '';
-        var haConfirmado = numSocioStr && rc[numSocioStr] && rc[numSocioStr].respuesta === 'si';
-        if (!haConfirmado) {
-          evt.asistentes = evt.asistentes.filter(function(a) { return a.socio_id !== cocinerosAntes[cr]; });
-          removidosDeAsist++;
-        } else {
-          mantenidos++;
-        }
+    // Calcular removidos y añadidos
+    var removidos = cocinerosAntes.filter(function(c) { return cocinerosNuevos.indexOf(c) === -1; });
+    var anadidos = cocinerosNuevos.filter(function(c) { return cocinerosAntes.indexOf(c) === -1; });
+
+    // Simular: cuántos asistentes salen (removidos sin confirmación independiente)
+    var salen = 0;
+    for (var cr = 0; cr < removidos.length; cr++) {
+      var socRem = sociosData.find(function(s) { return s.id === removidos[cr]; });
+      var numStr = socRem ? String(socRem.num_socio) : '';
+      var haConf = numStr && rc[numStr] && rc[numStr].respuesta === 'si';
+      if (!haConf && evt.asistentes.some(function(a) { return a.socio_id === removidos[cr]; })) salen++;
+    }
+
+    // Simular: cuántos asistentes entran (añadidos que no están ya)
+    var entran = 0;
+    for (var ca = 0; ca < anadidos.length; ca++) {
+      if (!evt.asistentes.some(function(a) { return a.socio_id === anadidos[ca]; })) entran++;
+    }
+
+    // Aforo check
+    if (evt.aforo_maximo > 0) {
+      var ocActual = 0;
+      for (var oc = 0; oc < evt.asistentes.length; oc++) ocActual += 1 + (evt.asistentes[oc].invitados || 0);
+      ocActual += (evt.invitados_boya || []).length;
+      var ocResultante = ocActual + entran - salen;
+      if (ocResultante > evt.aforo_maximo) {
+        return res.status(403).json({ ok: false, error: 'AFORO_COMPLETO', mensaje: 'No se pueden a\u00f1adir estos cocineros porque superarian el aforo.', ocupado: ocActual, ocupado_resultante: ocResultante, aforo: evt.aforo_maximo });
       }
     }
 
-    // Cocineros añadidos: añadir a asistentes si no están
-    for (var ca = 0; ca < cocinerosNuevos.length; ca++) {
-      if (!evt.asistentes.some(function(a) { return a.socio_id === cocinerosNuevos[ca]; })) {
-        evt.asistentes.push({ socio_id: cocinerosNuevos[ca], invitados: 0, pagado: false });
+    // Aplicar removidos
+    var removidosDeAsist = 0; var mantenidos = 0;
+    for (var cr2 = 0; cr2 < removidos.length; cr2++) {
+      var socRem2 = sociosData.find(function(s) { return s.id === removidos[cr2]; });
+      var numStr2 = socRem2 ? String(socRem2.num_socio) : '';
+      var haConf2 = numStr2 && rc[numStr2] && rc[numStr2].respuesta === 'si';
+      if (!haConf2) {
+        evt.asistentes = evt.asistentes.filter(function(a) { return a.socio_id !== removidos[cr2]; });
+        removidosDeAsist++;
+      } else { mantenidos++; }
+    }
+
+    // Aplicar añadidos
+    for (var ca2 = 0; ca2 < anadidos.length; ca2++) {
+      if (!evt.asistentes.some(function(a) { return a.socio_id === anadidos[ca2]; })) {
+        evt.asistentes.push({ socio_id: anadidos[ca2], invitados: 0, pagado: false });
       }
     }
 
