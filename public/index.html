@@ -2257,12 +2257,15 @@
   <!-- TAB EVENTOS -->
   <div class="tab-content" id="tab-eventos">
     <div class="main">
-      <div class="eventos-header">
+      <div class="eventos-header" style="flex-wrap:wrap;gap:8px">
         <div>
           <span class="eventos-title">Eventos</span>
           <span class="eventos-count" id="eventosCount"></span>
         </div>
-        <button class="btn-add" id="btnAddEvento" title="Nuevo evento">+</button>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="pill" id="btnTogglePasados" style="font-size:11px;padding:4px 10px"></button>
+          <button class="btn-add" id="btnAddEvento" title="Nuevo evento">+</button>
+        </div>
       </div>
       <div class="loader-wrap" id="loaderEventos" style="display:none">
         <div class="loader-spinner"></div>
@@ -2657,6 +2660,11 @@
       // Nuevo evento
       document.getElementById('btnAddEvento').addEventListener('click', function() {
         abrirFormularioEvento();
+      });
+      document.getElementById('btnTogglePasados').addEventListener('click', function() {
+        var show = localStorage.getItem('la_boya_mostrar_eventos_pasados') === 'true';
+        localStorage.setItem('la_boya_mostrar_eventos_pasados', !show);
+        renderEventos();
       });
 
       // WhatsApp masivo desde pestaña Socios
@@ -3512,45 +3520,47 @@
         });
     }
 
+    var DIAS_ABR = ['DOM','LUN','MAR','MI\u00c9','JUE','VIE','S\u00c1B'];
+    var MESES_ABR = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+    var PAL = {
+      comida_social: { dateBg:'#E8F6EF', dateCol:'#04342C', pillBg:'#C5EBDB', pillCol:'#04342C', pillIcon:'\ud83c\udf74', pillLabel:'COMIDA SOCIAL' },
+      evento: { dateBg:'#E9F2FB', dateCol:'#042C53', pillBg:'#D6E7F9', pillCol:'#042C53', pillIcon:'\ud83d\udcc5', pillLabel:'EVENTO' },
+      evento_gratis: { dateBg:'#EFEDF8', dateCol:'#26215C', pillBg:'#DDD9F0', pillCol:'#26215C', pillIcon:'\ud83c\udf81', pillLabel:'GRATIS' }
+    };
+
     function renderEventos() {
       var lista = document.getElementById('eventosLista');
       var countEl = document.getElementById('eventosCount');
-      countEl.textContent = eventos.length ? eventos.length + ' eventos' : '';
       lista.innerHTML = '';
 
+      // Toggle pasados
+      var mostrarPasados = localStorage.getItem('la_boya_mostrar_eventos_pasados') === 'true';
+      var toggleBtn = document.getElementById('btnTogglePasados');
+      if (toggleBtn) toggleBtn.textContent = mostrarPasados ? 'Ocultar pasados' : 'Mostrar pasados';
+
+      var hoy = new Date().toISOString().split('T')[0];
+      var proximos = eventos.filter(function(e) { return e.fecha >= hoy; });
+      var pasados = eventos.filter(function(e) { return e.fecha < hoy; });
+      proximos.sort(function(a, b) { return a.fecha.localeCompare(b.fecha); });
+      pasados.sort(function(a, b) { return b.fecha.localeCompare(a.fecha); });
+
+      countEl.textContent = proximos.length + ' pr\u00f3ximo' + (proximos.length !== 1 ? 's' : '') + (mostrarPasados && pasados.length ? ' \u00b7 ' + pasados.length + ' pasado' + (pasados.length !== 1 ? 's' : '') : '');
+
       if (eventos.length === 0) {
-        lista.innerHTML =
-          '<div class="empty-state">' +
-            '<div class="empty-state-icon"><svg viewBox="0 0 64 64"><rect x="10" y="8" width="44" height="48" rx="6"/><line x1="10" y1="20" x2="54" y2="20"/><line x1="24" y1="4" x2="24" y2="14"/><line x1="40" y1="4" x2="40" y2="14"/><line x1="32" y1="30" x2="32" y2="46"/><line x1="24" y1="38" x2="40" y2="38"/></svg></div>' +
-            '<div class="empty-state-title">A\u00fan no hay eventos</div>' +
-            '<div class="empty-state-sub">Pulsa + para crear el primero</div>' +
-            '<button class="empty-state-btn" id="emptyAddEvtBtn">+ Crear primer evento</button>' +
-          '</div>';
+        lista.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><svg viewBox="0 0 64 64"><rect x="10" y="8" width="44" height="48" rx="6"/><line x1="10" y1="20" x2="54" y2="20"/><line x1="24" y1="4" x2="24" y2="14"/><line x1="40" y1="4" x2="40" y2="14"/><line x1="32" y1="30" x2="32" y2="46"/><line x1="24" y1="38" x2="40" y2="38"/></svg></div><div class="empty-state-title">A\u00fan no hay eventos</div><div class="empty-state-sub">Pulsa + para crear el primero</div><button class="empty-state-btn" id="emptyAddEvtBtn">+ Crear primer evento</button></div>';
         document.getElementById('emptyAddEvtBtn').addEventListener('click', function() { abrirFormularioEvento(); });
         return;
       }
 
-      var svgBadgeComida = '<svg viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h2v11"/><line x1="5" y1="2" x2="5" y2="11"/><line x1="7" y1="2" x2="7" y2="11"/><path d="M14 2v20"/><path d="M17 2c2 0 4 1 4 4v6c0 1-1 2-2 2h-1v10"/></svg>';
-      var svgBadgeEvento = '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
-      var svgCook = '<svg viewBox="0 0 24 24" stroke="#534AB7"><circle cx="12" cy="7" r="5"/><path d="M5 22v-2a7 7 0 0114 0v2"/></svg>';
-      var svgPeople = '<svg viewBox="0 0 24 24" stroke="#0C447C"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>';
-      var svgInvPlus = '<svg viewBox="0 0 24 24" stroke="#D85A30"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>';
-      var svgCheckStat = '<svg viewBox="0 0 24 24" stroke="#173404"><polyline points="20 6 9 17 4 12"/></svg>';
-      var svgPending = '<svg viewBox="0 0 24 24" stroke="#791F1F"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12" y2="16.01"/></svg>';
-      var svgGift = '<svg viewBox="0 0 24 24" stroke="#412402"><rect x="3" y="8" width="18" height="4" rx="1"/><rect x="3" y="12" width="18" height="9" rx="1"/><line x1="12" y1="8" x2="12" y2="21"/><path d="M7.5 8C6 6.5 6 4 7.5 4s3 2 4.5 4M16.5 8C18 6.5 18 4 16.5 4s-3 2-4.5 4"/></svg>';
+      var toRender = proximos.slice();
+      if (mostrarPasados) toRender = toRender.concat(pasados);
 
-      // Paletas por tipo
-      var PAL = {
-        comida_social: { pillBg:'#C5EBDB', pillCol:'#04342C', protBg:'#F0F9F4', protBor:'#9FE1CB', nameCol:'#04342C', pillLabel:'Comida social', pillIcon:'\ud83c\udf74' },
-        evento: { pillBg:'#D6E7F9', pillCol:'#042C53', protBg:'#F0F6FC', protBor:'#B5D4F4', nameCol:'#042C53', pillLabel:'Evento', pillIcon:'\ud83d\udcc5' },
-        evento_gratis: { pillBg:'#DDD9F0', pillCol:'#26215C', protBg:'#F4F2FA', protBor:'#AFA9EC', nameCol:'#26215C', pillLabel:'Cortes\u00eda LA BOYA', pillIcon:'\ud83c\udf81' }
-      };
-
-      for (var i = 0; i < eventos.length; i++) {
-        var e = eventos[i];
+      for (var i = 0; i < toRender.length; i++) {
+        var e = toRender[i];
         var isGratis = e.tipo === 'evento_gratis';
-        var p = PAL[e.tipo] || PAL.evento;
+        var pl = PAL[e.tipo] || PAL.evento;
         var bandaClass = e.tipo === 'comida_social' ? 'banda-comida' : (isGratis ? 'banda-gratis' : 'banda-evento');
+        var esPasado = e.fecha < hoy;
 
         // Calcs
         var totalInvExtra = 0;
@@ -3560,68 +3570,61 @@
         var tieneAforo = e.aforo_maximo && e.aforo_maximo > 0;
         var restantes = tieneAforo ? e.aforo_maximo - ocupado : 999;
 
-        // Day of week
+        // Date parts
         var dp = e.fecha.split('-');
         var dObj = new Date(parseInt(dp[0],10), parseInt(dp[1],10)-1, parseInt(dp[2],10));
-        var diaSemana = DIAS_SEMANA[dObj.getDay()];
-        var nombreBase = e.nombre.replace(/\s*-\s*\d{1,2}\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\s+\d{4}$/i, '').trim();
+        var diaAbr = DIAS_ABR[dObj.getDay()];
+        var diaNum = parseInt(dp[2], 10);
+        var mesAbr = MESES_ABR[parseInt(dp[1],10) - 1];
 
-        // Protagonista
-        var bigNum, bigLabel, bigMsg = '', bigNumCol = p.nameCol;
+        // Confirmados line
+        var confLine = '';
         if (tieneAforo) {
-          bigNum = ocupado + '/' + e.aforo_maximo;
-          bigLabel = 'CONFIRMADOS';
-          if (restantes < 0) { bigMsg = '\u26a0\ufe0f Aforo superado (' + (-restantes) + ' de m\u00e1s)'; bigNumCol = '#791F1F'; }
-          else if (restantes === 0) { bigMsg = '\ud83d\udeab AFORO COMPLETO'; bigNumCol = '#791F1F'; }
-          else if (restantes === 1) { bigMsg = '\u26a0\ufe0f \u00daltima plaza disponible'; bigNumCol = '#B45F0A'; }
-          else if (restantes <= 4) { bigMsg = 'Quedan ' + restantes + ' plazas'; }
+          confLine = '\ud83d\udc65 ' + ocupado + '/' + e.aforo_maximo + ' confirmados';
+          if (restantes < 0) confLine += ' <span style="color:#791F1F;font-weight:600">\u00b7 Aforo superado</span>';
+          else if (restantes === 0) confLine += ' <span style="color:#791F1F;font-weight:600">\u00b7 AFORO COMPLETO</span>';
+          else if (restantes === 1) confLine += ' <span style="color:#B45F0A;font-weight:600">\u00b7 \u00daltima plaza</span>';
+          else if (restantes <= 4) confLine += ' <span style="color:' + pl.dateCol + '">\u00b7 ' + restantes + ' plazas libres</span>';
         } else {
-          bigNum = ocupado + ' persona' + (ocupado !== 1 ? 's' : '');
-          bigLabel = 'CONFIRMADA' + (ocupado !== 1 ? 'S' : '');
+          confLine = '\ud83d\udc65 ' + ocupado + ' confirmado' + (ocupado !== 1 ? 's' : '');
         }
-
-        // Detalles line
-        var detParts = [];
-        detParts.push('\ud83d\udc65 ' + e.asistentes.length + ' socio' + (e.asistentes.length !== 1 ? 's' : ''));
-        if (totalInvExtra > 0) detParts.push('\u2795 ' + totalInvExtra + ' ' + (isGratis ? 'acomp.' : 'invit.'));
-        if (nBoyaCard > 0 && !isGratis) detParts.push('\ud83c\udfa9 ' + nBoyaCard + ' BOYA');
-        var detLine = '<div style="font-size:13px;color:#2C2C2A;padding:0 16px;margin-top:14px">' + detParts.join(' <span style="color:#B5B5B5">\u00b7</span> ') + '</div>';
 
         // Money line
         var moneyLine = '';
         if (!isGratis) {
-          var mParts = [];
-          if (e.modo_calculo === 'precio_fijo' && e.precio_por_persona != null) mParts.push('\ud83d\udcb0 ' + e.precio_por_persona + ' \u20ac/persona');
-          else if (e.modo_calculo === 'total_dividido' && e.coste_total != null) mParts.push('\ud83d\udcb0 Total ' + e.coste_total + ' \u20ac');
-          else mParts.push('<span style="color:#CCC">\ud83d\udcb0 Coste por asignar</span>');
+          var mP = [];
+          if (e.modo_calculo === 'precio_fijo' && e.precio_por_persona != null) mP.push('\ud83d\udcb0 ' + e.precio_por_persona + ' \u20ac/persona');
+          else if (e.modo_calculo === 'total_dividido' && e.coste_total != null) mP.push('\ud83d\udcb0 Total ' + e.coste_total + ' \u20ac');
+          else mP.push('<span style="color:#CCC">\ud83d\udcb0 Coste por asignar</span>');
           if (e.modo_calculo && e.modo_calculo !== 'gratis' && e.asistentes.length > 0) {
-            var pagCab = 0; var pendCab2 = 0;
-            for (var pi2 = 0; pi2 < e.asistentes.length; pi2++) { var c2 = 1 + (e.asistentes[pi2].invitados || 0); if (e.asistentes[pi2].pagado) pagCab += c2; else pendCab2 += c2; }
-            mParts.push('<span style="color:#173404">\u2713 ' + pagCab + ' pagaron</span>');
-            if (pendCab2 > 0) mParts.push('<span style="color:#791F1F">\u23f3 ' + pendCab2 + ' pendientes</span>');
-            if (nBoyaCard > 0) mParts.push('<span style="color:#412402">\ud83c\udf81 ' + nBoyaCard + ' no paga</span>');
+            var pgC = 0; var pdC = 0;
+            for (var pj = 0; pj < e.asistentes.length; pj++) { var cj = 1 + (e.asistentes[pj].invitados || 0); if (e.asistentes[pj].pagado) pgC += cj; else pdC += cj; }
+            mP.push('<span style="color:#173404">\u2713 ' + pgC + ' pagaron</span>');
+            if (pdC > 0) mP.push('<span style="color:#791F1F">\u23f3 ' + pdC + ' pend.</span>');
           }
-          moneyLine = '<div style="border-top:1px solid #E0E0E0;margin:14px 16px 0;padding-top:12px;font-size:12px;color:#5F5E5A">' + mParts.join(' <span style="color:#B5B5B5">\u00b7</span> ') + '</div>';
+          moneyLine = '<div style="font-size:12px;color:#5F5E5A;margin-top:4px">' + mP.join(' <span style="color:#B5B5B5">\u00b7</span> ') + '</div>';
         } else {
-          moneyLine = '<div style="border-top:1px solid #E0E0E0;margin:14px 16px 0;padding-top:12px;font-size:13px;color:#534AB7;font-weight:500;text-align:right">\ud83c\udf81 Cortes\u00eda LA BOYA</div>';
+          moneyLine = '<div style="font-size:12px;color:#534AB7;font-weight:500;margin-top:4px">\ud83c\udf81 Cortes\u00eda LA BOYA</div>';
         }
 
         var card = document.createElement('div');
-        card.className = 'evt-card ' + bandaClass;
+        card.className = 'evt-card ' + (esPasado ? '' : bandaClass);
+        card.style.cssText = 'display:flex;padding:0;overflow:hidden;' + (esPasado ? 'opacity:0.5;border-left:3px solid #B5B5B5;' : '');
         card.innerHTML =
-          '<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 16px 8px">' +
-            '<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:0.3px;background:' + p.pillBg + ';color:' + p.pillCol + '">' + p.pillIcon + ' ' + p.pillLabel + '</span>' +
-            '<div style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:#5F5E5A;font-weight:500">' + escapeHtml(formatFechaEvento(e.fecha)) + '</span><button class="evt-menu-btn" data-evt-id="' + e.id + '">\u22ef</button></div>' +
+          '<div style="min-width:80px;padding:12px 8px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:2px;background:' + (esPasado ? '#F0F0F0' : pl.dateBg) + ';border-top-left-radius:12px;border-bottom-left-radius:12px">' +
+            '<div style="font-size:11px;font-weight:600;letter-spacing:0.5px;color:' + (esPasado ? '#999' : pl.dateCol) + '">' + diaAbr + '</div>' +
+            '<div style="font-size:32px;font-weight:800;line-height:1;color:' + (esPasado ? '#999' : pl.dateCol) + '">' + diaNum + '</div>' +
+            '<div style="font-size:11px;font-weight:600;letter-spacing:0.5px;color:' + (esPasado ? '#999' : pl.dateCol) + '">' + mesAbr + '</div>' +
           '</div>' +
-          '<div style="padding:0 16px"><div style="font-size:19px;font-weight:700;color:' + p.nameCol + ';letter-spacing:0.5px;text-transform:uppercase">' + escapeHtml(nombreBase) + '</div>' +
-            '<div style="font-size:13px;color:#5F5E5A;margin-top:2px">' + diaSemana + ', ' + escapeHtml(formatFechaEvento(e.fecha)) + '</div>' +
+          '<div style="flex:1;padding:12px;min-width:0">' +
+            '<div style="display:flex;align-items:center;justify-content:space-between">' +
+              '<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:0.6px;background:' + pl.pillBg + ';color:' + pl.pillCol + '">' + pl.pillIcon + ' ' + pl.pillLabel + '</span>' +
+              '<button class="evt-menu-btn" data-evt-id="' + e.id + '">\u22ef</button>' +
+            '</div>' +
+            '<div style="font-size:17px;font-weight:700;color:#2C2C2A;line-height:1.2;margin-top:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">' + escapeHtml(e.nombre) + '</div>' +
+            '<div style="font-size:13px;color:#2C2C2A;margin-top:6px">' + confLine + '</div>' +
+            moneyLine +
           '</div>' +
-          '<div style="background:' + p.protBg + ';border:1px solid ' + p.protBor + ';border-radius:14px;padding:24px 16px;margin:14px 16px 0;text-align:center">' +
-            '<div style="font-size:36px;font-weight:800;color:' + bigNumCol + ';line-height:1">' + bigNum + '</div>' +
-            '<div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:' + p.pillCol + ';margin-top:4px">' + bigLabel + '</div>' +
-            (bigMsg ? '<div style="font-size:13px;margin-top:8px;color:' + bigNumCol + ';font-weight:' + (restantes <= 0 ? '700' : '500') + '">' + bigMsg + '</div>' : '') +
-          '</div>' +
-          detLine + moneyLine +
           '<div class="evt-menu" id="menu_' + e.id + '"><button class="evt-menu-item" data-del-id="' + e.id + '">Eliminar evento</button></div>';
 
         lista.appendChild(card);
