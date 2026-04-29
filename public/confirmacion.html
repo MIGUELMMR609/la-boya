@@ -142,6 +142,25 @@
 
       var notasHtml = evento.notas ? '<div class="evt-notas">' + esc(evento.notas.length > 100 ? evento.notas.substring(0, 100) + '...' : evento.notas) + '</div>' : '';
 
+      // Menu block for comida_social
+      var menuHtml = '';
+      if (evento.tipo === 'comida_social' && evento.menu) {
+        var em = evento.menu;
+        if (em.aperitivos || em.plato_principal || em.postre) {
+          menuHtml = '<div style="background:#FFF9F0;border:1px solid #FAEEDA;border-radius:10px;padding:12px 16px;margin-top:12px;text-align:left">';
+          if (evento.cocineros_nombres && evento.cocineros_nombres.length > 0) {
+            var cn = evento.cocineros_nombres;
+            var cocStr = cn.length === 1 ? cn[0] : (cn.length === 2 ? cn.join(' y ') : cn.slice(0,-1).join(', ') + ' y ' + cn[cn.length-1]);
+            menuHtml += '<div style="font-size:13px;color:#B45F0A;font-weight:600;margin-bottom:8px">Cocinan: ' + esc(cocStr) + '</div>';
+          }
+          menuHtml += '<div style="font-size:12px;font-weight:700;letter-spacing:0.5px;color:#B45F0A;text-transform:uppercase;margin-bottom:6px">Men\u00fa del d\u00eda</div>';
+          if (em.aperitivos) menuHtml += '<div style="font-size:11px;font-weight:600;color:#5F5E5A">Aperitivos</div><div style="font-size:14px;color:#2C2C2A;margin-bottom:8px">' + esc(em.aperitivos) + '</div>';
+          if (em.plato_principal) menuHtml += '<div style="font-size:11px;font-weight:600;color:#5F5E5A">Plato principal</div><div style="font-size:14px;color:#2C2C2A;margin-bottom:8px">' + esc(em.plato_principal) + '</div>';
+          if (em.postre) menuHtml += '<div style="font-size:11px;font-weight:600;color:#5F5E5A">Postre</div><div style="font-size:14px;color:#2C2C2A">' + esc(em.postre) + '</div>';
+          menuHtml += '</div>';
+        }
+      }
+
       var finHtml = evento.estado === 'finalizado' ? '<div class="banner-fin">Este evento ya est\u00e1 cerrado. Contacta con la directiva.</div>' : '';
       var dis = evento.estado === 'finalizado' ? ' disabled' : '';
 
@@ -157,7 +176,7 @@
           '<div class="evt-name" style="text-transform:uppercase;letter-spacing:0.5px">' + esc(evento.nombre) + '</div>' +
           '<div class="evt-fecha">' + esc(evento.fecha_formateada) + '</div>' +
           precioHtml +
-          notasHtml +
+          notasHtml + menuHtml +
           '<hr class="sep">' +
           finHtml +
           '<div id="msgOk" class="msg-ok hidden" style="display:none"></div>' +

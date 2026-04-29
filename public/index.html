@@ -3741,7 +3741,15 @@
                 '<input class="form-input" id="evtPrecio" type="number" value="25" min="0" step="0.5">' +
                 '<span class="input-unit">\u20ac</span>' +
               '</div>' +
-            '</div>';
+            '</div>' +
+            '<div style="margin-top:12px;font-size:12px;font-weight:600;color:#B45F0A;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Men\u00fa (opcional)</div>' +
+            '<div style="font-size:11px;color:#999;margin-bottom:8px">Si conoces el men\u00fa, escr\u00edbelo. Podr\u00e1s a\u00f1adirlo luego.</div>' +
+            '<div class="form-field"><label class="form-label">Aperitivos</label><input class="form-input" id="evtMenuAp" type="text" placeholder="Ej: Jam\u00f3n ib\u00e9rico, queso curado..." maxlength="200"></div>' +
+            '<div class="form-field"><label class="form-label">Plato principal</label><input class="form-input" id="evtMenuPl" type="text" placeholder="Ej: Chulet\u00f3n a la parrilla" maxlength="200"></div>' +
+            '<div class="form-field"><label class="form-label">Postre</label><input class="form-input" id="evtMenuPo" type="text" placeholder="Ej: Tarta casera de manzana" maxlength="200"></div>';
+          // Set aforo default to 20
+          var aforoEl = document.getElementById('evtAforoComun');
+          if (aforoEl && aforoEl.value === '0') aforoEl.value = '20';
         } else if (tipoSel === 'evento_gratis') {
           cont.innerHTML =
             '<div class="form-field">' +
@@ -3779,13 +3787,18 @@
         var body = { tipo: tipoSel, fecha: fecha, notas: document.getElementById('evtNotas').value };
 
         body.aforo_maximo = parseInt((document.getElementById('evtAforoComun') || {}).value, 10) || 0;
-        if (body.aforo_maximo === 0) {
+        if (body.aforo_maximo === 0 && tipoSel !== 'comida_social') {
           if (!confirm('\u26a0\ufe0f ATENCI\u00d3N\n\nNo has asignado un aforo m\u00e1ximo. Los socios podr\u00e1n confirmar sin l\u00edmite.\n\n\u00bfContinuar sin l\u00edmite?')) return;
         }
         if (tipoSel === 'comida_social') {
           var precio = parseFloat((document.getElementById('evtPrecio') || {}).value);
           body.precio_por_persona = isNaN(precio) ? 25 : precio;
           body.modo_calculo = 'precio_fijo';
+          body.menu = {
+            aperitivos: (document.getElementById('evtMenuAp') || {}).value || '',
+            plato_principal: (document.getElementById('evtMenuPl') || {}).value || '',
+            postre: (document.getElementById('evtMenuPo') || {}).value || ''
+          };
         } else {
           var nombre = (document.getElementById('evtNombre') || {}).value;
           if (!nombre || !nombre.trim()) { banner.textContent = 'El nombre del evento es obligatorio'; banner.style.display = 'block'; return; }
@@ -3805,10 +3818,19 @@
           if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || 'Error'); });
           return r.json();
         })
-        .then(function() {
+        .then(function(evtCreado) {
           cerrarEvtForm();
           cargarEventos();
           showToast('\u2713 Evento creado');
+          if (tipoSel === 'comida_social' && evtCreado && evtCreado.id) {
+            if (confirm('\u00bfAsignar cocineros ahora?\n\nEsta comida social necesita cocineros. \u00bfQuieres seleccionarlos ahora?')) {
+              fetch('/api/eventos/' + evtCreado.id).then(function(r) { return r.json(); }).then(function(evt) {
+                abrirSeleccion('cocineros', evt, function(updated) { renderDetalleEvento(updated); });
+              });
+            } else {
+              abrirDetalleEvento(evtCreado.id);
+            }
+          }
         })
         .catch(function(err) {
           banner.textContent = err.message || 'Error al crear evento';
@@ -4056,6 +4078,21 @@
           '<div class="coste-card" id="btnAsignarCoste"><div class="coste-card-text">Asignar coste</div></div>' +
           '<div style="display:flex;justify-content:center;padding:4px 16px 12px"><button class="btn-modificar-coste" id="btnModAforo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Modificar aforo</button></div>'
         )) +
+        (evt.tipo === 'comida_social' ? (function() {
+          var m = evt.menu || {};
+          var hasMenu = (m.aperitivos || m.plato_principal || m.postre);
+          var menuHtml = '<div style="background:#FFF9F0;border:1px solid #FAEEDA;border-radius:12px;padding:16px;margin:8px 16px">';
+          menuHtml += '<div style="font-size:13px;font-weight:700;letter-spacing:1px;color:#B45F0A;text-transform:uppercase;margin-bottom:8px">Men\u00fa del d\u00eda</div>';
+          if (hasMenu) {
+            if (m.aperitivos) menuHtml += '<div style="font-size:12px;font-weight:600;color:#5F5E5A">Aperitivos</div><div style="font-size:15px;font-weight:500;color:#2C2C2A;margin-bottom:10px">' + escapeHtml(m.aperitivos) + '</div>';
+            if (m.plato_principal) menuHtml += '<div style="font-size:12px;font-weight:600;color:#5F5E5A">Plato principal</div><div style="font-size:15px;font-weight:500;color:#2C2C2A;margin-bottom:10px">' + escapeHtml(m.plato_principal) + '</div>';
+            if (m.postre) menuHtml += '<div style="font-size:12px;font-weight:600;color:#5F5E5A">Postre</div><div style="font-size:15px;font-weight:500;color:#2C2C2A;margin-bottom:10px">' + escapeHtml(m.postre) + '</div>';
+          } else {
+            menuHtml += '<div style="font-size:13px;color:#999;font-style:italic">Men\u00fa a\u00fan no definido.</div>';
+          }
+          menuHtml += '<button class="btn-modificar-coste" id="btnEditarMenu" style="margin-top:8px">Editar men\u00fa</button></div>';
+          return menuHtml;
+        })() : '') +
         '<hr class="ficha-sep">' +
         '<div class="evt-action-btns">' + actionBtns + '</div>' +
         (evt.asistentes.some(function(a) { var sc = findSocio(a.socio_id); return sc && sc.telefono; })
@@ -4154,6 +4191,22 @@
       var btnMod = document.getElementById('btnModCoste');
       if (btnAsignar) btnAsignar.addEventListener('click', function() { abrirModalCoste(evt); });
       if (btnMod) btnMod.addEventListener('click', function() { abrirModalCoste(evt); });
+      // Editar menú
+      var btnMenu = document.getElementById('btnEditarMenu');
+      if (btnMenu) btnMenu.addEventListener('click', function() {
+        var m = evt.menu || {};
+        var ap = prompt('Aperitivos:', m.aperitivos || '');
+        if (ap === null) return;
+        var pl = prompt('Plato principal:', m.plato_principal || '');
+        if (pl === null) return;
+        var po = prompt('Postre:', m.postre || '');
+        if (po === null) return;
+        fetch('/api/eventos/' + evt.id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ menu: { aperitivos: ap, plato_principal: pl, postre: po } }) })
+          .then(function(r) { return r.json(); })
+          .then(function(updated) { renderDetalleEvento(updated); showToast('\u2713 Men\u00fa actualizado'); })
+          .catch(function() { showError('Error al guardar men\u00fa'); });
+      });
+
       var btnAforo = document.getElementById('btnModAforo');
       if (btnAforo) btnAforo.addEventListener('click', function() {
         var aforoActual = evt.aforo_maximo || 0;
@@ -5521,7 +5574,23 @@
       var plantilla = '';
       if (evt.tipo === 'comida_social') {
         var aforoTxt = evt.aforo_maximo || 20;
-        plantilla = 'Estimado {NOMBRE},\n\nEl pr\u00f3ximo ' + diaSem + ' ' + dia + ' de ' + mes + ' de ' + anio + ' vamos a celebrar una Comida Social en LA BOYA. Nos encantar\u00eda que pudieras asistir. Te recuerdo que el precio es de ' + precioTxt + ' \u20ac, que deber\u00e1s ingresar en la sede de LA BOYA antes del d\u00eda de la comida.\n\nSi puedes asistir, te ruego que pulses el enlace de abajo y confirmes tu asistencia.\n\n\u26a0\ufe0f EL AFORO MAXIMO ES DE ' + aforoTxt + ' COMENSALES. Si puedes asistir, confirmalo lo antes posible.\n\n{ENLACE}';
+        // Build menu + cocineros block
+        var menuBlock = '';
+        var m = evt.menu || {};
+        var hasMenu = (m.aperitivos || m.plato_principal || m.postre);
+        if (hasMenu) {
+          var cocNames = (evt.cocineros || []).map(function(cid) { var sc = findSocio(cid); return sc ? (sc.nombre.split(' ')[0] + ' ' + (sc.apellidos || '').split(' ')[0]) : ''; }).filter(Boolean);
+          if (cocNames.length > 0) {
+            var cocStr = cocNames.length === 1 ? cocNames[0] : (cocNames.length === 2 ? cocNames.join(' y ') : cocNames.slice(0, -1).join(', ') + ' y ' + cocNames[cocNames.length - 1]);
+            menuBlock += '\n\nHoy cocinan nuestros amigos ' + cocStr + ' y nos deleitaran con un excelente menu:\n';
+          } else {
+            menuBlock += '\n\nEl menu sera:\n';
+          }
+          if (m.aperitivos) menuBlock += '\nAperitivos: ' + m.aperitivos;
+          if (m.plato_principal) menuBlock += '\nPlato principal: ' + m.plato_principal;
+          if (m.postre) menuBlock += '\nPostre: ' + m.postre;
+        }
+        plantilla = 'Estimado {NOMBRE},\n\nEl pr\u00f3ximo ' + diaSem + ' ' + dia + ' de ' + mes + ' de ' + anio + ' vamos a celebrar una Comida Social en LA BOYA. Nos encantar\u00eda que pudieras asistir. Te recuerdo que el precio es de ' + precioTxt + ' \u20ac, que deber\u00e1s ingresar en la sede de LA BOYA antes del d\u00eda de la comida.' + menuBlock + '\n\nSi puedes asistir, te ruego que pulses el enlace de abajo y confirmes tu asistencia.\n\n\u26a0\ufe0f EL AFORO MAXIMO ES DE ' + aforoTxt + ' COMENSALES. Si puedes asistir, confirmalo lo antes posible.\n\n{ENLACE}';
       } else if (evt.tipo === 'evento_gratis') {
         plantilla = 'Estimado {NOMBRE},\n\nEl pr\u00f3ximo ' + diaSem + ' ' + dia + ' de ' + mes + ' de ' + anio + ' la Sociedad LA BOYA os invita a ' + nombreBase + ', sufragado por los fondos de la sociedad (no tendr\u00e1s que pagar nada).\n\nNos encantar\u00eda que pudieras asistir. Tu confirmaci\u00f3n nos ayuda a hacer la previsi\u00f3n de compras.\n\nSi puedes asistir, te ruego que pulses el enlace de abajo y confirmes tu asistencia.\n\n{ENLACE}';
       } else {

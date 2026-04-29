@@ -474,6 +474,10 @@ function leerEventos() {
         data[i].aforo_maximo = data[i].tipo === 'comida_social' ? 20 : 0;
         migrado = true;
       }
+      if (!data[i].menu) {
+        data[i].menu = { aperitivos: '', plato_principal: '', postre: '' };
+        migrado = true;
+      }
     }
     if (migrado && data.length > 0) {
       guardarDatosSeguro(EVENTOS_FILE, data, 'migracion-confirmacion-token');
@@ -581,6 +585,7 @@ app.post('/api/eventos', (req, res) => {
       asistentes: [],
       invitados_boya: [],
       aforo_maximo: parseInt(req.body.aforo_maximo, 10) || 0,
+      menu: req.body.menu || { aperitivos: '', plato_principal: '', postre: '' },
       confirmacion_token: null,
       respuestas_confirmacion: {},
       notas: req.body.notas || '',
@@ -623,6 +628,7 @@ app.put('/api/eventos/:id', (req, res) => {
     if (req.body.modo_calculo !== undefined) evt.modo_calculo = req.body.modo_calculo;
     if (req.body.notas !== undefined) evt.notas = req.body.notas;
     if (req.body.aforo_maximo !== undefined) evt.aforo_maximo = parseInt(req.body.aforo_maximo, 10) || 0;
+    if (req.body.menu !== undefined) evt.menu = req.body.menu;
     if (req.body.cocineros !== undefined) evt.cocineros = req.body.cocineros;
     if (req.body.asistentes !== undefined) evt.asistentes = req.body.asistentes;
 
@@ -1125,6 +1131,15 @@ app.get('/api/publico/confirmacion/:token/:num_socio', (req, res) => {
         modo_calculo: evt.modo_calculo,
         estado: evt.estado,
         aforo_maximo: evt.aforo_maximo || null,
+        menu: evt.menu || null,
+        cocineros_nombres: (function() {
+          if (evt.tipo !== 'comida_social' || !evt.cocineros || evt.cocineros.length === 0) return [];
+          var socData = leerSocios();
+          return evt.cocineros.map(function(cid) {
+            var sc = socData.find(function(s) { return s.id === cid; });
+            return sc ? (sc.nombre.split(' ')[0] + ' ' + (sc.apellidos || '').split(' ')[0]) : '';
+          }).filter(Boolean);
+        })(),
         notas: evt.notas || ''
       },
       socio: {
