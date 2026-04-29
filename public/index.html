@@ -30,6 +30,9 @@
       background: #fff;
       border-bottom: 0.5px solid #E0E0E0;
       padding: 12px 16px;
+      padding-top: max(12px, env(safe-area-inset-top));
+      padding-left: max(16px, env(safe-area-inset-left));
+      padding-right: max(16px, env(safe-area-inset-right));
       position: sticky;
       top: 0;
       z-index: 100;
