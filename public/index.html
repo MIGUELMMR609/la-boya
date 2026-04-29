@@ -3663,6 +3663,29 @@
     }
 
     // === FORMULARIO EVENTO ===
+    function mostrarModalCocineros(evtId) {
+      var div = document.createElement('div');
+      div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+      div.innerHTML =
+        '<div style="background:#fff;border-radius:16px;padding:28px 24px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3)">' +
+          '<div style="font-size:56px;margin-bottom:12px">\ud83d\udc68\u200d\ud83c\udf73</div>' +
+          '<div style="font-size:20px;font-weight:700;color:#2C2C2A;letter-spacing:0.5px;margin-bottom:12px">\u00bfAsignar cocineros ahora?</div>' +
+          '<div style="font-size:15px;color:#5F5E5A;line-height:1.5;margin-bottom:24px">Esta comida social necesita cocineros. \u00bfQuieres seleccionarlos ahora o lo haces m\u00e1s tarde?</div>' +
+          '<div style="display:flex;gap:12px;justify-content:center">' +
+            '<button id="cocModalLuego" style="background:#fff;border:1px solid #B5B5B5;color:#5F5E5A;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;letter-spacing:0.4px;min-width:120px;cursor:pointer;text-transform:uppercase;font-family:inherit">LUEGO</button>' +
+            '<button id="cocModalAhora" style="background:#0C447C;color:#fff;border:none;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:700;letter-spacing:0.4px;min-width:120px;cursor:pointer;text-transform:uppercase;font-family:inherit">S\u00cd AHORA</button>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(div);
+      document.getElementById('cocModalLuego').addEventListener('click', function() { div.remove(); abrirDetalleEvento(evtId); });
+      document.getElementById('cocModalAhora').addEventListener('click', function() {
+        div.remove();
+        fetch('/api/eventos/' + evtId).then(function(r) { return r.json(); }).then(function(evt) {
+          abrirSeleccion('cocineros', evt, function(updated) { renderDetalleEvento(updated); });
+        });
+      });
+    }
+
     function abrirFormularioEvento() {
       var overlay = document.getElementById('evtFormOverlay');
       var content = document.getElementById('evtFormContent');
@@ -3823,13 +3846,7 @@
           cargarEventos();
           showToast('\u2713 Evento creado');
           if (tipoSel === 'comida_social' && evtCreado && evtCreado.id) {
-            if (confirm('\u00bfAsignar cocineros ahora?\n\nEsta comida social necesita cocineros. \u00bfQuieres seleccionarlos ahora?')) {
-              fetch('/api/eventos/' + evtCreado.id).then(function(r) { return r.json(); }).then(function(evt) {
-                abrirSeleccion('cocineros', evt, function(updated) { renderDetalleEvento(updated); });
-              });
-            } else {
-              abrirDetalleEvento(evtCreado.id);
-            }
+            mostrarModalCocineros(evtCreado.id);
           }
         })
         .catch(function(err) {
@@ -4018,7 +4035,6 @@
           '<button class="ficha-back" id="evtDetClose" style="font-size:20px;color:#999" title="Cerrar">\u00d7</button>' +
           '</div>' +
           '<div class="evt-det-menu" id="evtDetMenu">' +
-            (evt.tipo === 'comida_social' ? '<button class="evt-det-menu-item" id="evtDetCocineros">Gestionar cocineros (' + (evt.cocineros || []).length + ')</button>' : '') +
             '<button class="evt-det-menu-item" id="evtDetEditar">Editar datos</button>' +
             '<button class="evt-det-menu-item" id="evtDetEstado">' + (finalizado ? 'Reabrir evento' : 'Marcar como finalizado') + '</button>' +
             '<button class="evt-det-menu-item danger" id="evtDetEliminar">Eliminar evento</button>' +
@@ -4092,6 +4108,28 @@
           }
           menuHtml += '<button class="btn-modificar-coste" id="btnEditarMenu" style="margin-top:8px">Editar men\u00fa</button></div>';
           return menuHtml;
+        })() : '') +
+        (evt.tipo === 'comida_social' ? (function() {
+          var cocs = (evt.cocineros || []);
+          var cocHtml = '<div style="background:#FAF6FF;border:1px solid #E2DCFF;border-radius:12px;padding:16px;margin:12px 16px 0">';
+          cocHtml += '<div style="font-size:13px;font-weight:700;letter-spacing:1px;color:#534AB7;text-transform:uppercase;margin-bottom:8px">\ud83d\udc68\u200d\ud83c\udf73 COCINEROS</div>';
+          if (cocs.length > 0) {
+            for (var ci = 0; ci < cocs.length; ci++) {
+              var sc = findSocio(cocs[ci]);
+              if (!sc) continue;
+              var bgC = sc.avatar_color || '#85B7EB';
+              var txtC = TEXT_COLORS[bgC] || '#333';
+              var ini = getInitials(sc.nombre, sc.apellidos);
+              var avHtml = sc.foto_url ? '<img src="' + cloudinaryThumb(sc.foto_url, 72) + '" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover">' : '<span style="color:' + txtC + '">' + ini + '</span>';
+              cocHtml += '<div style="display:flex;align-items:center;gap:12px;padding:6px 0"><div style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;background:' + (sc.foto_url ? 'transparent' : bgC) + ';flex-shrink:0">' + avHtml + '</div><div style="font-size:15px;font-weight:500;color:#2C2C2A">' + escapeHtml(sc.nombre + ' ' + sc.apellidos) + '</div></div>';
+            }
+            cocHtml += '<button class="btn-modificar-coste" id="btnModCocineros" style="margin-top:8px">Modificar cocineros</button>';
+          } else {
+            cocHtml += '<div style="font-size:13px;color:#999;font-style:italic">No hay cocineros asignados.</div>';
+            cocHtml += '<button class="btn-modificar-coste" id="btnModCocineros" style="margin-top:8px">Asignar cocineros</button>';
+          }
+          cocHtml += '</div>';
+          return cocHtml;
         })() : '') +
         '<hr class="ficha-sep">' +
         '<div class="evt-action-btns">' + actionBtns + '</div>' +
@@ -4191,6 +4229,12 @@
       var btnMod = document.getElementById('btnModCoste');
       if (btnAsignar) btnAsignar.addEventListener('click', function() { abrirModalCoste(evt); });
       if (btnMod) btnMod.addEventListener('click', function() { abrirModalCoste(evt); });
+      // Modificar cocineros desde bloque
+      var btnModCoc = document.getElementById('btnModCocineros');
+      if (btnModCoc) btnModCoc.addEventListener('click', function() {
+        abrirSeleccion('cocineros', evt, function(updated) { renderDetalleEvento(updated); });
+      });
+
       // Editar menú
       var btnMenu = document.getElementById('btnEditarMenu');
       if (btnMenu) btnMenu.addEventListener('click', function() {
@@ -4328,12 +4372,6 @@
       }
 
       // Cocineros button
-      // Cocineros desde menú ⋯
-      var menuCock = document.getElementById('evtDetCocineros');
-      if (menuCock) menuCock.addEventListener('click', function() {
-        document.getElementById('evtDetMenu').classList.remove('open');
-        abrirSeleccion('cocineros', evt, function(updated) { renderDetalleEvento(updated); });
-      });
 
       // Comensales button
       var btnCom = document.getElementById('btnComensales');
