@@ -2259,12 +2259,12 @@
     <div class="main">
       <div class="eventos-header" style="flex-wrap:wrap;gap:8px">
         <div>
-          <span class="eventos-title">Eventos</span>
-          <span class="eventos-count" id="eventosCount"></span>
+          <span class="eventos-title" style="font-size:18px;font-weight:700;color:#2C2C2A">Eventos</span>
+          <span class="eventos-count" id="eventosCount" style="font-size:14px;color:#5F5E5A;font-weight:500"></span>
         </div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <button class="pill" id="btnTogglePasados" style="font-size:11px;padding:4px 10px"></button>
-          <button class="btn-add" id="btnAddEvento" title="Nuevo evento">+</button>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <button id="btnEvtPasados" style="border:1px solid #B5B5B5;background:none;color:#5F5E5A;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer">\ud83d\udcc5 Eventos pasados</button>
+          <button id="btnAddEvento" style="background:#0C447C;color:#fff;border:none;padding:10px 18px;border-radius:10px;font-size:14px;font-weight:600;letter-spacing:0.3px;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:8px;box-shadow:0 2px 6px rgba(12,68,124,0.2)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>A\u00d1ADIR EVENTO</button>
         </div>
       </div>
       <div class="loader-wrap" id="loaderEventos" style="display:none">
@@ -2661,10 +2661,8 @@
       document.getElementById('btnAddEvento').addEventListener('click', function() {
         abrirFormularioEvento();
       });
-      document.getElementById('btnTogglePasados').addEventListener('click', function() {
-        var show = localStorage.getItem('la_boya_mostrar_eventos_pasados') === 'true';
-        localStorage.setItem('la_boya_mostrar_eventos_pasados', !show);
-        renderEventos();
+      document.getElementById('btnEvtPasados').addEventListener('click', function() {
+        abrirEventosPasados();
       });
 
       // WhatsApp masivo desde pestaña Socios
@@ -3523,9 +3521,9 @@
     var DIAS_ABR = ['DOM','LUN','MAR','MI\u00c9','JUE','VIE','S\u00c1B'];
     var MESES_ABR = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
     var PAL = {
-      comida_social: { dateBg:'#E8F6EF', dateCol:'#04342C', pillBg:'#C5EBDB', pillCol:'#04342C', pillIcon:'\ud83c\udf74', pillLabel:'COMIDA SOCIAL' },
-      evento: { dateBg:'#E9F2FB', dateCol:'#042C53', pillBg:'#D6E7F9', pillCol:'#042C53', pillIcon:'\ud83d\udcc5', pillLabel:'EVENTO' },
-      evento_gratis: { dateBg:'#EFEDF8', dateCol:'#26215C', pillBg:'#DDD9F0', pillCol:'#26215C', pillIcon:'\ud83c\udf81', pillLabel:'GRATIS' }
+      comida_social: { dateBg:'#B8E6D2', dateCol:'#04342C', pillBg:'#75CDA8', pillCol:'#03291F', pillIcon:'\ud83c\udf74', pillLabel:'COMIDA SOCIAL', dotCol:'#1D9E75' },
+      evento:        { dateBg:'#B5D4F4', dateCol:'#042C53', pillBg:'#6FA3D9', pillCol:'#03203C', pillIcon:'\ud83d\udcc5', pillLabel:'EVENTO',        dotCol:'#378ADD' },
+      evento_gratis: { dateBg:'#D5CFEC', dateCol:'#26215C', pillBg:'#AFA9EC', pillCol:'#1B1746', pillIcon:'\ud83c\udf81', pillLabel:'GRATIS',        dotCol:'#7F77DD' }
     };
 
     function renderEventos() {
@@ -3533,18 +3531,10 @@
       var countEl = document.getElementById('eventosCount');
       lista.innerHTML = '';
 
-      // Toggle pasados
-      var mostrarPasados = localStorage.getItem('la_boya_mostrar_eventos_pasados') === 'true';
-      var toggleBtn = document.getElementById('btnTogglePasados');
-      if (toggleBtn) toggleBtn.textContent = mostrarPasados ? 'Ocultar pasados' : 'Mostrar pasados';
-
       var hoy = new Date().toISOString().split('T')[0];
       var proximos = eventos.filter(function(e) { return e.fecha >= hoy; });
-      var pasados = eventos.filter(function(e) { return e.fecha < hoy; });
       proximos.sort(function(a, b) { return a.fecha.localeCompare(b.fecha); });
-      pasados.sort(function(a, b) { return b.fecha.localeCompare(a.fecha); });
-
-      countEl.textContent = proximos.length + ' pr\u00f3ximo' + (proximos.length !== 1 ? 's' : '') + (mostrarPasados && pasados.length ? ' \u00b7 ' + pasados.length + ' pasado' + (pasados.length !== 1 ? 's' : '') : '');
+      countEl.textContent = '\u00b7 ' + proximos.length + ' pr\u00f3ximo' + (proximos.length !== 1 ? 's' : '');
 
       if (eventos.length === 0) {
         lista.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><svg viewBox="0 0 64 64"><rect x="10" y="8" width="44" height="48" rx="6"/><line x1="10" y1="20" x2="54" y2="20"/><line x1="24" y1="4" x2="24" y2="14"/><line x1="40" y1="4" x2="40" y2="14"/><line x1="32" y1="30" x2="32" y2="46"/><line x1="24" y1="38" x2="40" y2="38"/></svg></div><div class="empty-state-title">A\u00fan no hay eventos</div><div class="empty-state-sub">Pulsa + para crear el primero</div><button class="empty-state-btn" id="emptyAddEvtBtn">+ Crear primer evento</button></div>';
@@ -3552,15 +3542,11 @@
         return;
       }
 
-      var toRender = proximos.slice();
-      if (mostrarPasados) toRender = toRender.concat(pasados);
-
-      for (var i = 0; i < toRender.length; i++) {
-        var e = toRender[i];
+      for (var i = 0; i < proximos.length; i++) {
+        var e = proximos[i];
         var isGratis = e.tipo === 'evento_gratis';
         var pl = PAL[e.tipo] || PAL.evento;
         var bandaClass = e.tipo === 'comida_social' ? 'banda-comida' : (isGratis ? 'banda-gratis' : 'banda-evento');
-        var esPasado = e.fecha < hoy;
 
         // Calcs
         var totalInvExtra = 0;
@@ -3602,27 +3588,27 @@
             mP.push('<span style="color:#173404">\u2713 ' + pgC + ' pagaron</span>');
             if (pdC > 0) mP.push('<span style="color:#791F1F">\u23f3 ' + pdC + ' pend.</span>');
           }
-          moneyLine = '<div style="font-size:12px;color:#5F5E5A;margin-top:4px">' + mP.join(' <span style="color:#B5B5B5">\u00b7</span> ') + '</div>';
+          moneyLine = '<div style="font-size:13px;color:#5F5E5A;margin-top:4px">' + mP.join(' <span style="color:#B5B5B5">\u00b7</span> ') + '</div>';
         } else {
-          moneyLine = '<div style="font-size:12px;color:#534AB7;font-weight:500;margin-top:4px">\ud83c\udf81 Cortes\u00eda LA BOYA</div>';
+          moneyLine = '<div style="font-size:13px;color:#534AB7;font-weight:500;margin-top:4px">\ud83c\udf81 Cortes\u00eda LA BOYA</div>';
         }
 
         var card = document.createElement('div');
-        card.className = 'evt-card ' + (esPasado ? '' : bandaClass);
-        card.style.cssText = 'display:flex;padding:0;overflow:hidden;' + (esPasado ? 'opacity:0.5;border-left:3px solid #B5B5B5;' : '');
+        card.className = 'evt-card ' + bandaClass;
+        card.style.cssText = 'display:flex;padding:0;overflow:hidden;margin-bottom:10px';
         card.innerHTML =
-          '<div style="min-width:80px;padding:12px 8px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:2px;background:' + (esPasado ? '#F0F0F0' : pl.dateBg) + ';border-top-left-radius:12px;border-bottom-left-radius:12px">' +
-            '<div style="font-size:11px;font-weight:600;letter-spacing:0.5px;color:' + (esPasado ? '#999' : pl.dateCol) + '">' + diaAbr + '</div>' +
-            '<div style="font-size:32px;font-weight:800;line-height:1;color:' + (esPasado ? '#999' : pl.dateCol) + '">' + diaNum + '</div>' +
-            '<div style="font-size:11px;font-weight:600;letter-spacing:0.5px;color:' + (esPasado ? '#999' : pl.dateCol) + '">' + mesAbr + '</div>' +
+          '<div style="min-width:90px;padding:14px 8px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:2px;background:' + pl.dateBg + ';border-top-left-radius:12px;border-bottom-left-radius:12px">' +
+            '<div style="font-size:13px;font-weight:600;letter-spacing:0.5px;color:' + pl.dateCol + '">' + diaAbr + '</div>' +
+            '<div style="font-size:36px;font-weight:800;line-height:1;color:' + pl.dateCol + '">' + diaNum + '</div>' +
+            '<div style="font-size:13px;font-weight:600;letter-spacing:0.5px;color:' + pl.dateCol + '">' + mesAbr + '</div>' +
           '</div>' +
-          '<div style="flex:1;padding:12px;min-width:0">' +
+          '<div style="flex:1;padding:14px;min-width:0">' +
             '<div style="display:flex;align-items:center;justify-content:space-between">' +
-              '<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:0.6px;background:' + pl.pillBg + ';color:' + pl.pillCol + '">' + pl.pillIcon + ' ' + pl.pillLabel + '</span>' +
+              '<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:0.6px;background:' + pl.pillBg + ';color:' + pl.pillCol + '">' + pl.pillIcon + ' ' + pl.pillLabel + '</span>' +
               '<button class="evt-menu-btn" data-evt-id="' + e.id + '">\u22ef</button>' +
             '</div>' +
-            '<div style="font-size:17px;font-weight:700;color:#2C2C2A;line-height:1.2;margin-top:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">' + escapeHtml(e.nombre) + '</div>' +
-            '<div style="font-size:13px;color:#2C2C2A;margin-top:6px">' + confLine + '</div>' +
+            '<div style="font-size:19px;font-weight:700;color:#2C2C2A;line-height:1.2;margin-top:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">' + escapeHtml(e.nombre) + '</div>' +
+            '<div style="font-size:14px;color:#2C2C2A;margin-top:6px">' + confLine + '</div>' +
             moneyLine +
           '</div>' +
           '<div class="evt-menu" id="menu_' + e.id + '"><button class="evt-menu-item" data-del-id="' + e.id + '">Eliminar evento</button></div>';
@@ -5469,6 +5455,54 @@
     }
 
     // === ENVÍO MASIVO DE CONFIRMACIONES ===
+    // === EVENTOS PASADOS ===
+    function abrirEventosPasados() {
+      var overlay = document.getElementById('waSelOverlay');
+      var content = document.getElementById('waSelContent');
+      var hoy = new Date().toISOString().split('T')[0];
+      var pasados = eventos.filter(function(e) { return e.fecha < hoy; });
+      pasados.sort(function(a, b) { return b.fecha.localeCompare(a.fecha); });
+
+      var listHtml = '';
+      if (pasados.length === 0) {
+        listHtml = '<div class="empty-state" style="padding:40px 20px"><div style="font-size:48px;margin-bottom:12px">\ud83d\udcc5</div><div class="empty-state-title">No hay eventos pasados todav\u00eda</div></div>';
+      } else {
+        listHtml = '<div style="font-size:13px;color:#5F5E5A;padding:8px 16px">' + pasados.length + ' evento' + (pasados.length !== 1 ? 's' : '') + ' pasado' + (pasados.length !== 1 ? 's' : '') + '</div>';
+        for (var i = 0; i < pasados.length; i++) {
+          var e = pasados[i];
+          var pl = PAL[e.tipo] || PAL.evento;
+          var dp = e.fecha.split('-');
+          var fechaCorta = parseInt(dp[2],10) + ' ' + MESES_ABR[parseInt(dp[1],10)-1].toLowerCase() + ' ' + dp[0];
+          listHtml += '<div class="evt-pasado-row" data-pid="' + e.id + '" style="padding:12px 16px;border-bottom:1px solid #E5E5E5;cursor:pointer">' +
+            '<div style="font-size:13px;font-weight:500;color:#5F5E5A;display:flex;align-items:center;gap:6px">' +
+              '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + pl.dotCol + '"></span>' +
+              fechaCorta + ' <span style="color:#B5B5B5">\u00b7</span> <span style="color:' + pl.pillCol + ';font-weight:600">' + pl.pillLabel + '</span>' +
+            '</div>' +
+            '<div style="font-size:15px;font-weight:600;color:#2C2C2A;margin-top:2px">' + escapeHtml(e.nombre) + '</div>' +
+          '</div>';
+        }
+      }
+
+      content.innerHTML =
+        '<div class="overlay-shell">' +
+          '<div class="overlay-head"><button class="ficha-back" id="pasBack">\u2190 Volver</button><span class="sel-bar-title">Eventos pasados</span><span></span></div>' +
+          '<div class="overlay-body" style="padding:0">' + listHtml + '</div>' +
+        '</div>';
+      overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+
+      function cerrarPas() { overlay.classList.remove('open'); setTimeout(function() { document.body.style.overflow = ''; }, 300); }
+      document.getElementById('pasBack').addEventListener('click', cerrarPas);
+
+      var rows = content.querySelectorAll('.evt-pasado-row');
+      for (var r = 0; r < rows.length; r++) {
+        rows[r].addEventListener('click', function() {
+          cerrarPas();
+          abrirDetalleEvento(this.getAttribute('data-pid'));
+        });
+      }
+    }
+
     function abrirEnvioConfirmaciones(evt) {
       var overlay = document.getElementById('waSelOverlay');
       var content = document.getElementById('waSelContent');
