@@ -668,19 +668,40 @@ app.put('/api/eventos/:id/cocineros', (req, res) => {
     var idx = data.findIndex(e => e.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: 'Evento no encontrado' });
     var evt = data[idx];
-    var cocineros = req.body.cocineros || [];
-    evt.cocineros = cocineros;
-    // Auto-añadir cocineros a asistentes si no están
-    for (var i = 0; i < cocineros.length; i++) {
-      var ya = evt.asistentes.find(function(a) { return a.socio_id === cocineros[i]; });
-      if (!ya) {
-        evt.asistentes.push({ socio_id: cocineros[i], invitados: 0, pagado: false });
+    var cocinerosNuevos = req.body.cocineros || [];
+    var cocinerosAntes = evt.cocineros || [];
+    var rc = evt.respuestas_confirmacion || {};
+
+    // Cocineros removidos: quitar de asistentes si no confirmaron independientemente
+    var removidosDeAsist = 0; var mantenidos = 0;
+    for (var cr = 0; cr < cocinerosAntes.length; cr++) {
+      if (cocinerosNuevos.indexOf(cocinerosAntes[cr]) === -1) {
+        // Este cocinero fue removido
+        // Buscar su num_socio para verificar respuestas_confirmacion
+        var socRem = leerSocios().find(function(s) { return s.id === cocinerosAntes[cr]; });
+        var numSocioStr = socRem ? String(socRem.num_socio) : '';
+        var haConfirmado = numSocioStr && rc[numSocioStr] && rc[numSocioStr].respuesta === 'si';
+        if (!haConfirmado) {
+          evt.asistentes = evt.asistentes.filter(function(a) { return a.socio_id !== cocinerosAntes[cr]; });
+          removidosDeAsist++;
+        } else {
+          mantenidos++;
+        }
       }
     }
+
+    // Cocineros añadidos: añadir a asistentes si no están
+    for (var ca = 0; ca < cocinerosNuevos.length; ca++) {
+      if (!evt.asistentes.some(function(a) { return a.socio_id === cocinerosNuevos[ca]; })) {
+        evt.asistentes.push({ socio_id: cocinerosNuevos[ca], invitados: 0, pagado: false });
+      }
+    }
+
+    evt.cocineros = cocinerosNuevos;
     evt.fecha_modificacion = fechaHoy();
     data[idx] = evt;
     guardarEventos(data, 'cocineros');
-    console.log('Cocineros actualizados evento ' + evt.id);
+    console.log('Cocineros actualizados evento ' + evt.id + ': removidos-de-asistentes=' + removidosDeAsist + ', mantenidos-por-confirmacion=' + mantenidos);
     res.json(evt);
   } catch (err) {
     console.error('Error actualizando cocineros:', err);
