@@ -163,7 +163,24 @@
       }
 
       var finHtml = evento.estado === 'finalizado' ? '<div class="banner-fin">Este evento ya est\u00e1 cerrado. Contacta con la directiva.</div>' : '';
-      var dis = evento.estado === 'finalizado' ? ' disabled' : '';
+      // Plazo check
+      var plazoCerrado = false;
+      var plazoHtml = '';
+      if (evento.fecha_inscripcion) {
+        var hoyP = new Date(); hoyP.setHours(0,0,0,0);
+        var limP = new Date(evento.fecha_inscripcion); limP.setHours(23,59,59,999);
+        if (hoyP > limP) {
+          plazoCerrado = true;
+          var dpI = evento.fecha_inscripcion.split('-');
+          var fInscr = parseInt(dpI[2],10) + ' ' + MESES[parseInt(dpI[1],10)-1] + ' ' + dpI[0];
+          finHtml += '<div style="background:#F7C1C1;color:#791F1F;padding:20px;border-radius:12px;text-align:center;margin-bottom:12px"><div style="font-size:42px;margin-bottom:8px">\ud83d\udd12</div><div style="font-size:20px;font-weight:800;margin-bottom:8px">PLAZO CERRADO</div><div style="font-size:15px">El plazo para confirmar cerr\u00f3 el ' + esc(fInscr) + '.</div></div>';
+        } else {
+          var diffP = Math.ceil((limP - hoyP) / 86400000);
+          if (diffP === 0) plazoHtml = '<div style="background:#FAC775;color:#412402;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:700;margin-top:8px">\u23f0 HOY es el \u00faltimo d\u00eda para confirmar</div>';
+          else if (diffP <= 7) plazoHtml = '<div style="background:#FFF3E0;color:#B45F0A;padding:8px 14px;border-radius:8px;font-size:13px;margin-top:8px">\u23f0 Quedan ' + diffP + ' d\u00edas para confirmar</div>';
+        }
+      }
+      var dis = (evento.estado === 'finalizado' || plazoCerrado) ? ' disabled' : '';
 
       var siClass = estado.respuesta === 'si' ? ' btn-active' : (estado.respuesta === 'no' ? ' btn-inactive' : '');
       var noClass = estado.respuesta === 'no' ? ' btn-active' : (estado.respuesta === 'si' ? ' btn-inactive' : '');
@@ -177,7 +194,7 @@
           '<div class="evt-name" style="text-transform:uppercase;letter-spacing:0.5px">' + esc(evento.nombre) + '</div>' +
           '<div class="evt-fecha">' + esc(evento.fecha_formateada) + '</div>' +
           precioHtml +
-          notasHtml + menuHtml +
+          notasHtml + menuHtml + plazoHtml +
           '<hr class="sep">' +
           finHtml +
           '<div id="msgOk" class="msg-ok hidden" style="display:none"></div>' +
@@ -249,6 +266,7 @@
       .then(function(r) {
         if (!r.ok) return r.json().then(function(d) {
           if (d.error === 'AFORO_COMPLETO') { mostrarAforoCompleto(); throw new Error('AFORO'); }
+          if (d.error === 'PLAZO_CERRADO') { alert('El plazo de inscripci\u00f3n ya cerr\u00f3. No puedes modificar tu respuesta.'); throw new Error('PLAZO'); }
           throw new Error(d.error || 'Error');
         });
         return r.json();
@@ -263,7 +281,7 @@
         }
       })
       .catch(function(err) {
-        if (err.message === 'AFORO') { estado = prev; render(); return; }
+        if (err.message === 'AFORO' || err.message === 'PLAZO') { estado = prev; render(); return; }
         estado = prev;
         render();
         alert('No se pudo guardar tu respuesta. Intentalo de nuevo.');

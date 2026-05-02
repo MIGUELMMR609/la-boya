@@ -478,6 +478,14 @@ function leerEventos() {
         data[i].menu = { aperitivos: '', plato_principal: '', postre: '' };
         migrado = true;
       }
+      if (data[i].fecha_inscripcion === undefined) {
+        var hoyMig = new Date().toISOString().split('T')[0];
+        if (data[i].fecha >= hoyMig) {
+          var fd = new Date(data[i].fecha); fd.setDate(fd.getDate() - 5);
+          data[i].fecha_inscripcion = fd.toISOString().split('T')[0];
+        } else { data[i].fecha_inscripcion = null; }
+        migrado = true;
+      }
     }
     if (migrado && data.length > 0) {
       guardarDatosSeguro(EVENTOS_FILE, data, 'migracion-confirmacion-token');
@@ -585,6 +593,7 @@ app.post('/api/eventos', (req, res) => {
       asistentes: [],
       invitados_boya: [],
       aforo_maximo: parseInt(req.body.aforo_maximo, 10) || 0,
+      fecha_inscripcion: req.body.fecha_inscripcion || (function() { var d = new Date(fecha); d.setDate(d.getDate() - 5); return d.toISOString().split('T')[0]; })(),
       menu: req.body.menu || { aperitivos: '', plato_principal: '', postre: '' },
       confirmacion_token: null,
       respuestas_confirmacion: {},
@@ -629,6 +638,7 @@ app.put('/api/eventos/:id', (req, res) => {
     if (req.body.notas !== undefined) evt.notas = req.body.notas;
     if (req.body.aforo_maximo !== undefined) evt.aforo_maximo = parseInt(req.body.aforo_maximo, 10) || 0;
     if (req.body.menu !== undefined) evt.menu = req.body.menu;
+    if (req.body.fecha_inscripcion !== undefined) evt.fecha_inscripcion = req.body.fecha_inscripcion;
     if (req.body.cocineros !== undefined) evt.cocineros = req.body.cocineros;
     if (req.body.asistentes !== undefined) evt.asistentes = req.body.asistentes;
 
@@ -1177,6 +1187,7 @@ app.get('/api/publico/confirmacion/:token/:num_socio', (req, res) => {
         modo_calculo: evt.modo_calculo,
         estado: evt.estado,
         aforo_maximo: evt.aforo_maximo || null,
+        fecha_inscripcion: evt.fecha_inscripcion || null,
         menu: evt.menu || null,
         cocineros_nombres: (function() {
           if (evt.tipo !== 'comida_social' || !evt.cocineros || evt.cocineros.length === 0) return [];
@@ -1216,6 +1227,11 @@ app.post('/api/publico/confirmacion/:token/:num_socio', (req, res) => {
     if (!soc) return res.status(404).json({ error: 'Socio no encontrado' });
 
     if (evt.estado === 'finalizado') return res.status(403).json({ error: 'Este evento ya esta cerrado' });
+    if (evt.fecha_inscripcion) {
+      var hoyCheck = new Date(); hoyCheck.setHours(0,0,0,0);
+      var limCheck = new Date(evt.fecha_inscripcion); limCheck.setHours(23,59,59,999);
+      if (hoyCheck > limCheck) return res.status(403).json({ ok: false, error: 'PLAZO_CERRADO', mensaje: 'El plazo de inscripcion ya cerro.', fecha_inscripcion: evt.fecha_inscripcion });
+    }
 
     var respuesta = req.body.respuesta;
     if (!['si', 'no'].includes(respuesta)) return res.status(400).json({ error: 'Respuesta debe ser si o no' });
@@ -1376,6 +1392,11 @@ if (TelegramBot && process.env.TELEGRAM_BOT_TOKEN) {
       var evento = eventos.find(function(e) { return e.id === eventoId; });
       if (!evento) { bot.answerCallbackQuery(query.id, { text: 'Evento no encontrado', show_alert: true }); return; }
       if (evento.estado === 'finalizado') { bot.answerCallbackQuery(query.id, { text: 'Evento ya cerrado', show_alert: true }); return; }
+      if (evento.fecha_inscripcion) {
+        var hoyTg = new Date(); hoyTg.setHours(0,0,0,0);
+        var limTg = new Date(evento.fecha_inscripcion); limTg.setHours(23,59,59,999);
+        if (hoyTg > limTg) { bot.answerCallbackQuery(query.id, { text: 'PLAZO CERRADO\n\nEl plazo para confirmar ya cerro el ' + formatFechaES(evento.fecha_inscripcion) + '.', show_alert: true }); return; }
+      }
 
       if (!evento.respuestas_confirmacion) evento.respuestas_confirmacion = {};
       var socData = leerSocios();
