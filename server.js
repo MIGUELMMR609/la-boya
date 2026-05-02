@@ -593,7 +593,7 @@ app.post('/api/eventos', (req, res) => {
       asistentes: [],
       invitados_boya: [],
       aforo_maximo: parseInt(req.body.aforo_maximo, 10) || 0,
-      fecha_inscripcion: req.body.fecha_inscripcion || (function() { var d = new Date(fecha); d.setDate(d.getDate() - 5); return d.toISOString().split('T')[0]; })(),
+      fecha_inscripcion: req.body.fecha_inscripcion || (function() { var d = new Date(fecha); d.setDate(d.getDate() - 3); return d.toISOString().split('T')[0]; })(),
       menu: req.body.menu || { aperitivos: '', plato_principal: '', postre: '' },
       confirmacion_token: null,
       respuestas_confirmacion: {},

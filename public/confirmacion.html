@@ -177,7 +177,7 @@
         } else {
           var diffP = Math.ceil((limP - hoyP) / 86400000);
           if (diffP === 0) plazoHtml = '<div style="background:#FAC775;color:#412402;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:700;margin-top:8px">\u23f0 HOY es el \u00faltimo d\u00eda para confirmar</div>';
-          else if (diffP <= 7) plazoHtml = '<div style="background:#FFF3E0;color:#B45F0A;padding:8px 14px;border-radius:8px;font-size:13px;margin-top:8px">\u23f0 Quedan ' + diffP + ' d\u00edas para confirmar</div>';
+          else if (diffP <= 5) plazoHtml = '<div style="background:#FFF3E0;color:#B45F0A;padding:8px 14px;border-radius:8px;font-size:13px;margin-top:8px">\u23f0 Quedan ' + diffP + ' d\u00edas para confirmar</div>';
         }
       }
       var dis = (evento.estado === 'finalizado' || plazoCerrado) ? ' disabled' : '';
