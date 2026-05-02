@@ -5763,6 +5763,47 @@
       document.getElementById('confBack').addEventListener('click', cerrarConf);
       document.getElementById('confCancel').addEventListener('click', cerrarConf);
 
+      // Check for resume
+      var lsKey = 'la_boya_envio_masivo_' + evt.id;
+      var progreso = null;
+      try { progreso = JSON.parse(localStorage.getItem(lsKey)); } catch(e) {}
+      if (progreso && progreso.sociosOriginales && progreso.sociosOriginales.length > 0) {
+        var age = Date.now() - (progreso.ultimaActividad || 0);
+        if (age < 7 * 24 * 3600000) {
+          var envCont = document.getElementById('confGrid');
+          if (envCont) {
+            var env = Object.keys(progreso.registroEnvio || {}).filter(function(k) { return progreso.registroEnvio[k].estado === 'enviado'; }).length;
+            var tAgo = age < 3600000 ? Math.round(age/60000) + ' min' : (age < 86400000 ? Math.round(age/3600000) + ' h' : Math.round(age/86400000) + ' d\u00edas');
+            var banner = document.createElement('div');
+            banner.style.cssText = 'background:#FFF9F0;border:1px solid #FAEEDA;border-radius:12px;padding:16px 18px;margin:0 8px 12px';
+            banner.innerHTML = '<div style="font-size:14px;font-weight:600;color:#412402;margin-bottom:6px">\u23f8 Tienes un env\u00edo en curso</div><div style="font-size:13px;color:#5F5E5A;margin-bottom:12px">Llevas ' + env + ' de ' + progreso.sociosOriginales.length + ' enviados. \u00daltima actividad: hace ' + tAgo + '.</div><div style="display:flex;gap:8px"><button id="confResume" style="flex:1;background:#25D366;color:#fff;border:none;padding:10px 14px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">\u25b6 CONTINUAR</button><button id="confDiscard" style="flex:1;background:#fff;border:1px solid #B5B5B5;color:#5F5E5A;padding:10px 14px;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer">\u2715 Descartar</button></div>';
+            envCont.parentNode.insertBefore(banner, envCont);
+            document.getElementById('confResume').addEventListener('click', function() {
+              var msg = document.getElementById('confMsg').value;
+              cerrarConf();
+              iniciarEnvioMasivo(evt, progreso.sociosOriginales.map(function(ns) { return socios.find(function(s) { return s.num_socio === ns; }); }).filter(Boolean), msg, token, progreso);
+            });
+            document.getElementById('confDiscard').addEventListener('click', function() {
+              if (confirm('\u00bfSeguro? Perder\u00e1s el progreso.')) { localStorage.removeItem(lsKey); banner.remove(); }
+            });
+          }
+        } else { localStorage.removeItem(lsKey); }
+      }
+
+      // Botón envío masivo guiado
+      var massBtn = document.createElement('div');
+      massBtn.style.cssText = 'padding:8px 16px';
+      massBtn.innerHTML = '<button id="confMasivo" style="width:100%;background:#25D366;color:#fff;border:none;padding:14px 24px;border-radius:12px;font-size:16px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 4px 12px rgba(37,211,102,0.3)">' + SVG_WA + ' EMPEZAR ENV\u00cdO MASIVO</button>';
+      var confGrid = document.getElementById('confGrid');
+      if (confGrid) confGrid.parentNode.insertBefore(massBtn, confGrid);
+      document.getElementById('confMasivo').addEventListener('click', function() {
+        var msg = document.getElementById('confMsg').value;
+        var dests = selected.map(function(id) { return findSocio(id); }).filter(function(s) { return s && s.telefono && esBeta(s.num_socio); });
+        if (dests.length === 0) { showToast('Selecciona al menos un socio'); return; }
+        cerrarConf();
+        iniciarEnvioMasivo(evt, dests, msg, token, null);
+      });
+
       document.getElementById('confSend').addEventListener('click', function() {
         var msg = document.getElementById('confMsg').value;
         var dests = selected.map(function(id) { return findSocio(id); }).filter(function(s) { return s && esBeta(s.num_socio); });
@@ -5808,6 +5849,182 @@
         if (waCount > 0) toastMsg += waCount + ' WhatsApp abiertos.';
         showToast('\u2713 ' + toastMsg);
       });
+    }
+
+    // === ENVÍO MASIVO GUIADO ===
+    function iniciarEnvioMasivo(evt, destsSocios, plantilla, token, progresoExistente) {
+      var overlay = document.getElementById('waMsgOverlay');
+      var content = document.getElementById('waMsgContent');
+      var lsKey = 'la_boya_envio_masivo_' + evt.id;
+      var sociosArr = destsSocios.slice();
+      var registro = progresoExistente ? (progresoExistente.registroEnvio || {}) : {};
+      var idx = progresoExistente ? (progresoExistente.indiceActual || 0) : 0;
+      var esperandoRegreso = false;
+      var tsLanzamiento = 0;
+
+      function guardarProgreso() {
+        localStorage.setItem(lsKey, JSON.stringify({
+          eventoId: evt.id, eventoNombre: evt.nombre,
+          sociosOriginales: sociosArr.map(function(s) { return s.num_socio; }),
+          indiceActual: idx, registroEnvio: registro,
+          iniciado: progresoExistente ? progresoExistente.iniciado : Date.now(),
+          ultimaActividad: Date.now()
+        }));
+      }
+
+      function contarEstados() {
+        var env = 0, salt = 0, fallo = 0;
+        for (var k in registro) {
+          if (registro[k].estado === 'enviado') env++;
+          else if (registro[k].estado === 'saltado') salt++;
+          else if (registro[k].estado === 'fallo') fallo++;
+        }
+        return { enviados: env, saltados: salt, fallos: fallo };
+      }
+
+      function renderMasivo() {
+        if (idx >= sociosArr.length) { renderResumen(); return; }
+        var s = sociosArr[idx];
+        var stats = contarEstados();
+        var pct = Math.round((idx / sociosArr.length) * 100);
+        var bgC = s.avatar_color || '#85B7EB'; var txtC = TEXT_COLORS[bgC] || '#333';
+        var ini = getInitials(s.nombre, s.apellidos);
+        var avHtml = s.foto_url ? '<img src="' + cloudinaryThumb(s.foto_url, 240) + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover">' : '<span style="color:' + txtC + ';font-size:40px">' + ini + '</span>';
+        var envList = [];
+        for (var ek in registro) { if (registro[ek].estado === 'enviado') { var es = sociosArr.find(function(x) { return String(x.num_socio) === ek; }); if (es) envList.push(es.nombre.split(' ')[0]); } }
+
+        content.innerHTML =
+          '<div class="overlay-shell">' +
+          '<div class="overlay-head"><button class="ficha-back" id="masBack">\u2190 Volver</button><span class="sel-bar-title">Env\u00edo masivo</span><span></span></div>' +
+          '<div class="overlay-body" style="padding:0">' +
+            '<div style="padding:16px"><div style="background:#E5E5E5;border-radius:999px;height:8px;overflow:hidden"><div style="background:#25D366;height:100%;width:' + pct + '%;border-radius:999px;transition:width 0.3s"></div></div><div style="font-size:13px;font-weight:500;color:#5F5E5A;margin-top:4px;text-align:center">' + idx + ' de ' + sociosArr.length + ' procesados</div></div>' +
+            '<div style="background:#fff;border:1px solid #E5E5E5;border-radius:16px;padding:24px;max-width:360px;margin:8px auto;text-align:center">' +
+              '<div style="width:120px;height:120px;border-radius:50%;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-weight:700;background:' + (s.foto_url ? 'transparent' : bgC) + '">' + avHtml + '</div>' +
+              '<div style="font-size:22px;font-weight:700;color:#2C2C2A;letter-spacing:0.3px">' + escapeHtml(s.nombre + ' ' + s.apellidos) + '</div>' +
+              '<div style="font-size:13px;color:#5F5E5A;margin-top:4px">Socio n\u00ba ' + s.num_socio + '</div>' +
+            '</div>' +
+            '<div style="padding:0 16px;max-width:360px;margin:0 auto">' +
+              '<button id="masSend" style="width:100%;background:#25D366;color:#fff;border:none;padding:16px;border-radius:12px;font-size:16px;font-weight:700;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">' + SVG_WA + ' Enviar a ' + escapeHtml(s.nombre.split(' ')[0]) + '</button>' +
+              '<button id="masSkip" style="width:100%;background:#fff;border:1px solid #E0E0E0;color:#5F5E5A;padding:10px;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;margin-top:8px">\u23ed Saltar este socio</button>' +
+            '</div>' +
+            (envList.length > 0 ? '<div style="background:#F0F9F4;border-radius:10px;padding:12px 14px;margin:16px;font-size:12px;color:#04342C">\u2705 Ya enviados (' + envList.length + '): ' + envList.slice(0, 6).join(', ') + (envList.length > 6 ? '...' : '') + '</div>' : '') +
+          '</div>' +
+          '</div>';
+
+        overlay.classList.add('open');
+        document.body.style.overflow = 'hidden';
+
+        document.getElementById('masBack').addEventListener('click', function() {
+          if (confirm('\u00bfSalir del env\u00edo? Tu progreso se guardar\u00e1.')) { guardarProgreso(); cerrarMas(); }
+        });
+        document.getElementById('masSend').addEventListener('click', function() {
+          esperandoRegreso = true;
+          tsLanzamiento = Date.now();
+          var personal = plantilla.replace(/\{NOMBRE\}/g, s.nombre.split(' ')[0]).replace(/\{ENLACE\}/g, window.location.origin + '/c/' + token + '/' + s.num_socio);
+          var num = s.telefono.replace(/[\s\-\+]/g, '');
+          window.location.href = 'https://wa.me/' + num + '?text=' + encodeURIComponent(personal);
+        });
+        document.getElementById('masSkip').addEventListener('click', function() {
+          registro[String(s.num_socio)] = { estado: 'saltado', timestamp: Date.now() };
+          idx++;
+          guardarProgreso();
+          renderMasivo();
+        });
+      }
+
+      // Visibility change for auto-advance
+      function onVis() {
+        if (document.visibilityState === 'visible' && esperandoRegreso) {
+          esperandoRegreso = false;
+          var elapsed = Date.now() - tsLanzamiento;
+          if (elapsed > 1500) {
+            var s = sociosArr[idx];
+            registro[String(s.num_socio)] = { estado: 'enviado', timestamp: Date.now() };
+            idx++;
+            guardarProgreso();
+            mostrarToastDeshacer(s);
+            renderMasivo();
+          }
+        }
+      }
+      document.addEventListener('visibilitychange', onVis);
+
+      function mostrarToastDeshacer(soc) {
+        var ex = document.getElementById('masToast');
+        if (ex) ex.remove();
+        var t = document.createElement('div');
+        t.id = 'masToast';
+        t.style.cssText = 'position:fixed;top:max(16px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:#173404;color:#fff;padding:12px 18px;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,0.2);font-size:14px;font-weight:500;display:flex;gap:12px;align-items:center;z-index:99999';
+        t.innerHTML = '\u2713 ' + escapeHtml(soc.nombre.split(' ')[0]) + ' enviado <button id="masUndo" style="border:1px solid rgba(255,255,255,0.5);background:none;color:#fff;padding:4px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">DESHACER</button>';
+        document.body.appendChild(t);
+        document.getElementById('masUndo').addEventListener('click', function() {
+          t.remove();
+          registro[String(soc.num_socio)] = { estado: 'pendiente', timestamp: Date.now() };
+          idx--;
+          guardarProgreso();
+          renderMasivo();
+        });
+        setTimeout(function() { if (t.parentNode) t.style.opacity = '0'; setTimeout(function() { if (t.parentNode) t.remove(); }, 300); }, 3000);
+      }
+
+      function renderResumen() {
+        var stats = contarEstados();
+        var pendientes = [];
+        for (var ri = 0; ri < sociosArr.length; ri++) {
+          var ns = String(sociosArr[ri].num_socio);
+          var r = registro[ns];
+          if (!r || r.estado !== 'enviado') pendientes.push({ socio: sociosArr[ri], razon: r ? r.estado : 'pendiente' });
+        }
+        var completo = pendientes.length === 0;
+        var blocksHtml = '<div style="display:flex;gap:8px;justify-content:center;margin:16px">';
+        blocksHtml += '<div style="background:#C0DD97;border-radius:10px;padding:14px 20px;text-align:center"><div style="font-size:26px;font-weight:800;color:#173404">' + stats.enviados + '</div><div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#173404">Enviados</div></div>';
+        if (stats.saltados > 0) blocksHtml += '<div style="background:#FAC775;border-radius:10px;padding:14px 20px;text-align:center"><div style="font-size:26px;font-weight:800;color:#412402">' + stats.saltados + '</div><div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#412402">Saltados</div></div>';
+        blocksHtml += '</div>';
+
+        var pendHtml = '';
+        if (pendientes.length > 0) {
+          pendHtml = '<div style="padding:0 16px;margin-bottom:16px"><div style="font-size:14px;font-weight:600;color:#791F1F;margin-bottom:8px">\u26a0\ufe0f ' + pendientes.length + ' socio' + (pendientes.length !== 1 ? 's' : '') + ' sin aviso:</div>';
+          for (var pi = 0; pi < pendientes.length; pi++) {
+            pendHtml += '<div style="padding:8px 0;border-bottom:1px solid #E5E5E5;font-size:14px;font-weight:500;color:#2C2C2A">' + escapeHtml(pendientes[pi].socio.nombre + ' ' + pendientes[pi].socio.apellidos) + ' <span style="font-size:12px;color:#999">(' + pendientes[pi].razon + ')</span></div>';
+          }
+          pendHtml += '</div>';
+        }
+
+        content.innerHTML =
+          '<div class="overlay-shell">' +
+          '<div class="overlay-head"><span></span><span class="sel-bar-title">' + (completo ? '\u2713 ENV\u00cdO COMPLETADO' : '\u23f8 ENV\u00cdO PARCIAL') + '</span><span></span></div>' +
+          '<div class="overlay-body" style="padding:16px">' +
+            blocksHtml + pendHtml +
+            (pendientes.length > 0 ? '<button id="masRetry" style="width:100%;background:#fff;border:1.5px solid #0C447C;color:#0C447C;padding:12px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px">\u21a9 Reintentar con pendientes</button>' : '') +
+            '<button id="masClose" style="width:100%;background:#0C447C;color:#fff;border:none;padding:12px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">\u2713 Cerrar y finalizar</button>' +
+          '</div>' +
+          '</div>';
+
+        overlay.classList.add('open');
+        if (pendientes.length > 0) {
+          document.getElementById('masRetry').addEventListener('click', function() {
+            var retrySocios = pendientes.map(function(p) { return p.socio; });
+            for (var rk in registro) { if (registro[rk].estado !== 'enviado') delete registro[rk]; }
+            idx = 0;
+            sociosArr = retrySocios;
+            guardarProgreso();
+            renderMasivo();
+          });
+        }
+        document.getElementById('masClose').addEventListener('click', function() {
+          localStorage.removeItem(lsKey);
+          cerrarMas();
+        });
+      }
+
+      function cerrarMas() {
+        document.removeEventListener('visibilitychange', onVis);
+        overlay.classList.remove('open');
+        setTimeout(function() { document.body.style.overflow = ''; }, 300);
+      }
+
+      guardarProgreso();
+      renderMasivo();
     }
 
     // PROTECCIÓN TEMPORAL: clave para acceder a la app admin.
