@@ -478,6 +478,7 @@ function leerEventos() {
         data[i].menu = { aperitivos: '', plato_principal: '', postre: '' };
         migrado = true;
       }
+      if (data[i].comunicado === undefined) { data[i].comunicado = ''; migrado = true; }
       if (data[i].fecha_inscripcion === undefined) {
         var hoyMig = new Date().toISOString().split('T')[0];
         if (data[i].fecha >= hoyMig) {
@@ -594,6 +595,7 @@ app.post('/api/eventos', (req, res) => {
       invitados_boya: [],
       aforo_maximo: parseInt(req.body.aforo_maximo, 10) || 0,
       fecha_inscripcion: req.body.fecha_inscripcion || (function() { var d = new Date(fecha); d.setDate(d.getDate() - 3); return d.toISOString().split('T')[0]; })(),
+      comunicado: req.body.comunicado || '',
       menu: req.body.menu || { aperitivos: '', plato_principal: '', postre: '' },
       confirmacion_token: null,
       respuestas_confirmacion: {},
@@ -638,6 +640,7 @@ app.put('/api/eventos/:id', (req, res) => {
     if (req.body.notas !== undefined) evt.notas = req.body.notas;
     if (req.body.aforo_maximo !== undefined) evt.aforo_maximo = parseInt(req.body.aforo_maximo, 10) || 0;
     if (req.body.menu !== undefined) evt.menu = req.body.menu;
+    if (req.body.comunicado !== undefined) evt.comunicado = req.body.comunicado;
     if (req.body.fecha_inscripcion !== undefined) evt.fecha_inscripcion = req.body.fecha_inscripcion;
     if (req.body.cocineros !== undefined) evt.cocineros = req.body.cocineros;
     if (req.body.asistentes !== undefined) evt.asistentes = req.body.asistentes;
@@ -1187,6 +1190,7 @@ app.get('/api/publico/confirmacion/:token/:num_socio', (req, res) => {
         modo_calculo: evt.modo_calculo,
         estado: evt.estado,
         aforo_maximo: evt.aforo_maximo || null,
+        comunicado: evt.comunicado || '',
         fecha_inscripcion: evt.fecha_inscripcion || null,
         menu: evt.menu || null,
         cocineros_nombres: (function() {
@@ -1511,7 +1515,8 @@ app.post('/api/eventos/:id/enviar-telegram', function(req, res) {
       var msg = plantilla.replace(/\{NOMBRE\}/g, d.nombre_pila || 'Socio');
       // Encabezamiento destacado
       var emoji = evt.tipo === 'comida_social' ? '\ud83c\udf74' : (evt.tipo === 'evento_gratis' ? '\ud83c\udf81' : '\ud83d\udcc5');
-      msg = emoji + ' *' + evt.nombre.toUpperCase() + '*\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n' + msg;
+      var comBlk = evt.comunicado ? '\n\n\ud83d\udce2 *COMUNICADO IMPORTANTE:*\n' + evt.comunicado + '\n' : '';
+      msg = emoji + ' *' + evt.nombre.toUpperCase() + '*\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501' + comBlk + '\n\n' + msg;
       // Bloque aforo para comidas sociales
       if (evt.tipo === 'comida_social' && evt.aforo_maximo) {
         msg += '\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u26a0\ufe0f *EL AFORO MAXIMO ES DE ' + evt.aforo_maximo + ' COMENSALES.*\n*Si puedes asistir, confirmalo lo antes posible.*';

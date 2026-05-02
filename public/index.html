@@ -3749,6 +3749,12 @@
             '<div style="font-size:10px;color:#999;margin-top:3px">Por defecto 3 d\u00edas antes del evento. Pasada esta fecha, los socios no podr\u00e1n confirmar.</div>' +
           '</div>' +
           '<div class="form-field">' +
+            '<label class="form-label" style="color:#B45F0A">COMUNICADO DEL EVENTO (OPCIONAL)</label>' +
+            '<div style="font-size:11px;color:#5F5E5A;margin-bottom:4px">Si lo escribes, aparecer\u00e1 destacado al principio del mensaje que reciben los socios.</div>' +
+            '<textarea class="notas-textarea-neutral" id="evtComunicado" style="min-height:60px" maxlength="500" placeholder="Ej: La comida empieza a las 14:30. Traed abrigo."></textarea>' +
+            '<div style="font-size:10px;color:#999;margin-top:2px;margin-bottom:10px" id="evtComunicadoCount">0/500</div>' +
+          '</div>' +
+          '<div class="form-field">' +
             '<label class="form-label">Notas (opcional)</label>' +
             '<textarea class="notas-textarea-neutral" id="evtNotas"></textarea>' +
           '</div>' +
@@ -3773,6 +3779,11 @@
       }
       calcFechaInscr();
       document.getElementById('evtFecha').addEventListener('change', calcFechaInscr);
+      var comTA = document.getElementById('evtComunicado');
+      if (comTA) comTA.addEventListener('input', function() {
+        var cnt = document.getElementById('evtComunicadoCount');
+        if (cnt) { cnt.textContent = comTA.value.length + '/500'; cnt.style.color = comTA.value.length > 450 ? (comTA.value.length >= 500 ? '#791F1F' : '#B45F0A') : '#999'; }
+      });
       document.getElementById('evtFechaInscr').addEventListener('change', function() { this.dataset.manual = '1'; });
 
       // Tipo selection
@@ -3845,6 +3856,7 @@
 
         body.aforo_maximo = parseInt((document.getElementById('evtAforoComun') || {}).value, 10) || 0;
         body.fecha_inscripcion = (document.getElementById('evtFechaInscr') || {}).value || null;
+        body.comunicado = (document.getElementById('evtComunicado') || {}).value || '';
         if (body.aforo_maximo === 0 && tipoSel !== 'comida_social') {
           if (!confirm('\u26a0\ufe0f ATENCI\u00d3N\n\nNo has asignado un aforo m\u00e1ximo. Los socios podr\u00e1n confirmar sin l\u00edmite.\n\n\u00bfContinuar sin l\u00edmite?')) return;
         }
@@ -4144,6 +4156,7 @@
           menuHtml += '<button class="btn-modificar-coste" id="btnEditarMenu" style="margin-top:8px">Editar men\u00fa</button></div>';
           return menuHtml;
         })() : '') +
+        (evt.comunicado ? '<div style="background:#FFF3E0;border:1px solid #FAEEDA;border-radius:12px;padding:16px;margin:12px 16px 0"><div style="font-size:13px;font-weight:700;letter-spacing:1px;color:#B45F0A;text-transform:uppercase;margin-bottom:8px">\ud83d\udce2 COMUNICADO DEL EVENTO</div><div style="font-size:15px;font-weight:500;color:#2C2C2A;white-space:pre-wrap;line-height:1.5">' + escapeHtml(evt.comunicado) + '</div><button class="btn-modificar-coste" id="btnEditarCom" style="margin-top:8px">Editar comunicado</button></div>' : '') +
         (evt.tipo === 'comida_social' ? (function() {
           var cocs = (evt.cocineros || []);
           var cocHtml = '<div style="background:#FAF6FF;border:1px solid #E2DCFF;border-radius:12px;padding:16px;margin:12px 16px 0">';
@@ -4264,6 +4277,17 @@
       var btnMod = document.getElementById('btnModCoste');
       if (btnAsignar) btnAsignar.addEventListener('click', function() { abrirModalCoste(evt); });
       if (btnMod) btnMod.addEventListener('click', function() { abrirModalCoste(evt); });
+      // Editar comunicado
+      var btnCom = document.getElementById('btnEditarCom');
+      if (btnCom) btnCom.addEventListener('click', function() {
+        var nuevo = prompt('Comunicado del evento (vac\u00edo para quitar):', evt.comunicado || '');
+        if (nuevo === null) return;
+        fetch('/api/eventos/' + evt.id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ comunicado: nuevo.trim() }) })
+          .then(function(r) { return r.json(); })
+          .then(function(updated) { renderDetalleEvento(updated); showToast('\u2713 Comunicado actualizado'); })
+          .catch(function() { showError('Error'); });
+      });
+
       // Modificar cocineros desde bloque
       var btnModCoc = document.getElementById('btnModCocineros');
       if (btnModCoc) btnModCoc.addEventListener('click', function() {
@@ -5678,8 +5702,9 @@
           if (m.plato_principal) menuBlock += '\nPlato principal: ' + m.plato_principal;
           if (m.postre) menuBlock += '\nPostre: ' + m.postre;
         }
+        var comLine = evt.comunicado ? '\n\n\ud83d\udce2 COMUNICADO IMPORTANTE:\n' + evt.comunicado + '\n' : '';
         var plazoLine = evt.fecha_inscripcion ? '\n\n\u23f0 Confirma tu asistencia antes del ' + pdfFechaLarga(evt.fecha_inscripcion) + '.' : '';
-        plantilla = 'Estimado {NOMBRE},\n\nEl pr\u00f3ximo ' + diaSem + ' ' + dia + ' de ' + mes + ' de ' + anio + ' vamos a celebrar una Comida Social en LA BOYA. Nos encantar\u00eda que pudieras asistir. Te recuerdo que el precio es de ' + precioTxt + ' \u20ac, que deber\u00e1s ingresar en la sede de LA BOYA antes del d\u00eda de la comida.' + menuBlock + '\n\nSi puedes asistir, te ruego que pulses el enlace de abajo y confirmes tu asistencia.\n\n\u26a0\ufe0f EL AFORO MAXIMO ES DE ' + aforoTxt + ' COMENSALES. Si puedes asistir, confirmalo lo antes posible.' + plazoLine + '\n\n{ENLACE}';
+        plantilla = 'Estimado {NOMBRE},' + comLine + '\n\nEl pr\u00f3ximo' + diaSem + ' ' + dia + ' de ' + mes + ' de ' + anio + ' vamos a celebrar una Comida Social en LA BOYA. Nos encantar\u00eda que pudieras asistir. Te recuerdo que el precio es de ' + precioTxt + ' \u20ac, que deber\u00e1s ingresar en la sede de LA BOYA antes del d\u00eda de la comida.' + menuBlock + '\n\nSi puedes asistir, te ruego que pulses el enlace de abajo y confirmes tu asistencia.\n\n\u26a0\ufe0f EL AFORO MAXIMO ES DE ' + aforoTxt + ' COMENSALES. Si puedes asistir, confirmalo lo antes posible.' + plazoLine + '\n\n{ENLACE}';
       } else if (evt.tipo === 'evento_gratis') {
         plantilla = 'Estimado {NOMBRE},\n\nEl pr\u00f3ximo ' + diaSem + ' ' + dia + ' de ' + mes + ' de ' + anio + ' la Sociedad LA BOYA os invita a ' + nombreBase + ', sufragado por los fondos de la sociedad (no tendr\u00e1s que pagar nada).\n\nNos encantar\u00eda que pudieras asistir. Tu confirmaci\u00f3n nos ayuda a hacer la previsi\u00f3n de compras.\n\nSi puedes asistir, te ruego que pulses el enlace de abajo y confirmes tu asistencia.\n\n{ENLACE}';
       } else {
