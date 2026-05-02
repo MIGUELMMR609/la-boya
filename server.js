@@ -1513,10 +1513,11 @@ app.post('/api/eventos/:id/enviar-telegram', function(req, res) {
       var d = destinatarios[i];
       if (!d.chat_id) { fallidos++; detalles.push({ num_socio: d.num_socio, error: 'sin chat_id' }); enviarUno(i + 1); return; }
       var msg = plantilla.replace(/\{NOMBRE\}/g, d.nombre_pila || 'Socio');
-      // Encabezamiento destacado
+      // Encabezamiento: BETA + titulo + datos + comunicado
       var emoji = evt.tipo === 'comida_social' ? '\ud83c\udf74' : (evt.tipo === 'evento_gratis' ? '\ud83c\udf81' : '\ud83d\udcc5');
-      var comBlk = evt.comunicado ? '\n\n\ud83d\udce2 *COMUNICADO IMPORTANTE:*\n' + evt.comunicado + '\n' : '';
-      msg = emoji + ' *' + evt.nombre.toUpperCase() + '*\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501' + comBlk + '\n\n' + msg;
+      var betaBlk = '\u26a0\ufe0f AVISO EN PRUEBAS. Los comunicados pueden ser ficticios.\n\n';
+      var comBlk = evt.comunicado ? '\n\n\ud83d\udce2 *COMUNICADO IMPORTANTE:*\n' + evt.comunicado : '';
+      msg = betaBlk + emoji + ' *' + evt.nombre.toUpperCase() + '*\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n' + msg + comBlk;
       // Bloque aforo para comidas sociales
       if (evt.tipo === 'comida_social' && evt.aforo_maximo) {
         msg += '\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\u26a0\ufe0f *EL AFORO MAXIMO ES DE ' + evt.aforo_maximo + ' COMENSALES.*\n*Si puedes asistir, confirmalo lo antes posible.*';

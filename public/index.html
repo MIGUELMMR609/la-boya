@@ -5702,19 +5702,22 @@
           if (m.plato_principal) menuBlock += '\nPlato principal: ' + m.plato_principal;
           if (m.postre) menuBlock += '\nPostre: ' + m.postre;
         }
-        // Bloques comunes a todos los tipos
+        // Bloques comunes: BETA + comunicado + plazo (orden estricto: BETA, saludo, datos, comunicado, plazo, enlace)
+        var betaLine = '\u26a0\ufe0f ESTE ES UN AVISO EN PRUEBAS. LOS COMUNICADOS PUEDEN SER FICTICIOS SOLO PARA COMPROBAR SU FUNCIONALIDAD.\n\n';
         var comLine = evt.comunicado ? '\n\n\ud83d\udce2 COMUNICADO IMPORTANTE:\n' + evt.comunicado : '';
         var plazoLine = evt.fecha_inscripcion ? '\n\n\u23f0 Confirma tu asistencia antes del ' + pdfFechaLarga(evt.fecha_inscripcion) + '.' : '';
 
-        plantilla = 'Estimado {NOMBRE},' + comLine + '\n\nEl pr\u00f3ximo ' + diaSem + ' ' + dia + ' de ' + mes + ' de ' + anio + ' vamos a celebrar una Comida Social en LA BOYA. Nos encantar\u00eda que pudieras asistir. Te recuerdo que el precio es de ' + precioTxt + ' \u20ac, que deber\u00e1s ingresar en la sede de LA BOYA antes del d\u00eda de la comida.' + menuBlock + '\n\nSi puedes asistir, te ruego que pulses el enlace de abajo y confirmes tu asistencia.\n\n\u26a0\ufe0f EL AFORO MAXIMO ES DE ' + aforoTxt + ' COMENSALES. Si puedes asistir, confirmalo lo antes posible.' + plazoLine + '\n\n{ENLACE}';
+        plantilla = betaLine + 'Estimado {NOMBRE},\n\nEl pr\u00f3ximo ' + diaSem + ' ' + dia + ' de ' + mes + ' de ' + anio + ' vamos a celebrar una Comida Social en LA BOYA. Nos encantar\u00eda que pudieras asistir. Te recuerdo que el precio es de ' + precioTxt + ' \u20ac, que deber\u00e1s ingresar en la sede de LA BOYA antes del d\u00eda de la comida.' + menuBlock + comLine + '\n\n\u26a0\ufe0f EL AFORO MAXIMO ES DE ' + aforoTxt + ' COMENSALES. Si puedes asistir, confirmalo lo antes posible.' + plazoLine + '\n\nSi puedes asistir, te ruego que pulses el enlace de abajo y confirmes tu asistencia.\n\n{ENLACE}';
       } else if (evt.tipo === 'evento_gratis') {
+        var betaLine = '\u26a0\ufe0f ESTE ES UN AVISO EN PRUEBAS. LOS COMUNICADOS PUEDEN SER FICTICIOS SOLO PARA COMPROBAR SU FUNCIONALIDAD.\n\n';
         var comLine = evt.comunicado ? '\n\n\ud83d\udce2 COMUNICADO IMPORTANTE:\n' + evt.comunicado : '';
         var plazoLine = evt.fecha_inscripcion ? '\n\n\u23f0 Confirma tu asistencia antes del ' + pdfFechaLarga(evt.fecha_inscripcion) + '.' : '';
-        plantilla = 'Estimado {NOMBRE},' + comLine + '\n\nEl pr\u00f3ximo ' + diaSem + ' ' + dia + ' de ' + mes + ' de ' + anio + ' la Sociedad LA BOYA os invita a ' + nombreBase + ', sufragado por los fondos de la sociedad (no tendr\u00e1s que pagar nada).\n\nNos encantar\u00eda que pudieras asistir. Tu confirmaci\u00f3n nos ayuda a hacer la previsi\u00f3n de compras.\n\nSi puedes asistir, te ruego que pulses el enlace de abajo y confirmes tu asistencia.' + plazoLine + '\n\n{ENLACE}';
+        plantilla = betaLine + 'Estimado {NOMBRE},\n\nEl pr\u00f3ximo ' + diaSem + ' ' + dia + ' de ' + mes + ' de ' + anio + ' la Sociedad LA BOYA os invita a ' + nombreBase + ', sufragado por los fondos de la sociedad (no tendr\u00e1s que pagar nada).\n\nNos encantar\u00eda que pudieras asistir. Tu confirmaci\u00f3n nos ayuda a hacer la previsi\u00f3n de compras.' + comLine + plazoLine + '\n\nSi puedes asistir, te ruego que pulses el enlace de abajo y confirmes tu asistencia.\n\n{ENLACE}';
       } else {
+        var betaLine = '\u26a0\ufe0f ESTE ES UN AVISO EN PRUEBAS. LOS COMUNICADOS PUEDEN SER FICTICIOS SOLO PARA COMPROBAR SU FUNCIONALIDAD.\n\n';
         var comLine = evt.comunicado ? '\n\n\ud83d\udce2 COMUNICADO IMPORTANTE:\n' + evt.comunicado : '';
         var plazoLine = evt.fecha_inscripcion ? '\n\n\u23f0 Confirma tu asistencia antes del ' + pdfFechaLarga(evt.fecha_inscripcion) + '.' : '';
-        plantilla = 'Estimado {NOMBRE},' + comLine + '\n\nEl pr\u00f3ximo ' + diaSem + ' ' + dia + ' de ' + mes + ' de ' + anio + ' vamos a celebrar ' + nombreBase + ' en LA BOYA y nos encantar\u00eda que pudieras asistir.' + plazoLine + '\n\nSi puedes asistir, te ruego que pulses el enlace de abajo y confirmes tu asistencia.\n\n{ENLACE}';
+        plantilla = betaLine + 'Estimado {NOMBRE},\n\nEl pr\u00f3ximo ' + diaSem + ' ' + dia + ' de ' + mes + ' de ' + anio + ' vamos a celebrar ' + nombreBase + ' en LA BOYA y nos encantar\u00eda que pudieras asistir.' + comLine + plazoLine + '\n\nSi puedes asistir, te ruego que pulses el enlace de abajo y confirmes tu asistencia.\n\n{ENLACE}';
       }
 
       // Beta check helper

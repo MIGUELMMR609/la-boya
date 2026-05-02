@@ -187,15 +187,17 @@
 
       var html =
         '<div class="card">' +
+          '<div style="background:#FFF3E0;border:2px dashed #B45F0A;color:#B45F0A;padding:12px 16px;border-radius:10px;font-size:12px;font-weight:700;letter-spacing:0.3px;text-align:center;margin-bottom:16px">\u26a0\ufe0f ESTE ES UN AVISO EN PRUEBAS. LOS COMUNICADOS PUEDEN SER FICTICIOS SOLO PARA COMPROBAR SU FUNCIONALIDAD.</div>' +
           '<div class="logo">LA BOYA</div>' +
           '<div class="logo-sub">Sociedad Recreativa</div>' +
           '<hr class="sep">' +
-          (evento.comunicado ? '<div style="background:#FFF3E0;border:1px solid #FAEEDA;border-radius:10px;padding:12px 16px;margin-bottom:12px;text-align:left"><div style="font-size:12px;font-weight:700;letter-spacing:0.5px;color:#B45F0A;text-transform:uppercase;margin-bottom:6px">\ud83d\udce2 Comunicado importante</div><div style="font-size:14px;color:#2C2C2A;white-space:pre-wrap;line-height:1.5">' + esc(evento.comunicado) + '</div></div>' : '') +
           '<div class="badge ' + badgeClass + '">' + badgeText + '</div>' +
           '<div class="evt-name" style="text-transform:uppercase;letter-spacing:0.5px">' + esc(evento.nombre) + '</div>' +
           '<div class="evt-fecha">' + esc(evento.fecha_formateada) + '</div>' +
           precioHtml +
-          notasHtml + menuHtml + plazoHtml +
+          notasHtml + menuHtml +
+          (evento.comunicado ? '<div style="background:#FFF3E0;border:1px solid #FAEEDA;border-radius:10px;padding:12px 16px;margin-top:12px;margin-bottom:12px;text-align:left"><div style="font-size:12px;font-weight:700;letter-spacing:0.5px;color:#B45F0A;text-transform:uppercase;margin-bottom:6px">\ud83d\udce2 Comunicado importante</div><div style="font-size:14px;color:#2C2C2A;white-space:pre-wrap;line-height:1.5">' + esc(evento.comunicado) + '</div></div>' : '') +
+          plazoHtml +
           '<hr class="sep">' +
           finHtml +
           '<div id="msgOk" class="msg-ok hidden" style="display:none"></div>' +
